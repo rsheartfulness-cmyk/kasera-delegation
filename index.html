@@ -382,6 +382,58 @@ tr:hover td{background:rgba(37,99,235,.04);}
 /* TIME CHIP / TAG refinement */
 .tc,.tg{background:var(--s3);border-color:var(--bd);color:var(--t2);}
 
+
+/* ═══ TAG BOX STYLING (#2) ═══ */
+.tagbox{background:var(--s2);border:1px solid var(--bd2);border-radius:9px;padding:11px;min-height:46px;display:flex;flex-wrap:wrap;gap:7px;align-items:center;}
+.tagchip{cursor:pointer;user-select:none;font-size:12px;padding:6px 12px;border-radius:20px;border:1px solid var(--bd2);background:#fff;color:var(--t2);transition:all .15s;white-space:nowrap;}
+.tagchip:hover{border-color:var(--ac);}
+.tagchip.on{background:var(--ac);color:#fff;border-color:var(--ac);box-shadow:0 2px 6px var(--glow);}
+
+/* ═══ HAMBURGER (hidden on desktop) ═══ */
+.hbg{display:none;background:none;border:none;font-size:22px;color:var(--t);cursor:pointer;padding:4px 10px 4px 0;line-height:1;}
+.sb-backdrop{display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:40;backdrop-filter:blur(2px);}
+
+/* ═══ MOBILE RESPONSIVE (#1) ═══ */
+@media (max-width:860px){
+  .hbg{display:block;}
+  .sb2{position:fixed;left:0;top:0;height:100vh;z-index:50;transform:translateX(-100%);transition:transform .25s cubic-bezier(.4,0,.2,1);box-shadow:var(--sh3);}
+  .sb2.open{transform:translateX(0);}
+  .sb-backdrop.show{display:block;}
+  .mn{width:100%;padding:0!important;}
+  .tb{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:10px;padding:13px 16px;}
+  .pg{padding:14px 16px 40px!important;}
+  /* Stack all 2-col grids */
+  .fg,.wg{grid-template-columns:1fr;}
+  /* Stat cards: 2 per row on mobile */
+  .sg{grid-template-columns:1fr 1fr;gap:9px;}
+  /* Kanban: horizontal scroll */
+  .kb{display:flex;overflow-x:auto;gap:12px;padding-bottom:10px;-webkit-overflow-scrolling:touch;}
+  .kbc{min-width:80vw;flex:0 0 auto;}
+  /* Tables scroll horizontally */
+  .tw{overflow-x:auto;}
+  .tw table{min-width:640px;}
+  /* Modal full-width */
+  .md{width:94vw!important;max-width:94vw!important;max-height:88vh;margin:0 auto;}
+  /* Detail grid single col */
+  .md [style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important;}
+  /* Topbar title smaller */
+  .tt{font-size:18px;}
+  /* Dashboard board/list toggle + filters wrap */
+  .sh2{flex-wrap:wrap;gap:8px;}
+  /* Filter row in team table: stack */
+  .filter-row{display:none;}
+  /* Login card fits screen */
+  .lc{width:92vw!important;max-width:400px;padding:26px 22px!important;}
+  /* Assign form buttons full width */
+  #pg-asgn .bp,#pg-asgn .bg{width:100%;margin-bottom:8px;}
+}
+@media (max-width:480px){
+  .sg{grid-template-columns:1fr 1fr;}
+  .sv{font-size:26px!important;}
+  .tt{font-size:16px;}
+  .kbc{min-width:86vw;}
+}
+
 </style>
 
 <!-- Firebase SDK -->
@@ -389,6 +441,7 @@ tr:hover td{background:rgba(37,99,235,.04);}
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getFirestore, collection, getDocs, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyA1dc3sNuyJo9BK5JguaevvY5nSQdsSvZk",
@@ -402,12 +455,14 @@ tr:hover td{background:rgba(37,99,235,.04);}
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   const auth = getAuth(app);
+  const storage = getStorage(app);
 
   // Expose Firestore helpers globally so the main (non-module) script can use them
   window.FB = {
-    db, auth, collection, getDocs, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc,
+    db, auth, storage, collection, getDocs, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc,
     query, where, orderBy, serverTimestamp, writeBatch,
-    signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail
+    signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail,
+    storageRef, uploadBytes, getDownloadURL, deleteObject
   };
   window.dispatchEvent(new Event('fb-ready'));
 </script>
@@ -436,7 +491,8 @@ tr:hover td{background:rgba(37,99,235,.04);}
 </div>
 
 <div id="app">
-  <nav class="sb2">
+  <div class="sb-backdrop" id="sbBackdrop" onclick="toggleSidebar()"></div>
+  <nav class="sb2" id="sidebar">
     <div class="sh"><div class="sl"><div class="sm">📋</div><div><div class="slt">Delegation</div><div class="sns">Kasera</div></div></div></div>
     <div class="sn" id="snav"></div>
     <div class="sf">
@@ -445,7 +501,7 @@ tr:hover td{background:rgba(37,99,235,.04);}
     </div>
   </nav>
   <main class="mn">
-    <div class="tb"><div class="tt" id="ptl">Dashboard</div><div class="ta" id="tact"></div></div>
+    <div class="tb"><button class="hbg" onclick="toggleSidebar()" aria-label="Menu">☰</button><div class="tt" id="ptl">Dashboard</div><div class="ta" id="tact"></div></div>
 
     <div class="pg" id="pg-dash">
       <div class="sy"><div style="display:flex;align-items:center;gap:6px"><div class="sd2"></div>Live data — Firebase</div><button class="btn bg bs" onclick="CACHE=null;ldDash()">↻ Refresh</button></div>
@@ -456,6 +512,7 @@ tr:hover td{background:rgba(37,99,235,.04);}
           <div class="view-toggle"><div class="vt ac" id="vt-board" onclick="setView('board')">▦ Board</div><div class="vt" id="vt-list" onclick="setView('list')">☰ List</div></div>
           <select id="fs" onchange="ldDash()" style="background:var(--s1);border:1px solid var(--bd2);border-radius:5px;padding:5px 9px;color:var(--t2);font-size:12px;outline:none"><option value="">All status</option><option>Pending</option><option>In Progress</option><option>Completed</option><option>Overdue</option></select>
           <select id="fd" onchange="ldDash()" style="background:var(--s1);border:1px solid var(--bd2);border-radius:5px;padding:5px 9px;color:var(--t2);font-size:12px;outline:none"><option value="">All depts</option><option>Production</option><option>Maintenance</option><option>QC</option><option>Dispatch</option><option>Warehouse</option></select>
+          <select id="ftag" onchange="ldDash()" style="background:var(--s1);border:1px solid var(--bd2);border-radius:5px;padding:5px 9px;color:var(--t2);font-size:12px;outline:none"><option value="">All tags</option></select>
         </div></div>
         <div class="kb" id="kanban"></div>
         <div class="tw" id="listview" style="display:none"><table><thead><tr><th>Task</th><th>Assignee</th><th>Manager</th><th>Priority</th><th>Deadline</th><th>Status</th><th>Time</th><th>WA</th></tr></thead><tbody id="atbl"></tbody></table></div>
@@ -481,7 +538,7 @@ tr:hover td{background:rgba(37,99,235,.04);}
     <div class="pg" id="pg-asgn">
       <div class="cd">
         <div class="ct">➕ Assign new task</div>
-        <div class="sy"><div style="display:flex;align-items:center;gap:6px"><div class="sd2"></div>Saves instantly + sends WhatsApp</div></div>
+        <div class="sy"><div style="display:flex;align-items:center;gap:6px"><div class="sd2"></div>Saves instantly to database + sends WhatsApp notification</div></div>
         <div class="fg">
           <div class="ff"><label>Task title *</label><input type="text" id="tt3" placeholder="e.g. Check boiler pressure"></div>
           <div class="ff"><label>Department *</label><select id="td2" onchange="filW()"><option value="">Select</option><option>Production</option><option>Maintenance</option><option>QC</option><option>Dispatch</option><option>Warehouse</option></select></div>
@@ -491,9 +548,12 @@ tr:hover td{background:rgba(37,99,235,.04);}
           <div class="ff"><label>Type</label><select id="ty3"><option value="One-time">One-time</option><option value="Daily">Daily recurring</option><option value="Weekly">Weekly recurring</option></select></div>
         </div>
         <div class="ff" style="margin-bottom:12px"><label>Notes / Instructions</label><textarea id="tn3" placeholder="Detailed instructions..."></textarea></div>
-        <div class="ff" style="margin-bottom:12px"><label>Attachment (image or PDF, optional — max 800KB)</label>
+        <div class="ff" style="margin-bottom:12px"><label>Attachment (image or PDF, optional — max 10MB)</label>
           <input type="file" id="tatt" accept="image/*,application/pdf" onchange="prepAttach(this)" style="font-size:13px">
           <div id="attinfo" style="font-size:12px;color:var(--t3);margin-top:5px"></div>
+        </div>
+        <div class="ff" style="margin-bottom:12px"><label>Tags (optional)</label>
+          <div id="tagpick" class="tagbox" style="margin-top:4px"></div>
         </div>
         <div style="display:flex;gap:8px;align-items:center">
           <button class="btn bp" onclick="asgTask(true)">Assign + Send WA 📲</button>
@@ -503,7 +563,10 @@ tr:hover td{background:rgba(37,99,235,.04);}
       </div>
       <div class="sec">
         <div class="sh2"><div class="st">My team tasks</div>
-          <span style="font-size:11.5px;color:var(--t3)">Use column filters below ↓</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <select class="fcol" id="fc-tag" onchange="applyMgrFilter()" style="width:auto;min-width:120px"><option value="">All tags</option></select>
+            <span style="font-size:11.5px;color:var(--t3)">+ column filters ↓</span>
+          </div>
         </div>
         <div class="tw"><table><thead>
           <tr><th>Task</th><th>Assignee</th><th>Priority</th><th>Deadline</th><th>Status</th><th>Time</th><th>WA</th><th>Actions</th></tr>
@@ -589,6 +652,11 @@ tr:hover td{background:rgba(37,99,235,.04);}
         <div class="ct">🏢 Departments</div>
         <div style="font-size:12px;color:var(--t2);margin-bottom:12px">Add or remove departments. Used in task assignment and people management.</div>
         <div id="dept-editor"></div>
+      </div>
+      <div class="cd">
+        <div class="ct">🏷️ Tags</div>
+        <div style="font-size:12px;color:var(--t2);margin-bottom:12px">Define tags staff can apply to tickets (e.g. Urgent, Repair, Safety). Used for filtering.</div>
+        <div id="tag-editor"></div>
       </div>
       <div class="cd">
         <button class="btn bp" onclick="saveStages()">💾 Save stages & departments (shared with everyone)</button>
@@ -710,6 +778,7 @@ async function api(action,data){
       case 'assignTask': return await fbAssign(data);
       case 'updateStatus': return await fbUpdateStatus(data);
       case 'approveTask': return await fbApprove(data);
+      case 'rejectTask': return await fbReject(data);
       case 'addComment': return await fbComment(data);
       case 'sendReminder': return await fbReminder(data);
       case 'addUser': return await fbAddUser(data);
@@ -782,7 +851,7 @@ async function fbUpd(taskId,title,by,oldS,newS,note){ try{const F=window.FB; awa
 async function fbAssign(d){
   if(!d.title||!d.assigneeName||!d.deadline) return {ok:false,error:'Missing required fields'};
   const F=window.FB, id=await nextTaskId();
-  const task={id,title:d.title,assigneeName:d.assigneeName,assigneeWA:d.assigneeWA||'',department:d.department||'',priority:d.priority||'Medium',deadline:d.deadline,status:'Pending',type:d.type||'One-time',notes:d.notes||'',createdBy:d.createdBy||'Admin',createdOn:new Date().toLocaleString(),waSent:d.sendWA?'Sent':'Not sent',managerName:d.managerName||'',managerWA:d.managerWA||'',startedOn:'',completedOn:'',timeTaken:'',workerNotes:'',attachData:d.attachData||'',attachName:(d.attachMeta&&d.attachMeta.name)||'',attachType:(d.attachMeta&&d.attachMeta.type)||''};
+  const task={id,title:d.title,assigneeName:d.assigneeName,assigneeWA:d.assigneeWA||'',department:d.department||'',priority:d.priority||'Medium',deadline:d.deadline,status:'Pending',type:d.type||'One-time',notes:d.notes||'',createdBy:d.createdBy||'Admin',createdOn:new Date().toLocaleString(),waSent:d.sendWA?'Sent':'Not sent',managerName:d.managerName||'',managerWA:d.managerWA||'',startedOn:'',completedOn:'',timeTaken:'',workerNotes:'',tags:d.tags||[],attachUrl:d.attachUrl||'',attachName:d.attachName||'',attachType:d.attachType||''};
   await F.setDoc(F.doc(F.db,'tasks',id),task);
   await fbLog(d.createdBy,'Task assigned',id,d.title,!!(d.sendWA&&d.assigneeWA),'To:'+d.assigneeName+(d.sendWA&&d.assigneeWA?' (WA sent)':''));
   await fbUpd(id,d.title,d.createdBy||'Admin','','Pending','Task assigned');
@@ -821,6 +890,21 @@ async function fbApprove(d){
   await fbLog(d.by,'Approved & Closed',d.taskId,t.title,false,t.status+'->Closed');
   await fbUpd(d.taskId,t.title,d.by,t.status,'Closed',d.note||'Approved by supervisor');
   return {ok:true};
+}
+
+async function fbReject(d){
+  const F=window.FB, ref=F.doc(F.db,'tasks',d.taskId), snap=await F.getDoc(ref);
+  if(!snap.exists()) return {ok:false,error:'Task not found'};
+  const t=snap.data(), now=new Date();
+  // Send back to In Progress so the employee can fix & resubmit (clear completion stamps)
+  const patch={status:'In Progress',completedOn:'',timeTaken:'',
+    workerNotes:(t.workerNotes?t.workerNotes+'\n':'')+now.toLocaleTimeString()+' [SENT BACK by '+d.by+']: '+(d.reason||'')};
+  await F.updateDoc(ref,patch);
+  await fbLog(d.by||'Supervisor','Sent back (rejected)',d.taskId,t.title,!!t.assigneeWA,(t.status)+'->In Progress | '+(d.reason||''));
+  await fbUpd(d.taskId,t.title,d.by,t.status,'In Progress','↩ Sent back: '+(d.reason||'Needs more work'));
+  // Notify the employee
+  if(t.assigneeWA){ fireWA({action:'waOnly',template:'task_reminder',to:t.assigneeWA,params:[(t.assigneeName||'').split(' ')[0],t.title+' — sent back: '+(d.reason||'needs more work'),t.deadline||'',t.priority||'Medium',t.department||'']}); }
+  return {ok:true,assignee:t.assigneeName};
 }
 async function fbComment(d){
   if(!d.taskId||!d.comment) return {ok:false,error:'Missing comment'};
@@ -878,12 +962,15 @@ async function fbGetSettings(){
   try{const s=await F.getDoc(F.doc(F.db,'settings','config')); if(s.exists()){const v=s.data(); stages=v.stages; depts=v.departments;}}catch(e){}
   if(!stages) stages=[{key:'Pending',label:'New'},{key:'In Progress',label:'In Progress'},{key:'Pending Approval',label:'Pending Approval'},{key:'Closed',label:'Closed'}];
   if(!depts) depts=['Production','Maintenance','QC','Dispatch','Warehouse','Management'];
-  return {ok:true,stages,departments:depts};
+  let tags=null; try{const s2=await F.getDoc(F.doc(F.db,'settings','config')); if(s2.exists())tags=s2.data().tags;}catch(e){}
+  if(!tags) tags=['Urgent','Repair','Safety','Quality','Routine','Customer'];
+  return {ok:true,stages,departments:depts,tags};
 }
 async function fbSaveSettings(d){
   const F=window.FB; const patch={};
   if(d.stages!==undefined)patch.stages=d.stages;
   if(d.departments!==undefined)patch.departments=d.departments;
+  if(d.tags!==undefined)patch.tags=d.tags;
   await F.setDoc(F.doc(F.db,'settings','config'),patch,{merge:true});
   await fbLog(d.by||'Admin','Settings updated','','',false,'stages/departments');
   return {ok:true};
@@ -926,6 +1013,18 @@ function forgotPw(){
 function aok(m){const el=document.getElementById('gok');el.className='am ao';el.style.display='flex';el.textContent=m;setTimeout(()=>el.style.display='none',6000);}
 
 function doL(){const e=document.getElementById('em').value.trim();const p=document.getElementById('pw').value;if(!e){aerr('Enter email');return;}loginEM(e,p);}
+
+
+function toggleSidebar(){
+  const sb=document.getElementById('sidebar'), bd=document.getElementById('sbBackdrop');
+  if(!sb)return;
+  const open=sb.classList.toggle('open');
+  if(bd)bd.classList.toggle('show',open);
+}
+function closeSidebar(){
+  const sb=document.getElementById('sidebar'), bd=document.getElementById('sbBackdrop');
+  if(sb)sb.classList.remove('open'); if(bd)bd.classList.remove('show');
+}
 
 function restoreSession(){
   try{
@@ -1000,6 +1099,7 @@ function setupSB(){
   });
 }
 function sp2f(id,fromPop){
+  closeSidebar();
   if(!fromPop){ try{history.pushState({page:id},'','#'+id);}catch(e){} }
   document.querySelectorAll('.pg').forEach(p=>p.classList.remove('ac'));
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('ac'));
@@ -1100,6 +1200,11 @@ function renderStageEditor(){
     ).join('')+
     '<div style="display:flex;gap:7px;margin-top:10px"><input type="text" id="new-stage" placeholder="New stage name (e.g. On Hold)" style="flex:1;background:var(--s2);border:1px solid var(--bd2);border-radius:6px;padding:8px 11px;color:var(--t);font-family:var(--fn);font-size:13px;outline:none"><button class="btn bg bs" onclick="addStage()">+ Add stage</button></div>';
   }
+  const te=document.getElementById('tag-editor');
+  if(te){
+    te.innerHTML='<div class="tagbox" style="margin-bottom:10px">'+(TAGS.length?TAGS.map((t,i)=>'<span class="tagchip on" style="cursor:default">🏷️ '+t+' <span onclick="removeTag('+i+')" style="cursor:pointer;margin-left:4px;opacity:.8">✕</span></span>').join(''):'<span style="font-size:12px;color:var(--t3)">No tags yet</span>')+'</div>'+
+    '<div style="display:flex;gap:7px"><input type="text" id="new-tag" placeholder="New tag (e.g. Urgent)" onkeydown="if(event.key===\'Enter\'){addTag();event.preventDefault();}" style="flex:1;background:var(--s2);border:1px solid var(--bd2);border-radius:6px;padding:8px 11px;color:var(--t);font-family:var(--fn);font-size:13px;outline:none"><button class="btn bg bs" onclick="addTag()">+ Add tag</button></div>';
+  }
   const de=document.getElementById('dept-editor');
   if(de){
     de.innerHTML=DEPTS.map((d,i)=>'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:13px;flex:1;color:var(--t)">'+d+'</span><button class="btn bs" style="background:rgba(255,85,102,.1);border:1px solid rgba(255,85,102,.2);color:var(--rd)" onclick="removeDept('+i+')">✕</button></div>').join('')+
@@ -1113,6 +1218,8 @@ function addStage(){
   renderStageEditor();
 }
 function removeStage(i){STAGES.splice(i,1);renderStageEditor();}
+function addTag(){const v=(document.getElementById('new-tag')?.value||'').trim();if(!v)return;if(TAGS.indexOf(v)<0)TAGS.push(v);renderStageEditor();}
+function removeTag(i){TAGS.splice(i,1);renderStageEditor();}
 function addDept(){const v=(document.getElementById('new-dept')?.value||'').trim();if(!v)return;if(DEPTS.indexOf(v)<0)DEPTS.push(v);renderStageEditor();}
 function removeDept(i){DEPTS.splice(i,1);renderStageEditor();}
 // stage drag reorder
@@ -1124,7 +1231,7 @@ function stDrop(e){e.preventDefault();const to=+e.currentTarget.dataset.i;if(_st
 async function saveStages(){
   document.querySelectorAll('.stage-inp').forEach(inp=>{STAGES[+inp.dataset.i].label=inp.value.trim()||STAGES[+inp.dataset.i].label;});
   try{localStorage.setItem('kasera_stages',JSON.stringify(STAGES.map(s=>({key:s.key,label:s.label,ic:s.ic,color:s.color}))));localStorage.setItem('kasera_depts',JSON.stringify(DEPTS));}catch(e){}
-  const r=await api('saveSettings',{by:CU.name,stages:STAGES.map(s=>({key:s.key,label:s.label,ic:s.ic})),departments:DEPTS});
+  const r=await api('saveSettings',{by:CU.name,stages:STAGES.map(s=>({key:s.key,label:s.label,ic:s.ic})),departments:DEPTS,tags:TAGS});
   CACHE=null;refreshDeptDropdowns();
   toast(r.ok!==false?'Stages & departments saved (shared)':'Saved locally','ok');
   if(document.getElementById('pg-dash').classList.contains('ac'))ldDash();
@@ -1141,6 +1248,8 @@ function normalizeStage(s){
 function applySettings(r){
   if(r&&r.stages&&r.stages.length){STAGES=r.stages.map(normalizeStage);}
   if(r&&r.departments&&r.departments.length){DEPTS=r.departments;}
+  if(r&&r.tags&&r.tags.length){TAGS=r.tags;}
+  renderTagPicker();
   refreshDeptDropdowns();
 }
 function refreshDeptDropdowns(){
@@ -1167,8 +1276,12 @@ function _paintDash(r){
   const sf=document.getElementById('fs')?.value||'',df=document.getElementById('fd')?.value||'';
   AT=r.allTasks||r.tasks||[];
   let tasks=(r.tasks||[]);
+  const tf=document.getElementById('ftag')?.value||'';
   if(sf)tasks=tasks.filter(t=>t.status===sf);
   if(df)tasks=tasks.filter(t=>t.department===df);
+  if(tf)tasks=tasks.filter(t=>(t.tags||[]).includes(tf));
+  // populate tag filter options
+  const ftEl=document.getElementById('ftag'); if(ftEl&&ftEl.options.length<=1)ftEl.innerHTML='<option value="">All tags</option>'+TAGS.map(tg=>'<option>'+tg+'</option>').join('');
   const s=r.stats||{total:0,completed:0,inProgress:0,pending:0,overdue:0};
   document.getElementById('dstats').innerHTML=`
     <div class="sc"><div class="sl2">Total tasks</div><div class="sv" style="color:var(--ac)">${s.total}</div></div>
@@ -1185,7 +1298,7 @@ function _paintDash(r){
   renderKanban(tasks);
   document.getElementById('atbl').innerHTML=tasks.length?tasks.map(t=>`
     <tr onclick="openTM('${t.id}')" style="cursor:pointer">
-      <td><strong>${t.title}</strong><br><span class="tg">${t.type}</span></td>
+      <td><strong>${t.title}</strong><br><span class="tg">${t.type}</span>${(t.tags&&t.tags.length)?' '+t.tags.map(tg=>'<span style="font-size:9.5px;padding:2px 7px;border-radius:10px;background:rgba(37,99,235,.1);color:var(--ac);margin-left:3px">'+tg+'</span>').join(''):''}</td>
       <td>${t.assigneeName}</td><td style="color:var(--t2);font-size:12px">${t.managerName||'—'}</td>
       <td>${pb(t.priority)}</td>
       <td style="font-size:12px;color:${od(t.deadline)?'var(--rd)':'var(--t2)'}">${t.deadline}</td>
@@ -1247,21 +1360,24 @@ async function ldMgr(){
   const asg=[...new Set(all.map(t=>t.assigneeName).filter(Boolean))].sort();
   const fa=document.getElementById('fc-assignee'); if(fa&&fa.options.length<=1)fa.innerHTML='<option value="">All</option>'+asg.map(a=>'<option>'+a+'</option>').join('');
   const fs=document.getElementById('fc-status'); if(fs&&fs.options.length<=1)fs.innerHTML='<option value="">All</option>'+STAGES.map(s=>'<option value="'+s.key+'">'+s.label+'</option>').join('')+'<option>Overdue</option>';
+  const ftg=document.getElementById('fc-tag'); if(ftg&&ftg.options.length<=1)ftg.innerHTML='<option value="">All tags</option>'+TAGS.map(tg=>'<option>'+tg+'</option>').join('');
   applyMgrFilter();
 }
-function clearMgrFilter(){['fc-title','fc-assignee','fc-priority','fc-deadline','fc-status'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});applyMgrFilter();}
+function clearMgrFilter(){['fc-title','fc-assignee','fc-priority','fc-deadline','fc-status','fc-tag'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});applyMgrFilter();}
 function applyMgrFilter(){
   const ft=(document.getElementById('fc-title')?.value||'').toLowerCase();
   const fa=document.getElementById('fc-assignee')?.value||'';
   const fp=document.getElementById('fc-priority')?.value||'';
   const fd=document.getElementById('fc-deadline')?.value||'';
   const fs=document.getElementById('fc-status')?.value||'';
+  const ftag=document.getElementById('fc-tag')?.value||'';
   let tasks=_mgrTasks.filter(t=>{
     if(ft&&!(t.title||'').toLowerCase().includes(ft))return false;
     if(fa&&t.assigneeName!==fa)return false;
     if(fp&&t.priority!==fp)return false;
     if(fd&&t.deadline!==fd)return false;
     if(fs&&t.status!==fs)return false;
+    if(ftag&&!(t.tags||[]).includes(ftag))return false;
     return true;
   });
   document.getElementById('mtbl').innerHTML=tasks.length?tasks.map(t=>`<tr>
@@ -1342,7 +1458,7 @@ async function ldApprovals(){
     '<td>'+t.assigneeName+'</td><td style="color:var(--t3);font-size:12px">'+t.department+'</td>'+
     '<td style="font-size:12px;color:var(--t2)">'+(t.completedOn||t.createdOn||'—')+'</td>'+
     '<td>'+(t.timeTaken?'<span class="tc">'+parseFloat(t.timeTaken).toFixed(1)+'h</span>':'—')+'</td>'+
-    '<td><div style="display:flex;gap:5px"><button class="btn bp bs" onclick="approveT(\''+t.id+'\')">Approve & Close</button><button class="btn bg bs" onclick="openTM(\''+t.id+'\')">View</button></div></td></tr>'
+    '<td><div style="display:flex;gap:5px;flex-wrap:wrap"><button class="btn bp bs" onclick="approveT(\''+t.id+'\')">Approve & Close</button><button class="btn bs" style="background:rgba(234,154,12,.12);border:1px solid rgba(234,154,12,.3);color:var(--am)" onclick="rejectT(\''+t.id+'\')">Send back</button><button class="btn bg bs" onclick="openTM(\''+t.id+'\')">View</button></div></td></tr>'
   ).join(''):'<tr class="er"><td colspan="6">Nothing awaiting approval</td></tr>';
 }
 async function approveT(id){
@@ -1351,6 +1467,16 @@ async function approveT(id){
   const r=await api('approveTask',{taskId:id,by:CU.name,note});
   window._busy=false;CACHE=null;
   if(r.ok!==false){toast('Approved & closed','ok');ldApprovals();}
+  else toast('Failed: '+(r.error||'error'),'er2');
+}
+async function rejectT(id){
+  if(window._busy)return;
+  const reason=prompt('Why are you sending this back? (the employee will see this)');
+  if(reason===null)return; // cancelled
+  window._busy=true;
+  const r=await api('rejectTask',{taskId:id,by:CU.name,reason:reason||'Needs more work'});
+  window._busy=false;CACHE=null;
+  if(r.ok!==false){toast('Sent back to '+(r.assignee||'employee'),'ok');ldApprovals();}
   else toast('Failed: '+(r.error||'error'),'er2');
 }
 
@@ -1400,6 +1526,7 @@ async function openTM(id){
       ${task.completedOn?`<div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Completed</div><div style="font-size:12.5px">${task.completedOn}</div></div>`:''}
       ${task.timeTaken?`<div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Time taken</div><span class="tc">${parseFloat(task.timeTaken).toFixed(2)} hrs</span></div>`:''}
     </div>
+    ${(task.tags&&task.tags.length)?`<div style="margin-bottom:14px;display:flex;flex-wrap:wrap;gap:6px">${task.tags.map(tg=>`<span style="font-size:11px;padding:4px 10px;border-radius:20px;background:rgba(37,99,235,.1);color:var(--ac);border:1px solid rgba(37,99,235,.2)">🏷️ ${tg}</span>`).join('')}</div>`:''}
     ${task.notes?`<div style="background:var(--s2);border-radius:6px;padding:11px;font-size:13px;color:var(--t2);line-height:1.6;margin-bottom:14px;border-left:2px solid var(--bd2)">${task.notes}</div>`:''}
     ${task.attachData?`<div style="margin-bottom:14px"><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Attachment</div>${task.attachType&&task.attachType.startsWith('image/')?`<img src="${task.attachData}" style="max-width:100%;border-radius:8px;border:1px solid var(--bd)">`:`<a href="${task.attachData}" download="${task.attachName||'attachment.pdf'}" style="display:inline-flex;align-items:center;gap:6px;background:var(--s2);border:1px solid var(--bd2);border-radius:8px;padding:9px 13px;color:var(--ac);text-decoration:none;font-size:13px">📄 ${task.attachName||'Download PDF'}</a>`}</div>`:''}
     ${task.workerNotes?`<div style="margin-bottom:14px"><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">Worker notes</div><div style="background:var(--s2);border-radius:6px;padding:11px;font-size:12.5px;color:var(--t2);white-space:pre-wrap">${task.workerNotes}</div></div>`:''}
@@ -1524,18 +1651,42 @@ async function filW(){
   sel.innerHTML='<option value="">Select employee</option>'+list.map(u=>`<option value="${u.name}" data-wa="${u.whatsapp||''}" data-mn="${u.managerName||CU.name}" data-mw="${u.managerWA||''}">${u.name} — ${u.department||'No dept'} (${normRole(u.role)})</option>`).join('');
 }
 
-// ── Attachment handling (image/PDF as base64, kept small for free Firebase) ──
-let _attachData=null,_attachMeta=null;
+// ── TAGS ──
+let TAGS=['Urgent','Repair','Safety','Quality','Routine','Customer'];
+let _selTags=[];
+function renderTagPicker(){
+  const el=document.getElementById('tagpick'); if(!el)return;
+  el.innerHTML=TAGS.length?TAGS.map(t=>{
+    const on=_selTags.includes(t);
+    return '<span class="tagchip'+(on?' on':'')+'" onclick="toggleTag(\''+t.replace(/'/g,"")+'\')">'+(on?'✓ ':'')+t+'</span>';
+  }).join(''):'<span style="font-size:12px;color:var(--t3)">No tags defined. Add tags in Settings.</span>';
+}
+function toggleTag(t){
+  const i=_selTags.indexOf(t);
+  if(i>=0)_selTags.splice(i,1); else _selTags.push(t);
+  renderTagPicker();
+}
+
+// ── Attachment handling (uploads to Firebase Storage, up to ~10MB) ──
+let _attachFile=null;
 function prepAttach(inp){
   const f=inp.files&&inp.files[0]; const info=document.getElementById('attinfo');
-  _attachData=null;_attachMeta=null;
+  _attachFile=null;
   if(!f){info.textContent='';return;}
-  if(f.size>800*1024){ info.innerHTML='<span style="color:var(--rd)">File too large ('+(f.size/1024/1024).toFixed(1)+'MB). Max 800KB.</span>'; inp.value=''; return; }
+  if(f.size>10*1024*1024){ info.innerHTML='<span style="color:var(--rd)">File too large ('+(f.size/1024/1024).toFixed(1)+'MB). Max 10MB.</span>'; inp.value=''; return; }
   const ok=f.type.startsWith('image/')||f.type==='application/pdf';
   if(!ok){ info.innerHTML='<span style="color:var(--rd)">Only image or PDF allowed.</span>'; inp.value=''; return; }
-  const r=new FileReader();
-  r.onload=()=>{ _attachData=r.result; _attachMeta={name:f.name,type:f.type,size:f.size}; info.innerHTML='✓ '+f.name+' ('+(f.size/1024).toFixed(0)+'KB) ready'; };
-  r.readAsDataURL(f);
+  _attachFile=f;
+  info.innerHTML='✓ '+f.name+' ('+(f.size/1024).toFixed(0)+'KB) ready to upload';
+}
+async function uploadAttach(taskId){
+  if(!_attachFile) return null;
+  const F=window.FB;
+  const path='attachments/'+taskId+'_'+Date.now()+'_'+_attachFile.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+  const r=F.storageRef(F.storage,path);
+  await F.uploadBytes(r,_attachFile);
+  const url=await F.getDownloadURL(r);
+  return {url,name:_attachFile.name,type:_attachFile.type};
 }
 
 async function asgTask(sendWA){
@@ -1550,10 +1701,12 @@ async function asgTask(sendWA){
   if(!title||!an||!dl){toast('Fill in all required fields','er2');return;}
   window._busy=true;
   document.querySelectorAll('#pg-asgn .bp,#pg-asgn .bg').forEach(b=>{b.disabled=true;b.style.opacity='.5';b.style.pointerEvents='none';});
-  const r=await api('assignTask',{title,assigneeName:an,assigneeWA:aw,department:dept,priority:pri,deadline:dl,type,notes,createdBy:CU.name,managerName:mn,managerWA:mw,sendWA,attachData:_attachData,attachMeta:_attachMeta});
+  let attachInfo=null;
+  if(_attachFile){ const ai=document.getElementById('attinfo'); if(ai)ai.innerHTML='⏳ Uploading attachment...'; try{ const tmpId='KI-tmp-'+Date.now(); attachInfo=await uploadAttach(tmpId); }catch(e){ toast('Attachment upload failed: '+e.message,'er2'); } }
+  const r=await api('assignTask',{title,assigneeName:an,assigneeWA:aw,department:dept,priority:pri,deadline:dl,type,notes,createdBy:CU.name,managerName:mn,managerWA:mw,sendWA,tags:_selTags.slice(),attachUrl:attachInfo?attachInfo.url:'',attachName:attachInfo?attachInfo.name:'',attachType:attachInfo?attachInfo.type:''});
   window._busy=false;
   document.querySelectorAll('#pg-asgn .bp,#pg-asgn .bg').forEach(b=>{b.disabled=false;b.style.opacity='1';b.style.pointerEvents='auto';});
-  if(r.ok!==false){toast(sendWA?'Assigned to '+an+' - WA sent':'Task assigned to '+an,sendWA?'wa2':'ok');document.getElementById('tt3').value='';document.getElementById('tn3').value='';var fa=document.getElementById('tatt');if(fa)fa.value='';var ai=document.getElementById('attinfo');if(ai)ai.textContent='';_attachData=null;_attachMeta=null;CACHE=null;ldMgr();}
+  if(r.ok!==false){toast(sendWA?'Assigned to '+an+' - WA sent':'Task assigned to '+an,sendWA?'wa2':'ok');document.getElementById('tt3').value='';document.getElementById('tn3').value='';var fa=document.getElementById('tatt');if(fa)fa.value='';var ai=document.getElementById('attinfo');if(ai)ai.textContent='';_attachFile=null;_selTags=[];renderTagPicker();CACHE=null;ldMgr();}
   else toast('Failed: '+(r.error||'Unknown error'),'er2');
 }
 
