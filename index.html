@@ -439,7 +439,7 @@ tr:hover td{background:rgba(37,99,235,.04);}
     </div>
 
     <div class="pg" id="pg-wa">
-      <div class="sec"><div class="sh2"><div class="st">WhatsApp notification log</div><button class="btn bg bs" onclick="ldLogs()">↻ Refresh</button></div>
+      <div class="sec"><div class="sh2"><div class="st">WhatsApp notification log</div><button class="btn bg bs" onclick="ldLogs(true)">↻ Refresh</button></div>
       <div class="tw"><div class="wh"><div class="wp"></div><span style="font-size:13px;font-weight:500;color:var(--wa)">11za API</span><span style="margin-left:auto;font-size:11.5px;color:var(--t3)">Connected ✓</span></div><div id="waent"></div></div></div>
     </div>
 
@@ -667,9 +667,14 @@ function aerr(m){const el=document.getElementById('aer');el.textContent=m;el.sty
 // ── LOGIN ────────────────────────────────────────────────────────
 function doL(){const e=document.getElementById('em').value.trim();const p=document.getElementById('pw').value;if(!e){aerr('Enter email');return;}loginEM(e,p);}
 async function loginEM(email,password){
+  const btn=document.querySelector('.sb'); if(btn){btn.textContent='Signing in...';btn.style.opacity='.7';}
   const r=await api('login',{email,password});
+  if(btn){btn.textContent='Sign in →';btn.style.opacity='1';}
   if(r.ok===false){aerr(r.error||'Login failed');return;}
-  CU=r.user||r; startApp();
+  CU=r.user||r;
+  // Use the bootstrap data that came WITH login (no 2nd round-trip)
+  if(r.boot&&r.boot.ok!==false){CACHE=r.boot;CACHE_TIME=Date.now();AU=r.boot.users||[];AT=r.boot.allTasks||r.boot.tasks||[];applySettings(r.boot);}
+  startApp();
 }
 
 function doLo(){document.getElementById('app').style.display='none';document.getElementById('ls').style.display='flex';document.getElementById('gok').style.display='none';document.getElementById('gok').classList.remove('ao');CU=null;GP=null;AU=[];AT=[];}
@@ -795,14 +800,14 @@ async function dropCard(e){
   renderKanban((CACHE&&CACHE.tasks)||AT);
   toast('Moving to '+stage+'...','in');
   const r=await api('updateStatus',{taskId:id,newStatus:stage,updatedBy:CU.name,role:CU.role});
-  if(r.ok!==false){CACHE=null;await getBootFast(_paintDash);toast('Moved to '+stage,'ok');}
+  if(r.ok!==false){if(CACHE){CACHE.allTasks=AT;CACHE.tasks=AT;}toast('Moved to '+stage,'ok');}
   else{task.status=prev;renderKanban((CACHE&&CACHE.tasks)||AT);toast('Failed: '+(r.error||'error'),'er2');}
 }
 
 // ── FAST BOOTSTRAP with 30s cache ─────────────────────────────────
 async function getBoot(force){
   const now=Date.now();
-  if(!force&&CACHE&&(now-CACHE_TIME)<60000){return CACHE;}
+  if(!force&&CACHE&&(now-CACHE_TIME)<300000){return CACHE;}
   const r=await api('bootstrap',{role:CU.role,userName:CU.name,department:CU.department});
   if(r.ok!==false){CACHE=r;CACHE_TIME=now;AU=r.users||[];AT=r.allTasks||r.tasks||[];applySettings(r);}
   return r;
@@ -880,7 +885,7 @@ async function getBootFast(renderFn){
 }
 
 // ── LOAD DATA ────────────────────────────────────────────────────
-async function loadUsers(){const r=await getBoot();if(r.users)AU=r.users;else{const u=await api('getUsers',{});AU=Array.isArray(u)?u:(u.ok!==false?u:[]);}filW();}
+async function loadUsers(){if(CACHE&&CACHE.users){AU=CACHE.users;filW();return;}const r=await getBoot();if(r.users)AU=r.users;filW();}
 
 function _paintDash(r){
   if(!r||r.ok===false)return;
@@ -935,9 +940,16 @@ async function ldRep(){
   }).join(''):'<tr class="er"><td colspan="7">No data</td></tr>';
 }
 
-async function ldLogs(){
+let _logsCache=null,_logsTime=0;
+async function ldLogs(force){
+  const now=Date.now();
+  if(!force&&_logsCache&&(now-_logsTime)<120000){AL=_logsCache;_renderLogs();return;}
   const r=await api('getLogs',{});
   AL=r.ok!==false?r.logs||[]:[];
+  _logsCache=AL;_logsTime=now;
+  _renderLogs();
+}
+function _renderLogs(){
   const waL=AL.filter(l=>l.action.includes('WA')||l.action.includes('report'));
   document.getElementById('waent').innerHTML=waL.length?waL.map(l=>`
     <div class="we"><div class="wv">${l.user.split(' ').map(n=>n[0]).join('').slice(0,2)}</div>
@@ -987,7 +999,7 @@ function applyMgrFilter(){
 }
 
 async function ldTeam(){
-  const r=await api('getDashboard',{role:'supervisor',userName:CU.name,department:CU.department});
+  const r=await getBoot();
   if(r.ok===false)return;
   const scores=r.scores||[];const workers=AU.filter(u=>u.role==='employee'&&u.department===CU.department);
   const list=workers.length?workers:scores.map(s=>({name:s.name,department:s.department,whatsapp:'—'}));
