@@ -388,6 +388,7 @@ tr:hover td{background:rgba(37,99,235,.04);}
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getFirestore, collection, getDocs, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyA1dc3sNuyJo9BK5JguaevvY5nSQdsSvZk",
@@ -400,11 +401,13 @@ tr:hover td{background:rgba(37,99,235,.04);}
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
+  const auth = getAuth(app);
 
   // Expose Firestore helpers globally so the main (non-module) script can use them
   window.FB = {
-    db, collection, getDocs, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc,
-    query, where, orderBy, serverTimestamp, writeBatch
+    db, auth, collection, getDocs, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc,
+    query, where, orderBy, serverTimestamp, writeBatch,
+    signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail
   };
   window.dispatchEvent(new Event('fb-ready'));
 </script>
@@ -445,7 +448,7 @@ tr:hover td{background:rgba(37,99,235,.04);}
     <div class="tb"><div class="tt" id="ptl">Dashboard</div><div class="ta" id="tact"></div></div>
 
     <div class="pg" id="pg-dash">
-      <div class="sy"><div style="display:flex;align-items:center;gap:6px"><div class="sd2"></div>Live data from Google Sheets</div><button class="btn bg bs" onclick="CACHE=null;ldDash()">↻ Refresh</button></div>
+      <div class="sy"><div style="display:flex;align-items:center;gap:6px"><div class="sd2"></div>Live data — Firebase</div><button class="btn bg bs" onclick="CACHE=null;ldDash()">↻ Refresh</button></div>
       <div class="sg" id="dstats"></div>
       <div class="sec"><div class="sh2"><div class="st">Team performance</div><button class="btn bg bs" onclick="sp2f('rep')">Full report →</button></div><div class="tw"><table><thead><tr><th>Name</th><th>Dept</th><th>Tasks</th><th>Done</th><th>Avg time</th><th>Score</th></tr></thead><tbody id="ptbl"></tbody></table></div></div>
       <div class="sec">
@@ -472,13 +475,13 @@ tr:hover td{background:rgba(37,99,235,.04);}
 
     <div class="pg" id="pg-log">
       <div class="sec"><div class="sh2"><div class="st">Activity log</div><button class="btn bg bs" onclick="expCSV()">⬇ Export</button></div>
-      <div class="tw"><table><thead><tr><th>Time</th><th>User</th><th>Action</th><th>Task</th><th>WA</th></tr></thead><tbody id="ltbl"></tbody></table></div></div>
+      <div class="tw"><table><thead><tr><th>Time</th><th>User</th><th>Action</th><th>Task</th><th>Details</th><th>WA</th></tr></thead><tbody id="ltbl"></tbody></table></div></div>
     </div>
 
     <div class="pg" id="pg-asgn">
       <div class="cd">
         <div class="ct">➕ Assign new task</div>
-        <div class="sy"><div style="display:flex;align-items:center;gap:6px"><div class="sd2"></div>Auto-saves to Google Sheet + sends WhatsApp</div></div>
+        <div class="sy"><div style="display:flex;align-items:center;gap:6px"><div class="sd2"></div>Saves instantly + sends WhatsApp</div></div>
         <div class="fg">
           <div class="ff"><label>Task title *</label><input type="text" id="tt3" placeholder="e.g. Check boiler pressure"></div>
           <div class="ff"><label>Department *</label><select id="td2" onchange="filW()"><option value="">Select</option><option>Production</option><option>Maintenance</option><option>QC</option><option>Dispatch</option><option>Warehouse</option></select></div>
@@ -488,10 +491,14 @@ tr:hover td{background:rgba(37,99,235,.04);}
           <div class="ff"><label>Type</label><select id="ty3"><option value="One-time">One-time</option><option value="Daily">Daily recurring</option><option value="Weekly">Weekly recurring</option></select></div>
         </div>
         <div class="ff" style="margin-bottom:12px"><label>Notes / Instructions</label><textarea id="tn3" placeholder="Detailed instructions..."></textarea></div>
+        <div class="ff" style="margin-bottom:12px"><label>Attachment (image or PDF, optional — max 800KB)</label>
+          <input type="file" id="tatt" accept="image/*,application/pdf" onchange="prepAttach(this)" style="font-size:13px">
+          <div id="attinfo" style="font-size:12px;color:var(--t3);margin-top:5px"></div>
+        </div>
         <div style="display:flex;gap:8px;align-items:center">
           <button class="btn bp" onclick="asgTask(true)">Assign + Send WA 📲</button>
           <button class="btn bg" onclick="asgTask(false)">Assign only</button>
-          <span style="font-size:11.5px;color:var(--t3);margin-left:auto">Saved to Google Sheet</span>
+          <span style="font-size:11.5px;color:var(--t3);margin-left:auto">Saved to database</span>
         </div>
       </div>
       <div class="sec">
@@ -542,7 +549,7 @@ tr:hover td{background:rgba(37,99,235,.04);}
           <div class="ff"><label>Full name *</label><input type="text" id="u-name" placeholder="e.g. Ramesh Kumar"></div>
           <div class="ff"><label>Email *</label><input type="email" id="u-email" placeholder="ramesh@kaseraindustries.in"></div>
           <div class="ff"><label>WhatsApp number</label><input type="text" id="u-wa" placeholder="9876543210"></div>
-          <div class="ff"><label>Password</label><input type="text" id="u-pass" placeholder="Set login password"></div>
+          <div class="ff"><label>Temp Password (min 6 chars)</label><input type="text" id="u-pass" placeholder="e.g. kasera123"></div>
           <div class="ff"><label>Role *</label><select id="u-role"><option value="employee">Employee</option><option value="supervisor">Supervisor</option><option value="admin">Admin</option><option value="superadmin">Super Admin</option></select></div>
           <div class="ff"><label>Department</label><select id="u-dept"><option>Production</option><option>Maintenance</option><option>QC</option><option>Dispatch</option><option>Warehouse</option><option>Management</option></select></div>
           <div class="ff"><label>Manager</label><select id="u-mgr" onchange="uMgrChange()"><option value="">none</option></select></div>
@@ -676,11 +683,20 @@ async function api(action,data){
   try{
     switch(action){
       case 'login': {
+        // Authenticate with Firebase Auth (secure - password never in our DB)
+        try{
+          await F.signInWithEmailAndPassword(F.auth, (data.email||'').trim(), data.password||'');
+        }catch(authErr){
+          var code=authErr.code||'';
+          if(code.indexOf('user-not-found')>=0||code.indexOf('invalid-credential')>=0||code.indexOf('invalid-email')>=0||code.indexOf('wrong-password')>=0)
+            return {ok:false,error:'Incorrect email or password.'};
+          return {ok:false,error:'Login failed: '+(authErr.message||code)};
+        }
+        // Load profile (role/department/etc) from users collection
         const snap=await F.getDocs(F.collection(db,'users'));
         let user=null;
         snap.forEach(d=>{const u=d.data(); if((u.email||'').toLowerCase()===(data.email||'').toLowerCase()) user={id:d.id,...u};});
-        if(!user) return {ok:false,error:'Email not found. Contact your admin.'};
-        if(user.password && String(user.password)!==String(data.password||'')) return {ok:false,error:'Incorrect password.'};
+        if(!user) return {ok:false,error:'Your login exists but no profile found. Contact admin.'};
         const clean={name:user.name,email:user.email,whatsapp:user.whatsapp,role:normRoleJS(user.role),department:user.department,managerName:user.managerName,managerWA:user.managerWA};
         return {ok:true,user:clean,boot:await buildBoot(clean)};
       }
@@ -701,7 +717,10 @@ async function api(action,data){
       case 'deleteUser': return await fbDeleteUser(data);
       case 'saveSettings': return await fbSaveSettings(data);
       case 'getSettings': return await fbGetSettings();
-      case 'resetRequest': return {ok:true};
+      case 'resetRequest': {
+        try{ await F.sendPasswordResetEmail(F.auth,(data.email||'').trim()); return {ok:true}; }
+        catch(e){ return {ok:true}; } // don't reveal if email exists
+      }
       default: return {ok:false,error:'Unknown: '+action};
     }
   }catch(e){ console.error('FB error['+action+']:',e); return {ok:false,error:e.message||'Database error'}; }
@@ -763,9 +782,9 @@ async function fbUpd(taskId,title,by,oldS,newS,note){ try{const F=window.FB; awa
 async function fbAssign(d){
   if(!d.title||!d.assigneeName||!d.deadline) return {ok:false,error:'Missing required fields'};
   const F=window.FB, id=await nextTaskId();
-  const task={id,title:d.title,assigneeName:d.assigneeName,assigneeWA:d.assigneeWA||'',department:d.department||'',priority:d.priority||'Medium',deadline:d.deadline,status:'Pending',type:d.type||'One-time',notes:d.notes||'',createdBy:d.createdBy||'Admin',createdOn:new Date().toLocaleString(),waSent:d.sendWA?'Sent':'Not sent',managerName:d.managerName||'',managerWA:d.managerWA||'',startedOn:'',completedOn:'',timeTaken:'',workerNotes:''};
+  const task={id,title:d.title,assigneeName:d.assigneeName,assigneeWA:d.assigneeWA||'',department:d.department||'',priority:d.priority||'Medium',deadline:d.deadline,status:'Pending',type:d.type||'One-time',notes:d.notes||'',createdBy:d.createdBy||'Admin',createdOn:new Date().toLocaleString(),waSent:d.sendWA?'Sent':'Not sent',managerName:d.managerName||'',managerWA:d.managerWA||'',startedOn:'',completedOn:'',timeTaken:'',workerNotes:'',attachData:d.attachData||'',attachName:(d.attachMeta&&d.attachMeta.name)||'',attachType:(d.attachMeta&&d.attachMeta.type)||''};
   await F.setDoc(F.doc(F.db,'tasks',id),task);
-  await fbLog(d.createdBy,'Task assigned',id,d.title,false,'To:'+d.assigneeName);
+  await fbLog(d.createdBy,'Task assigned',id,d.title,!!(d.sendWA&&d.assigneeWA),'To:'+d.assigneeName+(d.sendWA&&d.assigneeWA?' (WA sent)':''));
   await fbUpd(id,d.title,d.createdBy||'Admin','','Pending','Task assigned');
   if(d.sendWA&&d.assigneeWA){ await fireWA({action:'waOnly',template:'task_delegation',to:d.assigneeWA,params:[d.assigneeName.split(' ')[0],d.title,d.deadline,d.priority||'Medium',d.department||'']}); }
   return {ok:true,taskId:id,waSent:!!d.sendWA};
@@ -783,7 +802,8 @@ async function fbUpdateStatus(d){
   if(d.note){ patch.workerNotes=(t.workerNotes?t.workerNotes+'\n':'')+now.toLocaleTimeString()+': '+d.note; }
   await F.updateDoc(ref,patch);
   const ovr=isAdmin?' [ADMIN OVERRIDE]':'';
-  await fbLog(d.updatedBy,'Status->'+req+ovr,d.taskId,t.title,false,(t.status)+'->'+req+(d.note?' | '+d.note:'')+ovr);
+  var waFired=((req==='Pending Approval'||req==='Completed'||req==='Closed')&&!!t.managerWA);
+  await fbLog(d.updatedBy,'Status->'+req+ovr,d.taskId,t.title,waFired,(t.status)+'->'+req+(d.note?' | '+d.note:'')+ovr);
   await fbUpd(d.taskId,t.title,d.updatedBy,t.status,req,(d.note||'')+ovr);
   if(req==='Pending Approval'&&t.managerWA) fireWA({action:'waOnly',template:'task_completed',to:t.managerWA,params:[(t.managerName||'').split(' ')[0],d.updatedBy,t.title+' (needs approval)',now.toLocaleString(),t.department||'']});
   if((req==='Completed'||req==='Closed')&&t.managerWA) fireWA({action:'waOnly',template:'task_completed',to:t.managerWA,params:[(t.managerName||'').split(' ')[0],d.updatedBy,t.title,now.toLocaleString(),t.department||'']});
@@ -819,18 +839,28 @@ async function fbReminder(d){
 }
 async function fbAddUser(d){
   if(!d.name||!d.email) return {ok:false,error:'Name and email required'};
+  if(!d.password||d.password.length<6) return {ok:false,error:'Set a temporary password (min 6 characters)'};
   const F=window.FB, users=await fbUsers();
   if(users.find(u=>(u.email||'').toLowerCase()===d.email.toLowerCase())) return {ok:false,error:'Email already exists'};
-  await F.addDoc(F.collection(F.db,'users'),{name:d.name,email:d.email,whatsapp:d.whatsapp||'',role:d.role||'employee',department:d.department||'',managerName:d.managerName||'',managerWA:d.managerWA||'',password:d.password||''});
+  // Create the secure Auth login (password stored by Firebase, not us)
+  try{
+    await F.createUserWithEmailAndPassword(F.auth, d.email.trim(), d.password);
+  }catch(e){
+    var c=e.code||'';
+    if(c.indexOf('email-already-in-use')>=0) {/* auth exists, continue to create profile */}
+    else if(c.indexOf('weak-password')>=0) return {ok:false,error:'Password too weak (min 6 chars)'};
+    else return {ok:false,error:'Could not create login: '+(e.message||c)};
+  }
+  // Store profile WITHOUT password (secure)
+  await F.addDoc(F.collection(F.db,'users'),{name:d.name,email:d.email,whatsapp:d.whatsapp||'',role:d.role||'employee',department:d.department||'',managerName:d.managerName||'',managerWA:d.managerWA||''});
   await fbLog(d.by||'Admin','User added','',d.name,false,d.email);
-  return {ok:true};
+  return {ok:true,note:'Auth created. Note: creating a user signs you in as them; please log out and back in as yourself.'};
 }
 async function fbUpdateUser(d){
   const F=window.FB, snap=await F.getDocs(F.collection(F.db,'users'));
   let ref=null,cur=null; snap.forEach(doc=>{if((doc.data().email||'').toLowerCase()===(d.email||'').toLowerCase()){ref=doc.ref;cur=doc.data();}});
   if(!ref) return {ok:false,error:'User not found'};
   const patch={}; ['name','whatsapp','role','department','managerName','managerWA'].forEach(k=>{if(d[k]!==undefined)patch[k]=d[k];});
-  if(d.password) patch.password=d.password;
   await F.updateDoc(ref,patch);
   await fbLog(d.by||'Admin','User updated','',d.name||d.email,false,'');
   return {ok:true};
@@ -889,7 +919,7 @@ function forgotPw(){
   const em=(document.getElementById('em').value||'').trim();
   if(!em){aerr('Enter your email above first, then click Forgot password.');return;}
   api('resetRequest',{email:em}).then(r=>{
-    if(r.ok!==false){aok('If that email exists, your admin has been notified to reset your password.');}
+    if(r.ok!==false){aok('If that email is registered, a password reset link has been sent to it. Check your inbox.');}
     else{aerr(r.error||'Could not process request.');}
   });
 }
@@ -922,7 +952,7 @@ async function loginEM(email,password){
   startApp();
 }
 
-function doLo(){try{localStorage.removeItem('kasera_session');}catch(e){}document.getElementById('app').style.display='none';document.getElementById('ls').style.display='flex';document.getElementById('gok').style.display='none';document.getElementById('gok').classList.remove('ao');CU=null;GP=null;AU=[];AT=[];CACHE=null;}
+function doLo(){try{localStorage.removeItem('kasera_session');}catch(e){}try{if(window.FB&&window.FB.auth)window.FB.signOut(window.FB.auth);}catch(e){}document.getElementById('app').style.display='none';document.getElementById('ls').style.display='flex';document.getElementById('gok').style.display='none';document.getElementById('gok').classList.remove('ao');CU=null;GP=null;AU=[];AT=[];CACHE=null;}
 function normRole(r){
   r=String(r||'').toLowerCase().replace(/[^a-z]/g,'');
   if(r==='superadmin'||r==='super')return 'superadmin';
@@ -1195,14 +1225,14 @@ async function ldLogs(force){
   _renderLogs();
 }
 function _renderLogs(){
-  const waL=AL.filter(l=>l.action.includes('WA')||l.action.includes('report'));
+  const waL=AL.filter(l=>l.waSent==='Yes'||l.waSent==='Failed'||l.action.includes('WA')||l.action.includes('reminder')||l.action.includes('report'));
   document.getElementById('waent').innerHTML=waL.length?waL.map(l=>`
     <div class="we"><div class="wv">${l.user.split(' ').map(n=>n[0]).join('').slice(0,2)}</div>
     <div class="wb"><div class="wn2">${l.user}<span style="font-size:11px;color:var(--t3);font-weight:400;margin-left:6px">${l.taskTitle||''}</span></div>
     <div class="wg2">${l.action} — ${l.details||''}</div><div class="wti">${l.timestamp}</div></div>
     <span class="ws ${l.waSent==='Yes'?'ws1':l.waSent==='Failed'?'ws3':'ws2'}">${l.waSent==='Yes'?'✓ Sent':l.waSent==='Failed'?'✗ Failed':'—'}</span></div>`
   ).join(''):'<div style="padding:28px;text-align:center;color:var(--t3)">No WA logs yet</div>';
-  document.getElementById('ltbl').innerHTML=AL.length?AL.map(l=>`<tr><td><span class="tg">${l.timestamp}</span></td><td>${l.user}</td><td style="color:var(--t2)">${l.action}</td><td>${l.taskTitle||l.taskId||'—'}</td><td>${wb(l.waSent)}</td></tr>`).join(''):'<tr class="er"><td colspan="5">No logs yet</td></tr>';
+  document.getElementById('ltbl').innerHTML=AL.length?AL.map(l=>`<tr><td><span class="tg">${l.timestamp}</span></td><td>${l.user}</td><td style="color:var(--t2)">${l.action}</td><td>${l.taskTitle||l.taskId||'—'}</td><td style="color:var(--t3);font-size:12px">${l.details||'—'}</td><td>${wb(l.waSent)}</td></tr>`).join(''):'<tr class="er"><td colspan="6">No logs yet</td></tr>';
 }
 
 let _mgrTasks=[];
@@ -1364,11 +1394,14 @@ async function openTM(id){
       <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Priority</div>${pb(task.priority)}</div>
       <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Deadline</div><div style="color:${od(task.deadline)?'var(--rd)':'var(--t)'}">${task.deadline}</div></div>
       <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Status</div>${sb(task.status)}</div>
+      <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Created</div><div style="font-size:12.5px">${task.createdOn||'—'}</div></div>
+      <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Created by</div><div style="font-size:12.5px">${task.createdBy||'—'}</div></div>
       ${task.startedOn?`<div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Started</div><div style="font-size:12.5px">${task.startedOn}</div></div>`:''}
       ${task.completedOn?`<div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Completed</div><div style="font-size:12.5px">${task.completedOn}</div></div>`:''}
       ${task.timeTaken?`<div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Time taken</div><span class="tc">${parseFloat(task.timeTaken).toFixed(2)} hrs</span></div>`:''}
     </div>
     ${task.notes?`<div style="background:var(--s2);border-radius:6px;padding:11px;font-size:13px;color:var(--t2);line-height:1.6;margin-bottom:14px;border-left:2px solid var(--bd2)">${task.notes}</div>`:''}
+    ${task.attachData?`<div style="margin-bottom:14px"><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Attachment</div>${task.attachType&&task.attachType.startsWith('image/')?`<img src="${task.attachData}" style="max-width:100%;border-radius:8px;border:1px solid var(--bd)">`:`<a href="${task.attachData}" download="${task.attachName||'attachment.pdf'}" style="display:inline-flex;align-items:center;gap:6px;background:var(--s2);border:1px solid var(--bd2);border-radius:8px;padding:9px 13px;color:var(--ac);text-decoration:none;font-size:13px">📄 ${task.attachName||'Download PDF'}</a>`}</div>`:''}
     ${task.workerNotes?`<div style="margin-bottom:14px"><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">Worker notes</div><div style="background:var(--s2);border-radius:6px;padding:11px;font-size:12.5px;color:var(--t2);white-space:pre-wrap">${task.workerNotes}</div></div>`:''}
     ${upd.length?`<div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Timeline</div><div class="tl">${
       upd.map(u=>{const dc=u.newStatus==='Completed'?'var(--gr)':u.newStatus==='Overdue'?'var(--rd)':u.newStatus==='In Progress'?'var(--ac)':'var(--am)';
@@ -1491,6 +1524,20 @@ async function filW(){
   sel.innerHTML='<option value="">Select employee</option>'+list.map(u=>`<option value="${u.name}" data-wa="${u.whatsapp||''}" data-mn="${u.managerName||CU.name}" data-mw="${u.managerWA||''}">${u.name} — ${u.department||'No dept'} (${normRole(u.role)})</option>`).join('');
 }
 
+// ── Attachment handling (image/PDF as base64, kept small for free Firebase) ──
+let _attachData=null,_attachMeta=null;
+function prepAttach(inp){
+  const f=inp.files&&inp.files[0]; const info=document.getElementById('attinfo');
+  _attachData=null;_attachMeta=null;
+  if(!f){info.textContent='';return;}
+  if(f.size>800*1024){ info.innerHTML='<span style="color:var(--rd)">File too large ('+(f.size/1024/1024).toFixed(1)+'MB). Max 800KB.</span>'; inp.value=''; return; }
+  const ok=f.type.startsWith('image/')||f.type==='application/pdf';
+  if(!ok){ info.innerHTML='<span style="color:var(--rd)">Only image or PDF allowed.</span>'; inp.value=''; return; }
+  const r=new FileReader();
+  r.onload=()=>{ _attachData=r.result; _attachMeta={name:f.name,type:f.type,size:f.size}; info.innerHTML='✓ '+f.name+' ('+(f.size/1024).toFixed(0)+'KB) ready'; };
+  r.readAsDataURL(f);
+}
+
 async function asgTask(sendWA){
   if(window._busy)return;
   if(CU.role==='employee'){toast('Access Denied: You cannot assign tasks.','er2');return;}
@@ -1503,10 +1550,10 @@ async function asgTask(sendWA){
   if(!title||!an||!dl){toast('Fill in all required fields','er2');return;}
   window._busy=true;
   document.querySelectorAll('#pg-asgn .bp,#pg-asgn .bg').forEach(b=>{b.disabled=true;b.style.opacity='.5';b.style.pointerEvents='none';});
-  const r=await api('assignTask',{title,assigneeName:an,assigneeWA:aw,department:dept,priority:pri,deadline:dl,type,notes,createdBy:CU.name,managerName:mn,managerWA:mw,sendWA});
+  const r=await api('assignTask',{title,assigneeName:an,assigneeWA:aw,department:dept,priority:pri,deadline:dl,type,notes,createdBy:CU.name,managerName:mn,managerWA:mw,sendWA,attachData:_attachData,attachMeta:_attachMeta});
   window._busy=false;
   document.querySelectorAll('#pg-asgn .bp,#pg-asgn .bg').forEach(b=>{b.disabled=false;b.style.opacity='1';b.style.pointerEvents='auto';});
-  if(r.ok!==false){toast(sendWA?'Assigned to '+an+' - WA sent':'Task assigned to '+an,sendWA?'wa2':'ok');document.getElementById('tt3').value='';document.getElementById('tn3').value='';CACHE=null;ldMgr();}
+  if(r.ok!==false){toast(sendWA?'Assigned to '+an+' - WA sent':'Task assigned to '+an,sendWA?'wa2':'ok');document.getElementById('tt3').value='';document.getElementById('tn3').value='';var fa=document.getElementById('tatt');if(fa)fa.value='';var ai=document.getElementById('attinfo');if(ai)ai.textContent='';_attachData=null;_attachMeta=null;CACHE=null;ldMgr();}
   else toast('Failed: '+(r.error||'Unknown error'),'er2');
 }
 
