@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Kasera Industries — Delegation</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500&family=DM+Mono:wght@400&display=swap" rel="stylesheet">
-<script src="https://accounts.google.com/gsi/client" async defer></script>
+
 <style>
 :root{
   --bg:#f4f6fb;--bg2:#ffffff;
@@ -383,6 +383,32 @@ tr:hover td{background:rgba(37,99,235,.04);}
 .tc,.tg{background:var(--s3);border-color:var(--bd);color:var(--t2);}
 
 </style>
+
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getFirestore, collection, getDocs, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyA1dc3sNuyJo9BK5JguaevvY5nSQdsSvZk",
+    authDomain: "kasera-delegation.firebaseapp.com",
+    projectId: "kasera-delegation",
+    storageBucket: "kasera-delegation.firebasestorage.app",
+    messagingSenderId: "117646348596",
+    appId: "1:117646348596:web:07a7eaf7e1cdb32a0e5561"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // Expose Firestore helpers globally so the main (non-module) script can use them
+  window.FB = {
+    db, collection, getDocs, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc,
+    query, where, orderBy, serverTimestamp, writeBatch
+  };
+  window.dispatchEvent(new Event('fb-ready'));
+</script>
+
 </head>
 <body>
 
@@ -456,7 +482,7 @@ tr:hover td{background:rgba(37,99,235,.04);}
         <div class="fg">
           <div class="ff"><label>Task title *</label><input type="text" id="tt3" placeholder="e.g. Check boiler pressure"></div>
           <div class="ff"><label>Department *</label><select id="td2" onchange="filW()"><option value="">Select</option><option>Production</option><option>Maintenance</option><option>QC</option><option>Dispatch</option><option>Warehouse</option></select></div>
-          <div class="ff"><label>Assign to *</label><select id="ta3"><option value="">Select worker</option></select></div>
+          <div class="ff"><label>Assign to *</label><select id="ta3"><option value="">Select employee</option></select></div>
           <div class="ff"><label>Priority</label><select id="tp3"><option value="High">🔴 High</option><option value="Medium" selected>🟡 Medium</option><option value="Low">🟢 Low</option></select></div>
           <div class="ff"><label>Deadline *</label><input type="date" id="tdl"></div>
           <div class="ff"><label>Type</label><select id="ty3"><option value="One-time">One-time</option><option value="Daily">Daily recurring</option><option value="Weekly">Weekly recurring</option></select></div>
@@ -628,25 +654,211 @@ let STAGES=[
 function stageIdx(status){var i=STAGES.findIndex(s=>s.key===status);if(status==='Completed')return STAGES.findIndex(s=>s.key==='Closed');if(status==='Overdue')return STAGES.findIndex(s=>s.key==='In Progress');return i<0?0:i;}
 
 // ── SECURED API INTEGRATION ──────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// FIREBASE DATA LAYER — replaces Apps Script. Same api(action,data) shape.
+// WhatsApp still goes through Apps Script (SCRIPT url) in the background.
+// ═══════════════════════════════════════════════════════════════
+function fbReady(){ return new Promise(res=>{ if(window.FB)return res(); window.addEventListener('fb-ready',()=>res(),{once:true}); }); }
+
+function normRoleJS(r){r=String(r||'').toLowerCase().replace(/[^a-z]/g,'');if(r==='superadmin'||r==='super')return 'superadmin';if(r==='admin')return 'admin';if(r==='supervisor'||r==='manager'||r==='boss')return 'supervisor';return 'employee';}
+function todayStr(){return new Date().toISOString().split('T')[0];}
+
+// Fire WhatsApp via Apps Script without blocking the UI (best-effort)
+function fireWA(payload){
+  try{ fetch(SCRIPT,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload),keepalive:true}); }catch(e){}
+}
+
 async function api(action,data){
+  await fbReady();
+  const F=window.FB, db=F.db;
   try{
-    const payload = { action, ...data };
-    if (CU) { payload.role = CU.role; payload.userName = CU.name; }
-    // 12-second timeout so it never hangs forever
-    const ctrl = new AbortController();
-    const tmo = setTimeout(()=>ctrl.abort(), 12000);
-    const r = await fetch(SCRIPT,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload),signal:ctrl.signal});
-    clearTimeout(tmo);
-    const t = await r.text();
-    return JSON.parse(t);
-  }catch(e){
-    console.error('API error:',e.message);
-    return {ok:false,error:'Connection failed. Check internet or contact admin.'};
-  }
+    switch(action){
+      case 'login': {
+        const snap=await F.getDocs(F.collection(db,'users'));
+        let user=null;
+        snap.forEach(d=>{const u=d.data(); if((u.email||'').toLowerCase()===(data.email||'').toLowerCase()) user={id:d.id,...u};});
+        if(!user) return {ok:false,error:'Email not found. Contact your admin.'};
+        if(user.password && String(user.password)!==String(data.password||'')) return {ok:false,error:'Incorrect password.'};
+        const clean={name:user.name,email:user.email,whatsapp:user.whatsapp,role:normRoleJS(user.role),department:user.department,managerName:user.managerName,managerWA:user.managerWA};
+        return {ok:true,user:clean,boot:await buildBoot(clean)};
+      }
+      case 'bootstrap': return await buildBoot({role:data.role,name:data.userName,department:data.department});
+      case 'getUsers': return await fbUsers();
+      case 'getTasks': { const all=await fbTasks(); return {ok:true,tasks:filterTasks(all,data)}; }
+      case 'getDashboard': return await buildBoot({role:data.role,name:data.userName,department:data.department});
+      case 'getUpdates': { const u=await fbUpdates(data.taskId); return {ok:true,updates:u}; }
+      case 'getComments': { const u=await fbUpdates(data.taskId); return {ok:true,updates:u}; }
+      case 'getLogs': return await fbLogs();
+      case 'assignTask': return await fbAssign(data);
+      case 'updateStatus': return await fbUpdateStatus(data);
+      case 'approveTask': return await fbApprove(data);
+      case 'addComment': return await fbComment(data);
+      case 'sendReminder': return await fbReminder(data);
+      case 'addUser': return await fbAddUser(data);
+      case 'updateUser': return await fbUpdateUser(data);
+      case 'deleteUser': return await fbDeleteUser(data);
+      case 'saveSettings': return await fbSaveSettings(data);
+      case 'getSettings': return await fbGetSettings();
+      case 'resetRequest': return {ok:true};
+      default: return {ok:false,error:'Unknown: '+action};
+    }
+  }catch(e){ console.error('FB error['+action+']:',e); return {ok:false,error:e.message||'Database error'}; }
+}
+
+// ---- Firestore readers ----
+async function fbUsers(){
+  const F=window.FB, snap=await F.getDocs(F.collection(F.db,'users'));
+  const out=[]; snap.forEach(d=>{const u=d.data(); out.push({id:d.id,name:u.name,email:u.email,whatsapp:u.whatsapp,role:normRoleJS(u.role),department:u.department,managerName:u.managerName,managerWA:u.managerWA,hasPassword:!!u.password});});
+  return out;
+}
+async function fbTasks(){
+  const F=window.FB, snap=await F.getDocs(F.collection(F.db,'tasks'));
+  const out=[], today=todayStr();
+  snap.forEach(d=>{const t={id:d.id,...d.data()};
+    if(t.status!=='Completed'&&t.status!=='Closed'&&t.status!=='Pending Approval'&&t.deadline&&t.deadline<today) t.status='Overdue';
+    out.push(t);
+  });
+  return out;
+}
+async function fbUpdates(taskId){
+  const F=window.FB, snap=await F.getDocs(F.collection(F.db,'updates'));
+  const out=[]; snap.forEach(d=>{const u=d.data(); if(!taskId||u.taskId===taskId) out.push(u);});
+  out.sort((a,b)=>(b.ts||0)-(a.ts||0));
+  return out;
+}
+async function fbLogs(){
+  const F=window.FB, snap=await F.getDocs(F.collection(F.db,'logs'));
+  const out=[]; snap.forEach(d=>out.push(d.data()));
+  out.sort((a,b)=>(b.ts||0)-(a.ts||0));
+  return {ok:true,logs:out.slice(0,200)};
+}
+function filterTasks(all,data){
+  let t=all;
+  if(data.role==='employee'&&data.userName) t=t.filter(x=>x.assigneeName===data.userName);
+  else if(data.role==='supervisor'&&data.userName) t=t.filter(x=>x.managerName===data.userName||x.createdBy===data.userName);
+  return t;
+}
+async function buildBoot(who){
+  const users=await fbUsers();
+  const allTasks=await fbTasks();
+  const my=filterTasks(allTasks,{role:who.role,userName:who.name});
+  const cnt=(a,s)=>a.filter(t=>t.status===s).length;
+  const stats={total:my.length,completed:cnt(my,'Completed')+cnt(my,'Closed'),inProgress:cnt(my,'In Progress'),pending:cnt(my,'Pending'),overdue:cnt(my,'Overdue'),pendingApproval:cnt(my,'Pending Approval'),closed:cnt(my,'Closed')};
+  const emps=users.filter(u=>u.role==='employee');
+  const scores=emps.map(u=>{const mt=allTasks.filter(t=>t.assigneeName===u.name);const done=mt.filter(t=>t.status==='Completed'||t.status==='Closed').length;const times=mt.filter(t=>t.timeTaken&&!isNaN(parseFloat(t.timeTaken))).map(t=>parseFloat(t.timeTaken));const avg=times.length?(times.reduce((a,b)=>a+b,0)/times.length).toFixed(1):'-';return {name:u.name,department:u.department,total:mt.length,completed:done,score:mt.length?Math.round(done/mt.length*100):0,avgTime:avg};});
+  const st=await fbGetSettings();
+  return {ok:true,users,tasks:my,allTasks,stats,scores,stages:st.stages,departments:st.departments};
+}
+
+// ---- Firestore writers ----
+async function nextTaskId(){
+  const F=window.FB, snap=await F.getDocs(F.collection(F.db,'tasks'));
+  return 'KI-'+String(snap.size+1).padStart(4,'0');
+}
+async function fbLog(u,a,ti,tt,wa,de){ try{const F=window.FB; await F.addDoc(F.collection(F.db,'logs'),{ts:Date.now(),timestamp:new Date().toLocaleString(),user:u||'',action:a||'',taskId:ti||'',taskTitle:tt||'',waSent:wa?'Yes':'No',details:de||''});}catch(e){} }
+async function fbUpd(taskId,title,by,oldS,newS,note){ try{const F=window.FB; await F.addDoc(F.collection(F.db,'updates'),{ts:Date.now(),timestamp:new Date().toLocaleString(),taskId,title:title||'',updatedBy:by||'',oldStatus:oldS||'',newStatus:newS||'',note:note||''});}catch(e){} }
+
+async function fbAssign(d){
+  if(!d.title||!d.assigneeName||!d.deadline) return {ok:false,error:'Missing required fields'};
+  const F=window.FB, id=await nextTaskId();
+  const task={id,title:d.title,assigneeName:d.assigneeName,assigneeWA:d.assigneeWA||'',department:d.department||'',priority:d.priority||'Medium',deadline:d.deadline,status:'Pending',type:d.type||'One-time',notes:d.notes||'',createdBy:d.createdBy||'Admin',createdOn:new Date().toLocaleString(),waSent:d.sendWA?'Sent':'Not sent',managerName:d.managerName||'',managerWA:d.managerWA||'',startedOn:'',completedOn:'',timeTaken:'',workerNotes:''};
+  await F.setDoc(F.doc(F.db,'tasks',id),task);
+  await fbLog(d.createdBy,'Task assigned',id,d.title,false,'To:'+d.assigneeName);
+  await fbUpd(id,d.title,d.createdBy||'Admin','','Pending','Task assigned');
+  if(d.sendWA&&d.assigneeWA){ fireWA({action:'waOnly',template:'task_delegation',to:d.assigneeWA,params:[d.assigneeName.split(' ')[0],d.title,d.deadline,d.priority||'Medium',d.department||'']}); }
+  return {ok:true,taskId:id,waSent:!!d.sendWA};
+}
+async function fbUpdateStatus(d){
+  const F=window.FB, ref=F.doc(F.db,'tasks',d.taskId), snap=await F.getDoc(ref);
+  if(!snap.exists()) return {ok:false,error:'Task not found'};
+  const t=snap.data(); const role=normRoleJS(d.role); const isAdmin=(role==='superadmin'||role==='admin');
+  let req=d.newStatus;
+  if(req==='Completed'&&role==='employee') req='Pending Approval';
+  const patch={status:req};
+  const now=new Date();
+  if(req==='In Progress'&&!t.startedOn) patch.startedOn=now.toLocaleString();
+  if(req==='Completed'||req==='Closed'){ patch.completedOn=now.toLocaleString(); const st=t.startedOn?new Date(t.startedOn):new Date(t.createdOn||now); patch.timeTaken=((now-st)/3600000).toFixed(2); }
+  if(d.note){ patch.workerNotes=(t.workerNotes?t.workerNotes+'\n':'')+now.toLocaleTimeString()+': '+d.note; }
+  await F.updateDoc(ref,patch);
+  const ovr=isAdmin?' [ADMIN OVERRIDE]':'';
+  await fbLog(d.updatedBy,'Status->'+req+ovr,d.taskId,t.title,false,(t.status)+'->'+req+(d.note?' | '+d.note:'')+ovr);
+  await fbUpd(d.taskId,t.title,d.updatedBy,t.status,req,(d.note||'')+ovr);
+  if(req==='Pending Approval'&&t.managerWA) fireWA({action:'waOnly',template:'task_completed',to:t.managerWA,params:[(t.managerName||'').split(' ')[0],d.updatedBy,t.title+' (needs approval)',now.toLocaleString(),t.department||'']});
+  if((req==='Completed'||req==='Closed')&&t.managerWA) fireWA({action:'waOnly',template:'task_completed',to:t.managerWA,params:[(t.managerName||'').split(' ')[0],d.updatedBy,t.title,now.toLocaleString(),t.department||'']});
+  return {ok:true,newStatus:req};
+}
+async function fbApprove(d){
+  const F=window.FB, ref=F.doc(F.db,'tasks',d.taskId), snap=await F.getDoc(ref);
+  if(!snap.exists()) return {ok:false,error:'Task not found'};
+  const t=snap.data(), now=new Date();
+  const patch={status:'Closed'};
+  if(!t.completedOn) patch.completedOn=now.toLocaleString();
+  if(!t.timeTaken){ const st=t.startedOn?new Date(t.startedOn):new Date(t.createdOn||now); patch.timeTaken=((now-st)/3600000).toFixed(2); }
+  if(d.note) patch.workerNotes=(t.workerNotes?t.workerNotes+'\n':'')+now.toLocaleTimeString()+': '+d.note;
+  await F.updateDoc(ref,patch);
+  await fbLog(d.by,'Approved & Closed',d.taskId,t.title,false,t.status+'->Closed');
+  await fbUpd(d.taskId,t.title,d.by,t.status,'Closed',d.note||'Approved by supervisor');
+  return {ok:true};
+}
+async function fbComment(d){
+  if(!d.taskId||!d.comment) return {ok:false,error:'Missing comment'};
+  let title=''; try{const s=await window.FB.getDoc(window.FB.doc(window.FB.db,'tasks',d.taskId)); if(s.exists())title=s.data().title;}catch(e){}
+  await fbUpd(d.taskId,title,d.by||'User','','Comment',d.comment);
+  await fbLog(d.by||'User','Comment',d.taskId,title,false,d.comment);
+  return {ok:true};
+}
+async function fbReminder(d){
+  const F=window.FB, snap=await F.getDoc(F.doc(F.db,'tasks',d.taskId));
+  if(!snap.exists()) return {ok:false,error:'Task not found'};
+  const t=snap.data(); if(!t.assigneeWA) return {ok:false,error:'No WA number'};
+  fireWA({action:'waOnly',template:'task_reminder',to:t.assigneeWA,params:[(t.assigneeName||'').split(' ')[0],t.title,t.deadline,t.priority,t.department]});
+  await fbLog(d.sentBy||'Manager','Manual reminder',d.taskId,t.title,true,t.assigneeWA);
+  return {ok:true,waSent:true};
+}
+async function fbAddUser(d){
+  if(!d.name||!d.email) return {ok:false,error:'Name and email required'};
+  const F=window.FB, users=await fbUsers();
+  if(users.find(u=>(u.email||'').toLowerCase()===d.email.toLowerCase())) return {ok:false,error:'Email already exists'};
+  await F.addDoc(F.collection(F.db,'users'),{name:d.name,email:d.email,whatsapp:d.whatsapp||'',role:d.role||'employee',department:d.department||'',managerName:d.managerName||'',managerWA:d.managerWA||'',password:d.password||''});
+  await fbLog(d.by||'Admin','User added','',d.name,false,d.email);
+  return {ok:true};
+}
+async function fbUpdateUser(d){
+  const F=window.FB, snap=await F.getDocs(F.collection(F.db,'users'));
+  let ref=null,cur=null; snap.forEach(doc=>{if((doc.data().email||'').toLowerCase()===(d.email||'').toLowerCase()){ref=doc.ref;cur=doc.data();}});
+  if(!ref) return {ok:false,error:'User not found'};
+  const patch={}; ['name','whatsapp','role','department','managerName','managerWA'].forEach(k=>{if(d[k]!==undefined)patch[k]=d[k];});
+  if(d.password) patch.password=d.password;
+  await F.updateDoc(ref,patch);
+  await fbLog(d.by||'Admin','User updated','',d.name||d.email,false,'');
+  return {ok:true};
+}
+async function fbDeleteUser(d){
+  const F=window.FB, snap=await F.getDocs(F.collection(F.db,'users'));
+  let ref=null,nm=''; snap.forEach(doc=>{if((doc.data().email||'').toLowerCase()===(d.email||'').toLowerCase()){ref=doc.ref;nm=doc.data().name;}});
+  if(!ref) return {ok:false,error:'User not found'};
+  await F.deleteDoc(ref);
+  await fbLog(d.by||'Admin','User removed','',nm,false,d.email);
+  return {ok:true};
+}
+async function fbGetSettings(){
+  const F=window.FB; let stages=null,depts=null;
+  try{const s=await F.getDoc(F.doc(F.db,'settings','config')); if(s.exists()){const v=s.data(); stages=v.stages; depts=v.departments;}}catch(e){}
+  if(!stages) stages=[{key:'Pending',label:'New'},{key:'In Progress',label:'In Progress'},{key:'Pending Approval',label:'Pending Approval'},{key:'Closed',label:'Closed'}];
+  if(!depts) depts=['Production','Maintenance','QC','Dispatch','Warehouse','Management'];
+  return {ok:true,stages,departments:depts};
+}
+async function fbSaveSettings(d){
+  const F=window.FB; const patch={};
+  if(d.stages!==undefined)patch.stages=d.stages;
+  if(d.departments!==undefined)patch.departments=d.departments;
+  await F.setDoc(F.doc(F.db,'settings','config'),patch,{merge:true});
+  await fbLog(d.by||'Admin','Settings updated','','',false,'stages/departments');
+  return {ok:true};
 }
 
 // ── GOOGLE AUTH ──────────────────────────────────────────────────
-window.onload=()=>{ restoreSession(); setDl(); if(GID&&!GID.startsWith('YOUR_')){try{google.accounts.id.initialize({client_id:GID,callback:gCred,auto_select:false});google.accounts.id.prompt();}catch(e){}} };
+window.onload=()=>{ restoreSession(); setDl(); };
 function sigG(){
   if(GID.startsWith('YOUR_')){aerr('Google ID not configured. Use email login or the demo buttons.');return;}
   try{google.accounts.id.prompt(n=>{if(n.isNotDisplayed()||n.isSkippedMoment()){const c=google.accounts.oauth2.initTokenClient({client_id:GID,scope:'openid email profile',callback:r=>{if(r.access_token)fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:'Bearer '+r.access_token}}).then(x=>x.json()).then(gProc);}});c.requestAccessToken();}});}catch(e){aerr('Google sign-in failed.');}
@@ -771,7 +983,7 @@ function sp2f(id,fromPop){
   if(id==='dash')ldDash();
   else if(id==='rep')ldRep();
   else if(id==='wa'||id==='log')ldLogs();
-  else if(id==='asgn')ldMgr();
+  else if(id==='asgn'){ldMgr();filW();}
   else if(id==='team')ldTeam();
   else if(id==='wtask')ldWT();
   else if(id==='wperf')ldWP();
@@ -998,6 +1210,7 @@ async function ldMgr(){
   let all=r.allTasks||r.tasks||[];
   if(CU.role==='supervisor') all=all.filter(t=>t.managerName===CU.name||t.createdBy===CU.name);
   _mgrTasks=all;
+  if(AU&&AU.length)filW();  // populate assignee dropdown
   // populate filter dropdowns
   const asg=[...new Set(all.map(t=>t.assigneeName).filter(Boolean))].sort();
   const fa=document.getElementById('fc-assignee'); if(fa&&fa.options.length<=1)fa.innerHTML='<option value="">All</option>'+asg.map(a=>'<option>'+a+'</option>').join('');
@@ -1032,7 +1245,7 @@ function applyMgrFilter(){
 async function ldTeam(){
   const r=await getBoot();
   if(r.ok===false)return;
-  const scores=r.scores||[];const workers=AU.filter(u=>u.role==='employee'&&u.department===CU.department);
+  const scores=r.scores||[];const workers=AU.filter(u=>normRole(u.role)==='employee'&&u.department===CU.department);
   const list=workers.length?workers:scores.map(s=>({name:s.name,department:s.department,whatsapp:'—'}));
   document.getElementById('teamt').innerHTML=list.length?list.map(u=>{
     const sc=scores.find(s=>s.name===u.name)||{total:0,completed:0,score:0,avgTime:'-'};
@@ -1252,11 +1465,28 @@ async function subStat(){
 }
 
 // ── ASSIGN ────────────────────────────────────────────────────────
-function filW(){
-  const dept=document.getElementById('td2')?.value||'';
+async function filW(){
   const sel=document.getElementById('ta3');if(!sel)return;
-  const workers=AU.filter(u=>u.role==='employee'&&(!dept||u.department===dept));
-  sel.innerHTML='<option value="">Select worker</option>'+workers.map(u=>`<option value="${u.name}" data-wa="${u.whatsapp}" data-mn="${u.managerName||CU.name}" data-mw="${u.managerWA||''}">${u.name} (${u.department})</option>`).join('');
+  // If users not loaded yet, load them (from cache or server)
+  if(!AU||!AU.length){
+    const r=await getBoot();
+    if(r&&r.users)AU=r.users;
+  }
+  const dept=document.getElementById('td2')?.value||'';
+  // Show all assignable people (employees + supervisors), normalize role text.
+  // Department is NOT a hard filter — show everyone, label their dept. (Avoids empty dropdown.)
+  const assignable=AU.filter(u=>{
+    const r=normRole(u.role);
+    return r==='employee'||r==='supervisor';
+  });
+  // Prefer same-dept first if a dept is chosen, but always include everyone
+  let list=assignable;
+  if(dept){ list=[...assignable.filter(u=>u.department===dept),...assignable.filter(u=>u.department!==dept)]; }
+  if(!list.length){
+    sel.innerHTML='<option value="">No people found — add them in Manage people</option>';
+    return;
+  }
+  sel.innerHTML='<option value="">Select employee</option>'+list.map(u=>`<option value="${u.name}" data-wa="${u.whatsapp||''}" data-mn="${u.managerName||CU.name}" data-mw="${u.managerWA||''}">${u.name} — ${u.department||'No dept'} (${normRole(u.role)})</option>`).join('');
 }
 
 async function asgTask(sendWA){
