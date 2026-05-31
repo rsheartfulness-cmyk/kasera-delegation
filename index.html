@@ -664,8 +664,10 @@ function normRoleJS(r){r=String(r||'').toLowerCase().replace(/[^a-z]/g,'');if(r=
 function todayStr(){return new Date().toISOString().split('T')[0];}
 
 // Fire WhatsApp via Apps Script without blocking the UI (best-effort)
-function fireWA(payload){
-  try{ fetch(SCRIPT,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload),keepalive:true}); }catch(e){}
+async function fireWA(payload){
+  try{
+    await fetch(SCRIPT,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)});
+  }catch(e){ console.warn('WA send issue:',e.message); }
 }
 
 async function api(action,data){
@@ -765,7 +767,7 @@ async function fbAssign(d){
   await F.setDoc(F.doc(F.db,'tasks',id),task);
   await fbLog(d.createdBy,'Task assigned',id,d.title,false,'To:'+d.assigneeName);
   await fbUpd(id,d.title,d.createdBy||'Admin','','Pending','Task assigned');
-  if(d.sendWA&&d.assigneeWA){ fireWA({action:'waOnly',template:'task_delegation',to:d.assigneeWA,params:[d.assigneeName.split(' ')[0],d.title,d.deadline,d.priority||'Medium',d.department||'']}); }
+  if(d.sendWA&&d.assigneeWA){ await fireWA({action:'waOnly',template:'task_delegation',to:d.assigneeWA,params:[d.assigneeName.split(' ')[0],d.title,d.deadline,d.priority||'Medium',d.department||'']}); }
   return {ok:true,taskId:id,waSent:!!d.sendWA};
 }
 async function fbUpdateStatus(d){
