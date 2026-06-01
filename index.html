@@ -638,6 +638,7 @@ input,select,textarea{max-width:100%;box-sizing:border-box;}
         <div class="sh2"><div class="st">My team tasks</div>
           <div style="display:flex;align-items:center;gap:8px">
             <select class="fcol" id="fc-tag" onchange="applyMgrFilter()" style="width:auto;min-width:120px"><option value="">All tags</option></select>
+            <span style="font-size:10.5px;color:var(--t3)">Closed hidden — filter Status to see them</span>
             <span style="font-size:11.5px;color:var(--t3)">+ column filters ↓</span>
           </div>
         </div>
@@ -812,6 +813,9 @@ function fbReady(){ return new Promise(res=>{ if(window.FB)return res(); window.
 function normRoleJS(r){r=String(r||'').toLowerCase().replace(/[^a-z]/g,'');if(r==='superadmin'||r==='super')return 'superadmin';if(r==='admin')return 'admin';if(r==='supervisor'||r==='manager'||r==='boss')return 'supervisor';return 'employee';}
 function todayStr(){return new Date().toISOString().split('T')[0];}
 function _sameDay(dateStr,iso){ try{ var d=new Date(dateStr); if(isNaN(d))return false; return d.toISOString().split('T')[0]===iso; }catch(e){return false;} }
+function safeHours(startStr,endDate){
+  try{ var s=new Date(startStr); if(isNaN(s))return ''; var h=(endDate-s)/3600000; if(!isFinite(h)||h<0||h>8760)return ''; return h.toFixed(2); }catch(e){return '';}
+}
 
 // Fire WhatsApp via Apps Script without blocking the UI (best-effort)
 async function fireWA(payload){
@@ -922,7 +926,17 @@ async function buildBoot(who,preUsers){
   const activeEmps=new Set(allTasks.filter(t=>t.status!=='Closed'&&t.status!=='Completed'&&t.assigneeName).map(t=>t.assigneeName)).size;
   const stats={total:my.length,completed:cnt(my,'Completed')+cnt(my,'Closed'),inProgress:cnt(my,'In Progress'),pending:cnt(my,'Pending'),overdue:cnt(my,'Overdue'),pendingApproval:cnt(my,'Pending Approval'),closed:cnt(my,'Closed'),completedToday:completedToday,waFailed:waFailed,activeEmps:activeEmps};
   const emps=users.filter(u=>u.role==='employee');
-  const scores=emps.map(u=>{const mt=allTasks.filter(t=>t.assigneeName===u.name);const done=mt.filter(t=>t.status==='Completed'||t.status==='Closed').length;const times=mt.filter(t=>t.timeTaken&&!isNaN(parseFloat(t.timeTaken))).map(t=>parseFloat(t.timeTaken));const avg=times.length?(times.reduce((a,b)=>a+b,0)/times.length).toFixed(1):'-';return {name:u.name,department:u.department,total:mt.length,completed:done,score:mt.length?Math.round(done/mt.length*100):0,avgTime:avg};});
+  // Score ANYONE who has tasks assigned (not only role=employee)
+  const assignedNames=[...new Set(allTasks.map(t=>t.assigneeName).filter(Boolean))];
+  const scores=assignedNames.map(nm=>{
+    const profile=users.find(u=>u.name===nm)||{};
+    const mt=allTasks.filter(t=>t.assigneeName===nm);
+    const done=mt.filter(t=>t.status==='Completed'||t.status==='Closed').length;
+    // valid times only: positive, finite, under 1 year of hours (filters NaN + garbage like 3504h)
+    const times=mt.map(t=>parseFloat(t.timeTaken)).filter(v=>!isNaN(v)&&isFinite(v)&&v>0&&v<8760);
+    const avg=times.length?(times.reduce((a,b)=>a+b,0)/times.length).toFixed(1):'-';
+    return {name:nm,department:profile.department||mt[0]?.department||'—',total:mt.length,completed:done,score:mt.length?Math.round(done/mt.length*100):0,avgTime:avg};
+  }).sort((a,b)=>b.total-a.total);
   return {ok:true,users,tasks:my,allTasks,stats,scores,stages:st.stages,departments:st.departments};
 }
 
@@ -953,7 +967,7 @@ async function fbUpdateStatus(d){
   const patch={status:req};
   const now=new Date();
   if(req==='In Progress'&&!t.startedOn) patch.startedOn=now.toLocaleString();
-  if(req==='Completed'||req==='Closed'){ patch.completedOn=now.toLocaleString(); const st=t.startedOn?new Date(t.startedOn):new Date(t.createdOn||now); patch.timeTaken=((now-st)/3600000).toFixed(2); }
+  if(req==='Completed'||req==='Closed'){ patch.completedOn=now.toLocaleString(); patch.timeTaken=safeHours(t.startedOn||t.createdOn,now); }
   if(d.note){ patch.workerNotes=(t.workerNotes?t.workerNotes+'\n':'')+now.toLocaleTimeString()+': '+d.note; }
   await F.updateDoc(ref,patch);
   const ovr=isAdmin?' [ADMIN OVERRIDE]':'';
@@ -970,7 +984,7 @@ async function fbApprove(d){
   const t=snap.data(), now=new Date();
   const patch={status:'Closed'};
   if(!t.completedOn) patch.completedOn=now.toLocaleString();
-  if(!t.timeTaken){ const st=t.startedOn?new Date(t.startedOn):new Date(t.createdOn||now); patch.timeTaken=((now-st)/3600000).toFixed(2); }
+  if(!t.timeTaken){ patch.timeTaken=safeHours(t.startedOn||t.createdOn,now); }
   if(d.note) patch.workerNotes=(t.workerNotes?t.workerNotes+'\n':'')+now.toLocaleTimeString()+': '+d.note;
   await F.updateDoc(ref,patch);
   await fbLog(d.by,'Approved & Closed',d.taskId,t.title,false,t.status+'->Closed');
@@ -1516,7 +1530,8 @@ function applyMgrFilter(){
     if(fa&&t.assigneeName!==fa)return false;
     if(fp&&t.priority!==fp)return false;
     if(fd&&t.deadline!==fd)return false;
-    if(fs&&t.status!==fs)return false;
+    if(fs){ if(t.status!==fs)return false; }
+    else { if(t.status==='Closed'||t.status==='Completed')return false; } // hide closed by default
     if(ftag&&!(t.tags||[]).includes(ftag))return false;
     return true;
   });
@@ -1664,7 +1679,7 @@ async function openTM(id){
       <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Created by</div><div style="font-size:12.5px">${task.createdBy||'—'}</div></div>
       ${task.startedOn?`<div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Started</div><div style="font-size:12.5px">${task.startedOn}</div></div>`:''}
       ${task.completedOn?`<div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Completed</div><div style="font-size:12.5px">${task.completedOn}</div></div>`:''}
-      ${task.timeTaken?`<div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Time taken</div><span class="tc">${parseFloat(task.timeTaken).toFixed(2)} hrs</span></div>`:''}
+      ${task.timeTaken?`<div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Time taken</div><span class="tc">${(!isNaN(parseFloat(task.timeTaken))&&isFinite(parseFloat(task.timeTaken)))?parseFloat(task.timeTaken).toFixed(2)+' hrs':'—'}</span></div>`:''}
     </div>
     ${(task.tags&&task.tags.length)?`<div style="margin-bottom:14px;display:flex;flex-wrap:wrap;gap:6px">${task.tags.map(tg=>`<span style="font-size:11px;padding:4px 10px;border-radius:20px;background:rgba(37,99,235,.1);color:var(--ac);border:1px solid rgba(37,99,235,.2)">🏷️ ${tg}</span>`).join('')}</div>`:''}
     ${task.notes?`<div style="background:var(--s2);border-radius:6px;padding:11px;font-size:13px;color:var(--t2);line-height:1.6;margin-bottom:14px;border-left:2px solid var(--bd2)">${task.notes}</div>`:''}
