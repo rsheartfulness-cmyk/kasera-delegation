@@ -961,8 +961,19 @@ async function buildBoot(who,preUsers){
 
 // ---- Firestore writers ----
 async function nextTaskId(){
-  const F=window.FB, snap=await F.getDocs(F.collection(F.db,'tasks'));
-  return 'KI-'+String(snap.size+1).padStart(4,'0');
+  const F=window.FB;
+  // Find the HIGHEST existing KI number among current tasks AND past updates/logs,
+  // so we never reuse an ID that ever existed (prevents timeline bleed-through).
+  let maxN=0;
+  try{
+    const tsnap=await F.getDocs(F.collection(F.db,'tasks'));
+    tsnap.forEach(d=>{const m=String(d.id).match(/KI-(\d+)/)||String(d.data().id||'').match(/KI-(\d+)/); if(m){const n=parseInt(m[1]);if(n>maxN)maxN=n;}});
+  }catch(e){}
+  try{
+    const usnap=await F.getDocs(F.collection(F.db,'updates'));
+    usnap.forEach(d=>{const m=String(d.data().taskId||'').match(/KI-(\d+)/); if(m){const n=parseInt(m[1]);if(n>maxN)maxN=n;}});
+  }catch(e){}
+  return 'KI-'+String(maxN+1).padStart(4,'0');
 }
 async function fbLog(u,a,ti,tt,wa,de){ try{const F=window.FB; await F.addDoc(F.collection(F.db,'logs'),{ts:Date.now(),timestamp:new Date().toLocaleString(),user:u||'',action:a||'',taskId:ti||'',taskTitle:tt||'',waSent:wa?'Yes':'No',details:de||''});}catch(e){} }
 async function fbUpd(taskId,title,by,oldS,newS,note,att){ try{const F=window.FB; const rec={ts:Date.now(),timestamp:new Date().toLocaleString(),taskId,title:title||'',updatedBy:by||'',oldStatus:oldS||'',newStatus:newS||'',note:note||''}; if(att&&att.url){rec.attachUrl=att.url;rec.attachName=att.name||'';rec.attachType=att.type||'';} await F.addDoc(F.collection(F.db,'updates'),rec);}catch(e){} }
@@ -1715,7 +1726,8 @@ async function ldUpdates(){
   try{
     const F=window.FB;
     const snap=await F.getDocs(F.collection(F.db,'updates'));
-    snap.forEach(d=>{const u=d.data(); if(ids.includes(u.taskId)) events.push(u);});
+    const taskCreated={}; mine.forEach(t=>{taskCreated[t.id]=t.createdOn?new Date(t.createdOn).getTime():0;});
+    snap.forEach(d=>{const u=d.data(); if(ids.includes(u.taskId)){ const ct=taskCreated[u.taskId]; if(!ct||!u.ts||u.ts>=ct-60000) events.push(u); }});
   }catch(e){}
   // sort newest first
   events.sort((a,b)=>(b.ts||0)-(a.ts||0));
@@ -1747,7 +1759,10 @@ async function openTM(id){
   if(CU.role === 'employee') { remindBtn.style.display = 'none'; } else { remindBtn.style.display = 'inline-flex'; }
 
   const r=await api('getUpdates',{taskId:id});
-  const upd=r.ok!==false?r.updates||[]:[];
+  let upd=r.ok!==false?r.updates||[]:[];
+  // Guard against ID reuse: only show updates from this task's lifetime (>= created time)
+  const _createdTs=task.createdOn?new Date(task.createdOn).getTime():0;
+  if(_createdTs&&!isNaN(_createdTs)){ upd=upd.filter(u=>!u.ts||u.ts>=_createdTs-60000); }
   const _si=stageIdx(task.status);
   const _closedNow=(task.status==='Closed'||task.status==='Completed');
   const _canChange=(CU.role==='superadmin'||CU.role==='admin'||CU.role==='supervisor'||task.assigneeName===CU.name)&&!_closedNow;
@@ -1779,7 +1794,9 @@ async function openTM(id){
   (async()=>{
     const cr=await api('getComments',{taskId:id});
     const ups=(cr.ok!==false?cr.updates:[])||[];
-    const comments=ups.filter(u=>u.newStatus==='Comment');
+    const _ct=task.createdOn?new Date(task.createdOn).getTime():0;
+    let comments=ups.filter(u=>u.newStatus==='Comment');
+    if(_ct&&!isNaN(_ct))comments=comments.filter(u=>!u.ts||u.ts>=_ct-60000);
     let html='<div style="border-top:1px solid var(--bd);margin-top:14px;padding-top:12px"><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Comments</div>';
     if(comments.length){html+=comments.map(c=>'<div style="background:var(--s2);border-radius:6px;padding:8px 10px;margin-bottom:6px"><div style="font-size:12px;color:var(--t)"><strong>'+c.updatedBy+'</strong> <span style="color:var(--t3);font-size:10.5px">'+c.timestamp+'</span></div><div style="font-size:12.5px;color:var(--t2);margin-top:2px">'+c.note+'</div>'+(c.attachUrl?((c.attachType&&c.attachType.startsWith('image/'))?'<img src="'+c.attachUrl+'" style="max-width:100%;border-radius:6px;margin-top:6px;border:1px solid var(--bd)">':'<a href="'+c.attachUrl+'" target="_blank" style="display:inline-block;margin-top:6px;font-size:12px;color:var(--ac)">📄 '+(c.attachName||'View file')+'</a>'):'')+'</div>').join('');}
     else{html+='<div style="font-size:12px;color:var(--t3);margin-bottom:6px">No comments yet</div>';}
