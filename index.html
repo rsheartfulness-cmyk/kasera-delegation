@@ -584,7 +584,7 @@ input,select,textarea{max-width:100%;box-sizing:border-box;}
         <div class="sh2"><div class="st">All tasks</div><div style="display:flex;gap:7px;align-items:center">
           <div class="view-toggle"><div class="vt ac" id="vt-board" onclick="setView('board')">▦ Board</div><div class="vt" id="vt-list" onclick="setView('list')">☰ List</div></div>
           <select id="fs" onchange="ldDash()" style="background:var(--s1);border:1px solid var(--bd2);border-radius:5px;padding:5px 9px;color:var(--t2);font-size:12px;outline:none"><option value="">All status</option><option>Pending</option><option>In Progress</option><option>Completed</option><option>Overdue</option></select>
-          <select id="fd" onchange="ldDash()" style="background:var(--s1);border:1px solid var(--bd2);border-radius:5px;padding:5px 9px;color:var(--t2);font-size:12px;outline:none"><option value="">All depts</option><option>Production</option><option>Maintenance</option><option>QC</option><option>Dispatch</option><option>Warehouse</option></select>
+          <select id="fd" onchange="ldDash()" style="background:var(--s1);border:1px solid var(--bd2);border-radius:5px;padding:5px 9px;color:var(--t2);font-size:12px;outline:none"><option value="">All depts</option></select>
           <select id="ftag" onchange="ldDash()" style="background:var(--s1);border:1px solid var(--bd2);border-radius:5px;padding:5px 9px;color:var(--t2);font-size:12px;outline:none"><option value="">All tags</option></select>
         </div></div>
         <div class="kb" id="kanban"></div>
@@ -615,7 +615,8 @@ input,select,textarea{max-width:100%;box-sizing:border-box;}
         <div class="fg">
           <div class="ff"><label>Task title *</label><input type="text" id="tt3" placeholder="e.g. Check boiler pressure"></div>
           <div class="ff"><label>Department *</label><select id="td2" onchange="filW()"><option value="">Select</option><option>Production</option><option>Maintenance</option><option>QC</option><option>Dispatch</option><option>Warehouse</option></select></div>
-          <div class="ff"><label>Assign to *</label><select id="ta3"><option value="">Select employee</option></select></div>
+          <div class="ff"><label>Assign to *</label><select id="ta3" onchange="onAssigneePick()"><option value="">Select employee</option></select></div>
+          <div class="ff"><label>Reporting Manager (approves this task)</label><select id="tmgr"><option value="">— select manager —</option></select></div>
           <div class="ff"><label>Priority</label><select id="tp3"><option value="High">🔴 High</option><option value="Medium" selected>🟡 Medium</option><option value="Low">🟢 Low</option></select></div>
           <div class="ff"><label>Deadline *</label><input type="date" id="tdl"></div>
           <div class="ff"><label>Type</label><select id="ty3"><option value="One-time">One-time</option><option value="Daily">Daily recurring</option><option value="Weekly">Weekly recurring</option></select></div>
@@ -627,6 +628,16 @@ input,select,textarea{max-width:100%;box-sizing:border-box;}
         </div>
         <div class="ff" style="margin-bottom:12px"><label>Tags (optional)</label>
           <div id="tagpick" class="tagbox" style="margin-top:4px"></div>
+        </div>
+        <div class="ff" style="margin-bottom:12px">
+          <button type="button" class="btn bg bs" id="contactToggle" onclick="toggleContact()" style="width:100%;justify-content:flex-start">➕ Add contact details (for an outside person/customer)</button>
+          <div id="contactBox" style="display:none;margin-top:10px;padding:13px;background:var(--s2);border:1px solid var(--bd2);border-radius:10px">
+            <div class="fg">
+              <div class="ff"><label>Contact name</label><input type="text" id="ct-name" placeholder="e.g. Ramesh Traders"></div>
+              <div class="ff"><label>Contact number</label><input type="text" id="ct-phone" placeholder="e.g. 9876543210"></div>
+            </div>
+            <div class="ff" style="margin-top:8px"><label>Address</label><textarea id="ct-addr" placeholder="Full address..." style="min-height:60px"></textarea></div>
+          </div>
         </div>
         <div style="display:flex;gap:8px;align-items:center">
           <button class="btn bp" onclick="asgTask(true)">Assign + Send WA 📲</button>
@@ -818,9 +829,9 @@ function safeHours(startStr,endDate){
 }
 
 // Fire WhatsApp via Apps Script without blocking the UI (best-effort)
-async function fireWA(payload){
+function fireWA(payload){
   try{
-    await fetch(SCRIPT,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)});
+    fetch(SCRIPT,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)}).catch(()=>{});
   }catch(e){ console.warn('WA send issue:',e.message); }
 }
 
@@ -871,6 +882,7 @@ async function api(action,data){
       case 'updateUser': return await fbUpdateUser(data);
       case 'deleteUser': return await fbDeleteUser(data);
       case 'deleteTask': return await fbDeleteTask(data);
+      case 'reassignTask': return await fbReassign(data);
       case 'saveSettings': return await fbSaveSettings(data);
       case 'getSettings': return await fbGetSettings();
       case 'resetRequest': {
@@ -951,11 +963,11 @@ async function fbUpd(taskId,title,by,oldS,newS,note){ try{const F=window.FB; awa
 async function fbAssign(d){
   if(!d.title||!d.assigneeName||!d.deadline) return {ok:false,error:'Missing required fields'};
   const F=window.FB, id=await nextTaskId();
-  const task={id,title:d.title,assigneeName:d.assigneeName,assigneeWA:d.assigneeWA||'',department:d.department||'',priority:d.priority||'Medium',deadline:d.deadline,status:'Pending',type:d.type||'One-time',notes:d.notes||'',createdBy:d.createdBy||'Admin',createdOn:new Date().toLocaleString(),waSent:d.sendWA?'Sent':'Not sent',managerName:d.managerName||'',managerWA:d.managerWA||'',startedOn:'',completedOn:'',timeTaken:'',workerNotes:'',tags:d.tags||[],attachUrl:d.attachUrl||'',attachName:d.attachName||'',attachType:d.attachType||''};
+  const task={id,title:d.title,assigneeName:d.assigneeName,assigneeWA:d.assigneeWA||'',department:d.department||'',priority:d.priority||'Medium',deadline:d.deadline,status:'Pending',type:d.type||'One-time',notes:d.notes||'',createdBy:d.createdBy||'Admin',createdOn:new Date().toLocaleString(),waSent:d.sendWA?'Sent':'Not sent',managerName:d.managerName||'',managerWA:d.managerWA||'',startedOn:'',completedOn:'',timeTaken:'',workerNotes:'',tags:d.tags||[],contactName:d.contactName||'',contactPhone:d.contactPhone||'',contactAddr:d.contactAddr||'',attachUrl:d.attachUrl||'',attachName:d.attachName||'',attachType:d.attachType||''};
   await F.setDoc(F.doc(F.db,'tasks',id),task);
   await fbLog(d.createdBy,'Task assigned',id,d.title,!!(d.sendWA&&d.assigneeWA),'To:'+d.assigneeName+(d.sendWA&&d.assigneeWA?' (WA sent)':''));
   await fbUpd(id,d.title,d.createdBy||'Admin','','Pending','Task assigned');
-  if(d.sendWA&&d.assigneeWA){ await fireWA({action:'waOnly',template:'task_delegation',to:d.assigneeWA,params:[d.assigneeName.split(' ')[0],d.title,d.deadline,d.priority||'Medium',d.department||'']}); }
+  if(d.sendWA&&d.assigneeWA){ fireWA({action:'waOnly',template:'task_delegation',to:d.assigneeWA,params:[d.assigneeName.split(' ')[0],d.title,d.deadline,d.priority||'Medium',d.department||'']}); }
   return {ok:true,taskId:id,waSent:!!d.sendWA};
 }
 async function fbUpdateStatus(d){
@@ -1055,6 +1067,22 @@ async function fbUpdateUser(d){
   const patch={}; ['name','whatsapp','role','department','managerName','managerWA','archived'].forEach(k=>{if(d[k]!==undefined)patch[k]=d[k];});
   await F.updateDoc(ref,patch);
   await fbLog(d.by||'Admin','User updated','',d.name||d.email,false,'');
+  return {ok:true};
+}
+async function fbReassign(d){
+  const F=window.FB, ref=F.doc(F.db,'tasks',d.taskId), snap=await F.getDoc(ref);
+  if(!snap.exists()) return {ok:false,error:'Task not found'};
+  const t=snap.data();
+  const patch={};
+  const changes=[];
+  if(d.assigneeName&&d.assigneeName!==t.assigneeName){ patch.assigneeName=d.assigneeName; patch.assigneeWA=d.assigneeWA||''; changes.push('assignee → '+d.assigneeName); }
+  if(d.managerName!==undefined&&d.managerName!==t.managerName){ patch.managerName=d.managerName; patch.managerWA=d.managerWA||''; changes.push('manager → '+(d.managerName||'none')); }
+  if(!changes.length) return {ok:true};
+  await F.updateDoc(ref,patch);
+  await fbLog(d.by||'Admin','Reassigned',d.taskId,t.title,!!patch.assigneeWA,changes.join(', '));
+  await fbUpd(d.taskId,t.title,d.by,t.status,t.status,'Updated: '+changes.join(', '));
+  // Notify new assignee if changed
+  if(patch.assigneeWA){ fireWA({action:'waOnly',template:'task_delegation',to:patch.assigneeWA,params:[(d.assigneeName||'').split(' ')[0],t.title,t.deadline||'',t.priority||'Medium',t.department||'']}); }
   return {ok:true};
 }
 async function fbDeleteTask(d){
@@ -1420,13 +1448,15 @@ async function getBootFast(renderFn){
 }
 
 // ── LOAD DATA ────────────────────────────────────────────────────
-async function loadUsers(){if(CACHE&&CACHE.users){AU=CACHE.users;filW();return;}const r=await getBoot();if(r.users)AU=r.users;filW();}
+async function loadUsers(){if(CACHE&&CACHE.users){AU=CACHE.users;filW();populateMgrDropdown();return;}const r=await getBoot();if(r.users)AU=r.users;filW();populateMgrDropdown();}
 
 function _paintDash(r){
   if(!r||r.ok===false)return;
   const sf=document.getElementById('fs')?.value||'',df=document.getElementById('fd')?.value||'';
   AT=r.allTasks||r.tasks||[];
   let tasks=(r.tasks||[]);
+  // Populate filter dropdowns (depts + tags) if empty
+  const fdEl=document.getElementById('fd'); if(fdEl&&fdEl.options.length<=1)fdEl.innerHTML='<option value="">All depts</option>'+(DEPTS||[]).map(d=>'<option>'+d+'</option>').join('');
   const tf=document.getElementById('ftag')?.value||'';
   if(sf)tasks=tasks.filter(t=>t.status===sf);
   if(df)tasks=tasks.filter(t=>t.department===df);
@@ -1682,8 +1712,9 @@ async function openTM(id){
       ${task.timeTaken?`<div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Time taken</div><span class="tc">${(!isNaN(parseFloat(task.timeTaken))&&isFinite(parseFloat(task.timeTaken)))?parseFloat(task.timeTaken).toFixed(2)+' hrs':'—'}</span></div>`:''}
     </div>
     ${(task.tags&&task.tags.length)?`<div style="margin-bottom:14px;display:flex;flex-wrap:wrap;gap:6px">${task.tags.map(tg=>`<span style="font-size:11px;padding:4px 10px;border-radius:20px;background:rgba(37,99,235,.1);color:var(--ac);border:1px solid rgba(37,99,235,.2)">🏷️ ${tg}</span>`).join('')}</div>`:''}
+    ${(task.contactName||task.contactPhone||task.contactAddr)?`<div style="margin-bottom:14px;padding:11px;background:rgba(37,99,235,.04);border:1px solid rgba(37,99,235,.12);border-radius:8px"><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">📇 Contact details</div><div style="font-size:13px;color:var(--t)">${task.contactName?'<strong>'+task.contactName+'</strong>':''}${task.contactPhone?' • '+task.contactPhone:''}${task.contactAddr?'<br><span style="color:var(--t2)">'+task.contactAddr+'</span>':''}</div></div>`:''}
     ${task.notes?`<div style="background:var(--s2);border-radius:6px;padding:11px;font-size:13px;color:var(--t2);line-height:1.6;margin-bottom:14px;border-left:2px solid var(--bd2)">${task.notes}</div>`:''}
-    ${task.attachData?`<div style="margin-bottom:14px"><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Attachment</div>${task.attachType&&task.attachType.startsWith('image/')?`<img src="${task.attachData}" style="max-width:100%;border-radius:8px;border:1px solid var(--bd)">`:`<a href="${task.attachData}" download="${task.attachName||'attachment.pdf'}" style="display:inline-flex;align-items:center;gap:6px;background:var(--s2);border:1px solid var(--bd2);border-radius:8px;padding:9px 13px;color:var(--ac);text-decoration:none;font-size:13px">📄 ${task.attachName||'Download PDF'}</a>`}</div>`:''}
+    ${(task.attachUrl||task.attachData)?`<div style="margin-bottom:14px"><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Attachment</div>${(task.attachType&&task.attachType.startsWith('image/'))?`<img src="${task.attachUrl||task.attachData}" style="max-width:100%;border-radius:8px;border:1px solid var(--bd)">`:`<a href="${task.attachUrl||task.attachData}" target="_blank" download="${task.attachName||'attachment'}" style="display:inline-flex;align-items:center;gap:6px;background:var(--s2);border:1px solid var(--bd2);border-radius:8px;padding:9px 13px;color:var(--ac);text-decoration:none;font-size:13px">📄 ${task.attachName||'Download file'}</a>`}</div>`:''}
     ${task.workerNotes?`<div style="margin-bottom:14px"><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">Worker notes</div><div style="background:var(--s2);border-radius:6px;padding:11px;font-size:12.5px;color:var(--t2);white-space:pre-wrap">${task.workerNotes}</div></div>`:''}
     ${upd.length?`<div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Timeline</div><div class="tl">${
       upd.map(u=>{const dc=u.newStatus==='Completed'?'var(--gr)':u.newStatus==='Overdue'?'var(--rd)':u.newStatus==='In Progress'?'var(--ac)':'var(--am)';
@@ -1703,6 +1734,18 @@ async function openTM(id){
   document.getElementById('mbdy').innerHTML+='<div id="cmt-cont"></div>';
   window._mTask=id;
   const _closed=(task.status==='Closed'||task.status==='Completed');
+  // #1+#2 Reassign + change manager (admin/superadmin/supervisor, not closed)
+  if((CU.role==='superadmin'||CU.role==='admin'||CU.role==='supervisor')&&!_closed){
+    const people=(AU||[]).filter(u=>u&&u.name&&!u.archived);
+    const aOpts=people.map(u=>'<option value="'+u.name+'" data-wa="'+(u.whatsapp||'')+'"'+(u.name===task.assigneeName?' selected':'')+'>'+u.name+' ('+normRole(u.role)+')</option>').join('');
+    const mgrs=people.filter(u=>['supervisor','admin','superadmin'].includes(normRole(u.role)));
+    const mOpts='<option value="">— none —</option>'+mgrs.map(u=>'<option value="'+u.name+'" data-wa="'+(u.whatsapp||'')+'"'+(u.name===task.managerName?' selected':'')+'>'+u.name+'</option>').join('');
+    document.getElementById('mbdy').innerHTML+='<div style="margin-top:14px;padding:13px;background:var(--s2);border:1px solid var(--bd2);border-radius:10px">'+
+      '<div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">⚙ Reassign / Reporting manager</div>'+
+      '<div class="fg"><div class="ff"><label>Assignee</label><select id="ra-assignee">'+aOpts+'</select></div>'+
+      '<div class="ff"><label>Reporting manager</label><select id="ra-mgr">'+mOpts+'</select></div></div>'+
+      '<button class="btn bp bs" style="margin-top:10px" onclick="saveReassign(\''+id+'\')">💾 Update assignee / manager</button></div>';
+  }
   const ob=document.getElementById('ovr-btn'); if(ob)ob.style.display=((CU.role==='superadmin'||CU.role==='admin')&&!_closed)?'inline-flex':'none';
   const db_=document.getElementById('delBtn'); if(db_)db_.style.display=(CU.role==='superadmin')?'inline-flex':'none';
   if(_closed){document.getElementById('mbdy').innerHTML+='<div style="margin-top:12px;background:rgba(43,221,134,.08);border:1px solid rgba(43,221,134,.25);border-radius:8px;padding:11px 13px;font-size:12.5px;color:var(--gr)">🔒 This ticket is closed and locked. You cannot change its status. To continue this work, please create a New ticket.</div>';}
@@ -1710,6 +1753,20 @@ async function openTM(id){
 }
 
 
+async function saveReassign(id){
+  const aSel=document.getElementById('ra-assignee'), mSel=document.getElementById('ra-mgr');
+  if(!aSel)return;
+  const aOpt=aSel.options[aSel.selectedIndex], mOpt=mSel?mSel.options[mSel.selectedIndex]:null;
+  const data={taskId:id,by:CU.name,
+    assigneeName:aSel.value, assigneeWA:aOpt?.dataset?.wa||'',
+    managerName:mSel?mSel.value:'', managerWA:mOpt?.dataset?.wa||''};
+  const r=await api('reassignTask',data);
+  CACHE=null;
+  if(r.ok!==false){toast('Updated','ok');cmod();
+    const cur=document.querySelector('.pg.ac')?.id;
+    if(cur==='pg-dash')ldDash();else if(cur==='pg-asgn')ldMgr();else if(cur==='pg-approvals')ldApprovals();else ldDash();
+  } else toast('Failed: '+(r.error||'error'),'er2');
+}
 async function deleteTicket(){
   if(CU.role!=='superadmin'){toast('Only Super Admin can delete tickets','er2');return;}
   const id=window._mTask; if(!id)return;
@@ -1820,6 +1877,24 @@ async function filW(){
   sel.innerHTML='<option value="">Select employee</option>'+list.map(u=>`<option value="${u.name}" data-wa="${u.whatsapp||''}" data-mn="${u.managerName||CU.name}" data-mw="${u.managerWA||''}">${u.name} — ${u.department||'No dept'} (${normRole(u.role)})</option>`).join('');
 }
 
+function toggleContact(){
+  const box=document.getElementById('contactBox'), btn=document.getElementById('contactToggle');
+  if(!box)return;
+  const open=box.style.display==='none';
+  box.style.display=open?'block':'none';
+  if(btn)btn.innerHTML=(open?'➖ Hide contact details':'➕ Add contact details (for an outside person/customer)');
+}
+function populateMgrDropdown(selectedName){
+  const sel=document.getElementById('tmgr'); if(!sel)return;
+  const mgrs=(AU||[]).filter(u=>u&&u.name&&!u.archived&&['supervisor','admin','superadmin'].includes(normRole(u.role)));
+  sel.innerHTML='<option value="">— select manager —</option>'+mgrs.map(u=>'<option value="'+u.name+'" data-wa="'+(u.whatsapp||'')+'"'+(u.name===selectedName?' selected':'')+'>'+u.name+' ('+normRole(u.role)+')</option>').join('');
+}
+function onAssigneePick(){
+  const sel=document.getElementById('ta3'), opt=sel.options[sel.selectedIndex];
+  const defaultMgr=opt?.dataset?.mn||'';
+  populateMgrDropdown(defaultMgr); // auto-fill with assignee's default manager, still changeable
+}
+
 // ── TAGS ──
 let TAGS=['Urgent','Repair','Safety','Quality','Routine','Customer'];
 let _selTags=[];
@@ -1863,7 +1938,11 @@ async function asgTask(sendWA){
   if(CU.role==='employee'){toast('Access Denied: You cannot assign tasks.','er2');return;}
   const title=document.getElementById('tt3').value.trim();
   const sel=document.getElementById('ta3'),opt=sel.options[sel.selectedIndex];
-  const an=sel.value,aw=opt?.dataset?.wa||'',mn=opt?.dataset?.mn||CU.name,mw=opt?.dataset?.mw||'';
+  const an=sel.value,aw=opt?.dataset?.wa||'';
+  // Reporting manager: use the per-task dropdown (override), else assignee's default
+  const mSel=document.getElementById('tmgr'),mOpt=mSel?mSel.options[mSel.selectedIndex]:null;
+  const mn=(mSel&&mSel.value)?mSel.value:(opt?.dataset?.mn||CU.name);
+  const mw=(mSel&&mSel.value)?(mOpt?.dataset?.wa||''):(opt?.dataset?.mw||'');
   const dept=document.getElementById('td2').value,pri=document.getElementById('tp3').value;
   const dl=document.getElementById('tdl').value,type=document.getElementById('ty3').value;
   const notes=document.getElementById('tn3').value.trim();
@@ -1872,10 +1951,10 @@ async function asgTask(sendWA){
   document.querySelectorAll('#pg-asgn .bp,#pg-asgn .bg').forEach(b=>{b.disabled=true;b.style.opacity='.5';b.style.pointerEvents='none';});
   let attachInfo=null;
   if(_attachFile){ const ai=document.getElementById('attinfo'); if(ai)ai.innerHTML='⏳ Uploading attachment...'; try{ const tmpId='KI-tmp-'+Date.now(); attachInfo=await uploadAttach(tmpId); }catch(e){ toast('Attachment upload failed: '+e.message,'er2'); } }
-  const r=await api('assignTask',{title,assigneeName:an,assigneeWA:aw,department:dept,priority:pri,deadline:dl,type,notes,createdBy:CU.name,managerName:mn,managerWA:mw,sendWA,tags:_selTags.slice(),attachUrl:attachInfo?attachInfo.url:'',attachName:attachInfo?attachInfo.name:'',attachType:attachInfo?attachInfo.type:''});
+  const r=await api('assignTask',{title,assigneeName:an,assigneeWA:aw,department:dept,priority:pri,deadline:dl,type,notes,createdBy:CU.name,managerName:mn,managerWA:mw,sendWA,tags:_selTags.slice(),contactName:(document.getElementById('ct-name')?.value||'').trim(),contactPhone:(document.getElementById('ct-phone')?.value||'').trim(),contactAddr:(document.getElementById('ct-addr')?.value||'').trim(),attachUrl:attachInfo?attachInfo.url:'',attachName:attachInfo?attachInfo.name:'',attachType:attachInfo?attachInfo.type:''});
   window._busy=false;
   document.querySelectorAll('#pg-asgn .bp,#pg-asgn .bg').forEach(b=>{b.disabled=false;b.style.opacity='1';b.style.pointerEvents='auto';});
-  if(r.ok!==false){toast(sendWA?'Assigned to '+an+' - WA sent':'Task assigned to '+an,sendWA?'wa2':'ok');document.getElementById('tt3').value='';document.getElementById('tn3').value='';var fa=document.getElementById('tatt');if(fa)fa.value='';var ai=document.getElementById('attinfo');if(ai)ai.textContent='';_attachFile=null;_selTags=[];renderTagPicker();CACHE=null;ldMgr();}
+  if(r.ok!==false){toast(sendWA?'Assigned to '+an+' - WA sent':'Task assigned to '+an,sendWA?'wa2':'ok');document.getElementById('tt3').value='';document.getElementById('tn3').value='';var fa=document.getElementById('tatt');if(fa)fa.value='';var ai=document.getElementById('attinfo');if(ai)ai.textContent='';_attachFile=null;_selTags=[];renderTagPicker();['ct-name','ct-phone','ct-addr'].forEach(id=>{var e=document.getElementById(id);if(e)e.value='';});var tm=document.getElementById('tmgr');if(tm)tm.value='';var cb=document.getElementById('contactBox');if(cb)cb.style.display='none';CACHE=null;ldMgr();}
   else toast('Failed: '+(r.error||'Unknown error'),'er2');
 }
 
