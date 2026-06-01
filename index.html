@@ -684,6 +684,12 @@ input,select,textarea{max-width:100%;box-sizing:border-box;}
       <div class="wg" id="wcards"></div>
     </div>
 
+    <div class="pg" id="pg-myupd">
+      <div class="sec"><div class="sh2"><div class="st">Recent updates on my tasks</div><button class="btn bg bs" onclick="CACHE=null;ldUpdates()">↻ Refresh</button></div>
+        <div id="upd-feed" style="margin-top:6px"></div>
+      </div>
+    </div>
+
     <div class="pg" id="pg-wperf">
       <div class="sg" id="wpstats"></div>
       <div class="sec"><div class="sh2"><div class="st">My task history</div></div>
@@ -1252,12 +1258,12 @@ function startApp(){
 
 // ── SIDEBAR ──────────────────────────────────────────────────────
 const NAV={
-  superadmin:[{g:'Overview',items:[{id:'dash',ic:'📊',lb:'Dashboard'},{id:'asgn',ic:'➕',lb:'Assign task'},{id:'approvals',ic:'✔️',lb:'Approvals'},{id:'closed',ic:'🗂️',lb:'Closed tickets'},{id:'rep',ic:'📈',lb:'Reports'},{id:'wa',ic:'💬',lb:'WA log'},{id:'log',ic:'📝',lb:'Activity log'}]},{g:'Admin',items:[{id:'people',ic:'👥',lb:'Manage people'},{id:'cfg',ic:'⚙️',lb:'Settings'}]}],
-  admin:[{g:'Overview',items:[{id:'dash',ic:'📊',lb:'Dashboard'},{id:'asgn',ic:'➕',lb:'Assign task'},{id:'approvals',ic:'✔️',lb:'Approvals'},{id:'closed',ic:'🗂️',lb:'Closed tickets'},{id:'rep',ic:'📈',lb:'Reports'}]},{g:'Admin',items:[{id:'people',ic:'👥',lb:'Manage people'},{id:'cfg',ic:'⚙️',lb:'Settings'}]}],
-  supervisor:[{g:'Tasks',items:[{id:'asgn',ic:'➕',lb:'Assign task'},{id:'approvals',ic:'✔️',lb:'Approvals'},{id:'team',ic:'👷',lb:'My team'},{id:'closed',ic:'🗂️',lb:'Closed tickets'}]}],
-  employee:[{g:'My work',items:[{id:'wtask',ic:'✅',lb:'My tasks'},{id:'closed',ic:'🗂️',lb:'Closed tickets'},{id:'wperf',ic:'📊',lb:'My performance'}]}]
+  superadmin:[{g:'Overview',items:[{id:'dash',ic:'📊',lb:'Dashboard'},{id:'asgn',ic:'➕',lb:'Assign task'},{id:'wtask',ic:'🎫',lb:'My Tickets'},{id:'myupd',ic:'🔔',lb:'Updates'},{id:'approvals',ic:'✔️',lb:'Approvals'},{id:'closed',ic:'🗂️',lb:'Closed tickets'},{id:'rep',ic:'📈',lb:'Reports'},{id:'wa',ic:'💬',lb:'WA log'},{id:'log',ic:'📝',lb:'Activity log'}]},{g:'Admin',items:[{id:'people',ic:'👥',lb:'Manage people'},{id:'cfg',ic:'⚙️',lb:'Settings'}]}],
+  admin:[{g:'Overview',items:[{id:'dash',ic:'📊',lb:'Dashboard'},{id:'asgn',ic:'➕',lb:'Assign task'},{id:'wtask',ic:'🎫',lb:'My Tickets'},{id:'myupd',ic:'🔔',lb:'Updates'},{id:'approvals',ic:'✔️',lb:'Approvals'},{id:'closed',ic:'🗂️',lb:'Closed tickets'},{id:'rep',ic:'📈',lb:'Reports'}]},{g:'Admin',items:[{id:'people',ic:'👥',lb:'Manage people'},{id:'cfg',ic:'⚙️',lb:'Settings'}]}],
+  supervisor:[{g:'Tasks',items:[{id:'asgn',ic:'➕',lb:'Assign task'},{id:'wtask',ic:'🎫',lb:'My Tickets'},{id:'myupd',ic:'🔔',lb:'Updates'},{id:'approvals',ic:'✔️',lb:'Approvals'},{id:'team',ic:'👷',lb:'My team'},{id:'closed',ic:'🗂️',lb:'Closed tickets'}]}],
+  employee:[{g:'My work',items:[{id:'wtask',ic:'🎫',lb:'My Tickets'},{id:'myupd',ic:'🔔',lb:'Updates'},{id:'closed',ic:'🗂️',lb:'Closed tickets'},{id:'wperf',ic:'📊',lb:'My performance'}]}]
 }
-const PTITLES={dash:'Dashboard',people:'Manage people',approvals:'Approvals',closed:'Closed tickets',rep:'Reports',wa:'WhatsApp log',log:'Activity log',cfg:'Settings',asgn:'Assign task',team:'My team',wtask:'My tasks',wperf:'My performance'};
+const PTITLES={dash:'Dashboard',people:'Manage people',approvals:'Approvals',closed:'Closed tickets',rep:'Reports',wa:'WhatsApp log',log:'Activity log',cfg:'Settings',asgn:'Assign task',team:'My team',wtask:'My Tickets',myupd:'Updates',wperf:'My performance'};
 
 function setupSB(){
   const u=CU;
@@ -1297,6 +1303,7 @@ function sp2f(id,fromPop){
   else if(id==='asgn'){ldMgr();filW();}
   else if(id==='team')ldTeam();
   else if(id==='wtask')ldWT();
+  else if(id==='myupd')ldUpdates();
   else if(id==='wperf')ldWP();
 }
 
@@ -1684,6 +1691,40 @@ async function ldClosed(){
     '<td>'+(t.timeTaken?'<span class="tc">'+parseFloat(t.timeTaken).toFixed(1)+'h</span>':'—')+'</td>'+
     '<td>'+sb(t.status)+'</td><td></td></tr>'
   ).join(''):'<tr class="er"><td colspan="7">No closed tickets yet</td></tr>';
+}
+
+async function ldUpdates(){
+  const feed=document.getElementById('upd-feed');
+  if(feed)feed.innerHTML='<div class="ld"><div class="sp"></div>Loading updates...</div>';
+  const r=await getBoot();
+  const all=r.allTasks||r.tasks||[];
+  // tasks where I'm involved (assignee, creator, or manager)
+  const mine=all.filter(t=>t.assigneeName===CU.name||t.createdBy===CU.name||t.managerName===CU.name);
+  const ids=mine.map(t=>t.id);
+  // fetch updates for my tasks (limit to keep it fast)
+  let events=[];
+  try{
+    const F=window.FB;
+    const snap=await F.getDocs(F.collection(F.db,'updates'));
+    snap.forEach(d=>{const u=d.data(); if(ids.includes(u.taskId)) events.push(u);});
+  }catch(e){}
+  // sort newest first
+  events.sort((a,b)=>(b.ts||0)-(a.ts||0));
+  events=events.slice(0,40);
+  if(!feed)return;
+  if(!events.length){feed.innerHTML='<div style="text-align:center;padding:40px;color:var(--t3)">No updates yet on your tasks</div>';return;}
+  feed.innerHTML=events.map(u=>{
+    const isComment=u.newStatus==='Comment';
+    const dc=u.newStatus==='Completed'||u.newStatus==='Closed'?'var(--gr)':u.newStatus==='Overdue'?'var(--rd)':u.newStatus==='In Progress'?'var(--ac)':isComment?'var(--am)':'var(--am)';
+    const task=mine.find(t=>t.id===u.taskId);
+    return '<div onclick="openTM(\''+u.taskId+'\')" style="cursor:pointer;display:flex;gap:11px;padding:12px 4px;border-bottom:1px solid var(--bd)">'+
+      '<div style="width:9px;height:9px;border-radius:50%;background:'+dc+';margin-top:5px;flex-shrink:0"></div>'+
+      '<div style="flex:1;min-width:0">'+
+        '<div style="font-size:13px;color:var(--t)"><strong>'+(task?task.title:u.title||u.taskId)+'</strong> <span class="tg">'+u.taskId+'</span></div>'+
+        '<div style="font-size:12.5px;color:var(--t2);margin-top:2px">'+u.updatedBy+' → '+(isComment?'💬 commented':'<span style="color:'+dc+'">'+u.newStatus+'</span>')+(u.note?': '+u.note:'')+'</div>'+
+        '<div style="font-size:11px;color:var(--t3);margin-top:2px">'+(u.timestamp||'')+'</div>'+
+      '</div></div>';
+  }).join('');
 }
 
 // ── TASK MODAL ────────────────────────────────────────────────────
