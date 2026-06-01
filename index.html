@@ -965,7 +965,7 @@ async function nextTaskId(){
   return 'KI-'+String(snap.size+1).padStart(4,'0');
 }
 async function fbLog(u,a,ti,tt,wa,de){ try{const F=window.FB; await F.addDoc(F.collection(F.db,'logs'),{ts:Date.now(),timestamp:new Date().toLocaleString(),user:u||'',action:a||'',taskId:ti||'',taskTitle:tt||'',waSent:wa?'Yes':'No',details:de||''});}catch(e){} }
-async function fbUpd(taskId,title,by,oldS,newS,note){ try{const F=window.FB; await F.addDoc(F.collection(F.db,'updates'),{ts:Date.now(),timestamp:new Date().toLocaleString(),taskId,title:title||'',updatedBy:by||'',oldStatus:oldS||'',newStatus:newS||'',note:note||''});}catch(e){} }
+async function fbUpd(taskId,title,by,oldS,newS,note,att){ try{const F=window.FB; const rec={ts:Date.now(),timestamp:new Date().toLocaleString(),taskId,title:title||'',updatedBy:by||'',oldStatus:oldS||'',newStatus:newS||'',note:note||''}; if(att&&att.url){rec.attachUrl=att.url;rec.attachName=att.name||'';rec.attachType=att.type||'';} await F.addDoc(F.collection(F.db,'updates'),rec);}catch(e){} }
 
 async function fbAssign(d){
   if(!d.title||!d.assigneeName||!d.deadline) return {ok:false,error:'Missing required fields'};
@@ -1026,10 +1026,10 @@ async function fbReject(d){
   return {ok:true,assignee:t.assigneeName};
 }
 async function fbComment(d){
-  if(!d.taskId||!d.comment) return {ok:false,error:'Missing comment'};
+  if(!d.taskId||(!d.comment&&!d.attachUrl)) return {ok:false,error:'Missing comment'};
   let title=''; try{const s=await window.FB.getDoc(window.FB.doc(window.FB.db,'tasks',d.taskId)); if(s.exists())title=s.data().title;}catch(e){}
-  await fbUpd(d.taskId,title,d.by||'User','','Comment',d.comment);
-  await fbLog(d.by||'User','Comment',d.taskId,title,false,d.comment);
+  await fbUpd(d.taskId,title,d.by||'User','','Comment',d.comment,d.attachUrl?{url:d.attachUrl,name:d.attachName,type:d.attachType}:null);
+  await fbLog(d.by||'User','Comment',d.taskId,title,false,d.comment+(d.attachUrl?' [+file]':''));
   return {ok:true};
 }
 async function fbReminder(d){
@@ -1605,23 +1605,32 @@ async function ldWT(){
   if(WF==='pending')tasks=tasks.filter(t=>t.status==='Pending');
   if(WF==='prog')tasks=tasks.filter(t=>t.status==='In Progress');
   if(WF==='done')tasks=tasks.filter(t=>t.status==='Completed'||t.status==='Closed'||t.status==='Pending Approval');
+  // SORT: Pending → In Progress → Pending Approval → Overdue → Completed → Closed (pending first, done last)
+  const order={'Pending':0,'In Progress':1,'Pending Approval':2,'Overdue':3,'Completed':4,'Closed':5};
+  tasks.sort((a,b)=>{const oa=order[a.status]??9,ob=order[b.status]??9; if(oa!==ob)return oa-ob; return (a.deadline||'').localeCompare(b.deadline||'');});
   const el=document.getElementById('wcards');
   if(!tasks.length){el.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:44px;color:var(--t3)">No tasks here</div>';return;}
   el.innerHTML=tasks.map(t=>`
     <div class="wc">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:7px"><div><div class="wt">${t.title}</div><div class="wd">${t.department} · ${t.type}</div></div>${pb(t.priority)}</div>
       ${t.notes?`<div class="wn">${t.notes}</div>`:''}
-      <div class="wm">${sb(t.status)}<span class="tg">${t.id}</span></div>
-      ${t.managerName?`<div style="font-size:11px;color:var(--t3);margin-bottom:7px">Manager: ${t.managerName}</div>`:''}
+      <div class="wm">${sb(t.status)}<span class="tg">${t.id}</span>${(t.attachUrl||t.attachData)?'<span class="tg" style="background:rgba(37,99,235,.1);color:var(--ac)">📎 file</span>':''}</div>
+      ${t.managerName?`<div style="font-size:11px;color:var(--t3);margin-bottom:4px">Manager: ${t.managerName}</div>`:''}
+      <div style="font-size:11px;color:var(--t3);margin-bottom:7px">Created: ${fmtDT(t.createdOn)}${t.startedOn?` · Started: ${fmtDT(t.startedOn)}`:''}${t.completedOn?` · Completed: ${fmtDT(t.completedOn)}`:''}${(t.timeTaken&&!isNaN(parseFloat(t.timeTaken)))?` · Took: ${fmtDur(t.timeTaken)}`:''}</div>
       <div class="wf">
         <div class="due ${od(t.deadline)?'ov':''}">${od(t.deadline)?'⚠️':'📅'} ${t.deadline}</div>
         <div class="sb3">
-          ${t.status!=='In Progress'&&t.status!=='Completed'?`<button class="ss ss1" onclick="osmod('${t.id}','In Progress')">Start</button>`:''}
-          ${t.status!=='Completed'?`<button class="ss ss2" onclick="osmod('${t.id}','Completed')">Done ✓</button>`:'<span style="font-size:11px;color:var(--gr)">✓ Done</span>'}
+          ${t.status!=='In Progress'&&t.status!=='Completed'&&t.status!=='Closed'?`<button class="ss ss1" onclick="osmod('${t.id}','In Progress')">Start</button>`:''}
+          ${t.status!=='Completed'&&t.status!=='Closed'?`<button class="ss ss2" onclick="osmod('${t.id}','Completed')">Done ✓</button>`:''}
+          <button class="ss" style="background:var(--s2);border:1px solid var(--bd2);color:var(--t2)" onclick="openTM('${t.id}')">Details</button>
         </div>
       </div>
     </div>`).join('');
 }
+// Format a date string to: DD MMM YYYY, HH:MM:SS
+function fmtDT(s){ try{ if(!s)return '—'; const d=new Date(s); if(isNaN(d))return s; return d.toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true}); }catch(e){return s||'—';} }
+// Format hours (decimal) to: Xh Ym (or Ym Zs if under an hour)
+function fmtDur(hrs){ const h=parseFloat(hrs); if(isNaN(h)||!isFinite(h)||h<0)return '—'; const totalSec=Math.round(h*3600); const hh=Math.floor(totalSec/3600); const mm=Math.floor((totalSec%3600)/60); const ss=totalSec%60; if(hh>0)return hh+'h '+mm+'m'; if(mm>0)return mm+'m '+ss+'s'; return ss+'s'; }
 
 async function ldWP(){
   const r=await getBoot();
@@ -1742,7 +1751,7 @@ async function openTM(id){
   const _si=stageIdx(task.status);
   const _closedNow=(task.status==='Closed'||task.status==='Completed');
   const _canChange=(CU.role==='superadmin'||CU.role==='admin'||CU.role==='supervisor'||task.assigneeName===CU.name)&&!_closedNow;
-  const _stepper='<div class="stp">'+STAGES.map((s,i)=>'<div class="stp-item '+(i<_si?'done':i===_si?'active':'')+'"'+(_canChange?' onclick="setStage(\''+id+'\',\''+s.key.replace(/\x27/g,"")+'\')" style="cursor:pointer" title="Click to move to '+s.label+'"':'')+'><div class="stp-dot">'+(i<_si?'✓':(i+1))+'</div><div class="stp-line"></div><div class="stp-lb">'+s.label+'</div></div>').join('')+'</div>'+(_canChange?'<div style="text-align:center;font-size:11px;color:var(--t3);margin:-6px 0 14px">↑ Tap a stage to update status</div>':'');
+  const _stepper='<div class="stp">'+STAGES.map((s,i)=>'<div class="stp-item '+(i<_si?'done':i===_si?'active':'')+'"'+(_canChange?' onclick="setStage(\''+id+'\',\''+s.key.replace(/\x27/g,"")+'\')" style="cursor:pointer" title="Click to move to '+s.label+'"':'')+'><div class="stp-dot">'+(i<_si?'✓':(i+1))+'</div><div class="stp-line"></div><div class="stp-lb">'+s.label+'</div></div>').join('')+'</div>'+(_canChange?('<div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:8px 0 16px">'+STAGES.filter(s=>s.key!==task.status).map(s=>'<button class="btn bg bs" style="font-size:11.5px" onclick="setStage(\''+id+'\',\''+s.key.replace(/\x27/g,"")+'\')">→ '+s.label+'</button>').join('')+'</div>'):'');
   document.getElementById('mbdy').innerHTML=_stepper+`
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:14px">
       <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Assignee</div><div>${task.assigneeName}</div></div>
@@ -1751,11 +1760,11 @@ async function openTM(id){
       <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Priority</div>${pb(task.priority)}</div>
       <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Deadline</div><div style="color:${od(task.deadline)?'var(--rd)':'var(--t)'}">${task.deadline}</div></div>
       <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Status</div>${sb(task.status)}</div>
-      <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Created</div><div style="font-size:12.5px">${task.createdOn||'—'}</div></div>
+      <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Created</div><div style="font-size:12.5px">${fmtDT(task.createdOn)}</div></div>
       <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Created by</div><div style="font-size:12.5px">${task.createdBy||'—'}</div></div>
-      ${task.startedOn?`<div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Started</div><div style="font-size:12.5px">${task.startedOn}</div></div>`:''}
-      ${task.completedOn?`<div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Completed</div><div style="font-size:12.5px">${task.completedOn}</div></div>`:''}
-      ${task.timeTaken?`<div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Time taken</div><span class="tc">${(!isNaN(parseFloat(task.timeTaken))&&isFinite(parseFloat(task.timeTaken)))?parseFloat(task.timeTaken).toFixed(2)+' hrs':'—'}</span></div>`:''}
+      ${task.startedOn?`<div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Started</div><div style="font-size:12.5px">${fmtDT(task.startedOn)}</div></div>`:''}
+      ${task.completedOn?`<div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Completed</div><div style="font-size:12.5px">${fmtDT(task.completedOn)}</div></div>`:''}
+      ${task.timeTaken?`<div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Time taken</div><span class="tc">${fmtDur(task.timeTaken)}</span></div>`:''}
     </div>
     ${(task.tags&&task.tags.length)?`<div style="margin-bottom:14px;display:flex;flex-wrap:wrap;gap:6px">${task.tags.map(tg=>`<span style="font-size:11px;padding:4px 10px;border-radius:20px;background:rgba(37,99,235,.1);color:var(--ac);border:1px solid rgba(37,99,235,.2)">🏷️ ${tg}</span>`).join('')}</div>`:''}
     ${(task.contactName||task.contactPhone||task.contactAddr)?`<div style="margin-bottom:14px;padding:11px;background:rgba(37,99,235,.04);border:1px solid rgba(37,99,235,.12);border-radius:8px"><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">📇 Contact details</div><div style="font-size:13px;color:var(--t)">${task.contactName?'<strong>'+task.contactName+'</strong>':''}${task.contactPhone?' • '+task.contactPhone:''}${task.contactAddr?'<br><span style="color:var(--t2)">'+task.contactAddr+'</span>':''}</div></div>`:''}
@@ -1772,9 +1781,9 @@ async function openTM(id){
     const ups=(cr.ok!==false?cr.updates:[])||[];
     const comments=ups.filter(u=>u.newStatus==='Comment');
     let html='<div style="border-top:1px solid var(--bd);margin-top:14px;padding-top:12px"><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Comments</div>';
-    if(comments.length){html+=comments.map(c=>'<div style="background:var(--s2);border-radius:6px;padding:8px 10px;margin-bottom:6px"><div style="font-size:12px;color:var(--t)"><strong>'+c.updatedBy+'</strong> <span style="color:var(--t3);font-size:10.5px">'+c.timestamp+'</span></div><div style="font-size:12.5px;color:var(--t2);margin-top:2px">'+c.note+'</div></div>').join('');}
+    if(comments.length){html+=comments.map(c=>'<div style="background:var(--s2);border-radius:6px;padding:8px 10px;margin-bottom:6px"><div style="font-size:12px;color:var(--t)"><strong>'+c.updatedBy+'</strong> <span style="color:var(--t3);font-size:10.5px">'+c.timestamp+'</span></div><div style="font-size:12.5px;color:var(--t2);margin-top:2px">'+c.note+'</div>'+(c.attachUrl?((c.attachType&&c.attachType.startsWith('image/'))?'<img src="'+c.attachUrl+'" style="max-width:100%;border-radius:6px;margin-top:6px;border:1px solid var(--bd)">':'<a href="'+c.attachUrl+'" target="_blank" style="display:inline-block;margin-top:6px;font-size:12px;color:var(--ac)">📄 '+(c.attachName||'View file')+'</a>'):'')+'</div>').join('');}
     else{html+='<div style="font-size:12px;color:var(--t3);margin-bottom:6px">No comments yet</div>';}
-    html+='<div style="display:flex;gap:6px;margin-top:8px"><input type="text" id="cmt-in" placeholder="Add a comment..." style="flex:1;background:var(--s2);border:1px solid var(--bd2);border-radius:6px;padding:8px 10px;color:var(--t);font-family:var(--fn);font-size:12.5px;outline:none"><button class="btn bp bs" onclick="postComment(\''+id+'\')">Post</button></div></div>';
+    html+='<div style="display:flex;gap:6px;margin-top:8px;align-items:center"><input type="text" id="cmt-in" placeholder="Add a comment..." style="flex:1;background:var(--s2);border:1px solid var(--bd2);border-radius:6px;padding:8px 10px;color:var(--t);font-family:var(--fn);font-size:12.5px;outline:none"><label style="cursor:pointer;padding:7px 9px;background:var(--s2);border:1px solid var(--bd2);border-radius:6px;font-size:14px" title="Attach image/PDF">📎<input type="file" id="cmt-file" accept="image/*,application/pdf" onchange="prepCommentFile(this)" style="display:none"></label><button class="btn bp bs" onclick="postComment(\''+id+'\')">Post</button></div><div id="cmt-fileinfo" style="font-size:11px;color:var(--t3);margin-top:4px"></div></div>';
     const cc=document.getElementById('cmt-cont'); if(cc)cc.innerHTML=html;
   })();
   document.getElementById('mbdy').innerHTML+='<div id="cmt-cont"></div>';
@@ -1828,7 +1837,12 @@ async function deleteTicket(){
 }
 async function setStage(id,stage){
   if(window._busy)return;
-  const task=AT.find(t=>t.id===id); if(!task)return;
+  let task=AT.find(t=>t.id===id)||(_mgrTasks||[]).find(t=>t.id===id)||(CACHE&&(CACHE.allTasks||CACHE.tasks||[]).find(t=>t.id===id));
+  if(!task){ // fall back: just proceed with the change
+    const r0=await api('updateStatus',{taskId:id,newStatus:stage,updatedBy:CU.name,note:'',role:CU.role});
+    CACHE=null; if(r0.ok!==false){toast('Status → '+stage,'ok');cmod();ldDash();} else toast('Failed: '+(r0.error||'error'),'er2');
+    return;
+  }
   if(task.status===stage)return; // no change
   // If moving to Closed and not yet approved, suggest using Approvals — but allow admins
   let note='';
@@ -1859,12 +1873,31 @@ function adminOverride(){
   });
 }
 
+let _cmtFile=null;
+function prepCommentFile(inp){
+  const f=inp.files&&inp.files[0]; const info=document.getElementById('cmt-fileinfo'); _cmtFile=null;
+  if(!f){if(info)info.textContent='';return;}
+  if(f.size>10*1024*1024){if(info)info.innerHTML='<span style="color:var(--rd)">File too large (max 10MB)</span>';inp.value='';return;}
+  if(!(f.type.startsWith('image/')||f.type==='application/pdf')){if(info)info.innerHTML='<span style="color:var(--rd)">Only image or PDF</span>';inp.value='';return;}
+  _cmtFile=f; if(info)info.innerHTML='📎 '+f.name+' ready';
+}
 async function postComment(id){
   const inp=document.getElementById('cmt-in');
   const txt=(inp?.value||'').trim();
-  if(!txt)return;
-  inp.value='';
-  const r=await api('addComment',{taskId:id,comment:txt,by:CU.name});
+  if(!txt&&!_cmtFile){toast('Add a comment or file','er2');return;}
+  let attachUrl='',attachName='',attachType='';
+  if(_cmtFile){
+    const info=document.getElementById('cmt-fileinfo'); if(info)info.innerHTML='⏳ Uploading...';
+    try{
+      const F=window.FB;
+      const path='comments/'+id+'_'+Date.now()+'_'+_cmtFile.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+      const rf=F.storageRef(F.storage,path);
+      await F.uploadBytes(rf,_cmtFile);
+      attachUrl=await F.getDownloadURL(rf); attachName=_cmtFile.name; attachType=_cmtFile.type;
+    }catch(e){toast('Upload failed: '+e.message,'er2');return;}
+  }
+  if(inp)inp.value=''; _cmtFile=null;
+  const r=await api('addComment',{taskId:id,comment:txt||'(attachment)',by:CU.name,attachUrl,attachName,attachType});
   if(r.ok!==false){toast('Comment added','ok');openTM(id);}
   else toast('Failed to comment','er2');
 }
