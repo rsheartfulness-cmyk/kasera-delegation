@@ -485,13 +485,20 @@ input,select,textarea{max-width:100%;box-sizing:border-box;}
   select,input,textarea{font-size:16px;} /* prevents iOS zoom + fits */
 }
 
+
+/* Google sign-in button */
+.gbtn{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;border:1px solid var(--bd2);border-radius:11px;padding:14px;font-size:15px;font-weight:600;color:var(--t);cursor:pointer;font-family:var(--fn);min-height:52px;transition:all .15s;}
+.gbtn:hover{background:var(--s2);border-color:var(--bd3);box-shadow:var(--sh1);}
+.login-divider{display:flex;align-items:center;gap:12px;margin:16px 0;color:var(--t3);font-size:12px;}
+.login-divider::before,.login-divider::after{content:"";flex:1;height:1px;background:var(--bd);}
+
 </style>
 
 <!-- Firebase SDK -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getFirestore, collection, getDocs, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
   import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
   const firebaseConfig = {
@@ -512,7 +519,7 @@ input,select,textarea{max-width:100%;box-sizing:border-box;}
   window.FB = {
     db, auth, storage, collection, getDocs, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc,
     query, where, orderBy, serverTimestamp, writeBatch,
-    signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail,
+    signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup,
     storageRef, uploadBytes, getDownloadURL, deleteObject
   };
   window.dispatchEvent(new Event('fb-ready'));
@@ -541,6 +548,11 @@ input,select,textarea{max-width:100%;box-sizing:border-box;}
       </div>
     </div>
     <button class="sb" onclick="doL()">Login to Dashboard →</button>
+    <div class="login-divider"><span>or</span></div>
+    <button class="gbtn" onclick="loginGoogle()">
+      <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      Sign in with Google
+    </button>
     <div style="text-align:center;margin-top:14px"><a href="#" onclick="forgotPw();return false;" style="font-size:13px;color:var(--ac);text-decoration:none">Forgot password?</a></div>
     <div class="login-note">
       <div style="font-weight:600;color:var(--t2);margin-bottom:3px">🔒 For internal team use only</div>
@@ -1018,6 +1030,14 @@ async function fbUpdateUser(d){
   const F=window.FB, snap=await F.getDocs(F.collection(F.db,'users'));
   let ref=null,cur=null; snap.forEach(doc=>{if((doc.data().email||'').toLowerCase()===(d.email||'').toLowerCase()){ref=doc.ref;cur=doc.data();}});
   if(!ref) return {ok:false,error:'User not found'};
+  // Protect Super Admin accounts — only a Super Admin can modify another Super Admin
+  if(cur && normRoleJS(cur.role)==='superadmin' && d.byRole!=='superadmin'){
+    return {ok:false,error:'Only a Super Admin can modify a Super Admin account.'};
+  }
+  // Prevent non-superadmins from promoting anyone TO super admin
+  if(d.role && normRoleJS(d.role)==='superadmin' && d.byRole!=='superadmin'){
+    return {ok:false,error:'Only a Super Admin can grant Super Admin role.'};
+  }
   const patch={}; ['name','whatsapp','role','department','managerName','managerWA','archived'].forEach(k=>{if(d[k]!==undefined)patch[k]=d[k];});
   await F.updateDoc(ref,patch);
   await fbLog(d.by||'Admin','User updated','',d.name||d.email,false,'');
@@ -1033,8 +1053,9 @@ async function fbDeleteTask(d){
 }
 async function fbDeleteUser(d){
   const F=window.FB, snap=await F.getDocs(F.collection(F.db,'users'));
-  let ref=null,nm=''; snap.forEach(doc=>{if((doc.data().email||'').toLowerCase()===(d.email||'').toLowerCase()){ref=doc.ref;nm=doc.data().name;}});
+  let ref=null,nm='',trole=''; snap.forEach(doc=>{if((doc.data().email||'').toLowerCase()===(d.email||'').toLowerCase()){ref=doc.ref;nm=doc.data().name;trole=doc.data().role;}});
   if(!ref) return {ok:false,error:'User not found'};
+  if(d.byRole!=='superadmin') return {ok:false,error:'Only a Super Admin can delete users.'};
   await F.deleteDoc(ref);
   await fbLog(d.by||'Admin','User removed','',nm,false,d.email);
   return {ok:true};
@@ -1118,6 +1139,36 @@ function restoreSession(){
     // Re-enter the app; data will load fresh from server
     startApp();
   }catch(e){ try{localStorage.removeItem('kasera_session');}catch(e2){} }
+}
+
+
+async function loginGoogle(){
+  await fbReady(); const F=window.FB;
+  const btn=document.querySelector('.gbtn'); if(btn){btn.textContent='Opening Google...';btn.disabled=true;}
+  try{
+    const provider=new F.GoogleAuthProvider();
+    const result=await F.signInWithPopup(F.auth,provider);
+    const email=(result.user&&result.user.email||'').toLowerCase();
+    if(!email){throw new Error('No email from Google');}
+    // Check this email is registered in our users list
+    const snap=await F.getDocs(F.collection(F.db,'users'));
+    let user=null; snap.forEach(d=>{const u=d.data(); if((u.email||'').toLowerCase()===email) user={id:d.id,...u};});
+    if(!user){
+      await F.signOut(F.auth); // sign them back out — not authorized
+      aerr('This Google account ('+email+') is not registered. Contact your admin for access.');
+      if(btn){btn.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/></svg> Sign in with Google';btn.disabled=false;}
+      return;
+    }
+    if(user.archived){ await F.signOut(F.auth); aerr('This account is archived. Contact your admin.'); if(btn){btn.disabled=false;btn.textContent='Sign in with Google';} return; }
+    CU={name:user.name,email:user.email,whatsapp:user.whatsapp,role:normRoleJS(user.role),department:user.department,managerName:user.managerName,managerWA:user.managerWA};
+    try{localStorage.setItem('kasera_session',JSON.stringify({user:CU,exp:Date.now()+43200000}));}catch(e){}
+    const boot=await buildBoot(CU);
+    if(boot&&boot.ok!==false){CACHE=boot;CACHE_TIME=Date.now();AU=boot.users||[];AT=boot.allTasks||boot.tasks||[];applySettings(boot);}
+    startApp();
+  }catch(e){
+    if(btn){btn.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92z"/></svg> Sign in with Google';btn.disabled=false;}
+    if((e.code||'').indexOf('popup-closed')<0 && (e.code||'').indexOf('cancelled')<0) aerr('Google sign-in failed: '+(e.message||e.code||''));
+  }
 }
 
 async function loginEM(email,password){
@@ -1848,6 +1899,10 @@ function toast(m,t='in'){const el=document.createElement('div');el.className='to
 async function ldPeople(){
   const r=await getBoot(true);
   AU=r.users||AU;
+  // Non-superadmins cannot create/assign the Super Admin role
+  if(CU.role!=='superadmin'){
+    ['u-role','e-role'].forEach(id=>{const sel=document.getElementById(id);if(sel){const o=[...sel.options].find(x=>x.value==='superadmin');if(o)o.remove();}});
+  }
   // populate manager dropdowns
   const mgrs=AU.filter(u=>u.role==='supervisor'||u.role==='admin'||u.role==='superadmin');
   const mgrOpts='<option value="">none</option>'+mgrs.map(m=>'<option value="'+m.name+'" data-wa="'+m.whatsapp+'">'+m.name+' ('+m.role+')</option>').join('');
@@ -1863,10 +1918,10 @@ async function ldPeople(){
       '<td style="font-size:12px;color:var(--t3)">'+(u.department||'—')+'</td>'+
       '<td style="font-size:12px;color:var(--t2)">'+(u.managerName||'—')+'</td>'+
       '<td>'+(u.hasPassword?'<span style="color:var(--gr);font-size:12px">🔒 Set</span>':'<span style="color:var(--t3);font-size:12px">email only</span>')+'</td>'+
-      '<td><div style="display:flex;gap:5px;flex-wrap:wrap"><button class="btn bg bs" onclick="openEdit(\''+u.email+'\')">Edit</button>'+
+      '<td>'+((normRole(u.role)==='superadmin'&&CU.role!=='superadmin')?'<span style="font-size:11px;color:var(--t3)">🔒 Protected</span>':('<div style="display:flex;gap:5px;flex-wrap:wrap"><button class="btn bg bs" onclick="openEdit(\''+u.email+'\')">Edit</button>'+
       (u.archived?('<button class="btn bg bs" onclick="archivePerson(\''+u.email+'\',\''+u.name+'\',false)">Unarchive</button>'):('<button class="btn bs" style="background:rgba(234,154,12,.1);border:1px solid rgba(234,154,12,.25);color:var(--am)" onclick="archivePerson(\''+u.email+'\',\''+u.name+'\',true)">Archive</button>'))+
       (CU.role==='superadmin'?('<button class="btn bs" style="background:rgba(255,68,85,.1);border:1px solid rgba(255,68,85,.2);color:var(--rd)" onclick="delPerson(\''+u.email+'\',\''+u.name+'\')">Del</button>'):'')+
-      '</div></td></tr>';
+      '</div>'))+'</td></tr>';
   }).join(''):'<tr class="er"><td colspan="8">No people yet</td></tr>';
 }
 function uMgrChange(){
@@ -1905,7 +1960,7 @@ function cemod(){document.getElementById('emod').classList.remove('op');}
 async function saveEdit(){
   const email=document.getElementById('e-email-orig').value;
   const mgrSel=document.getElementById('e-mgr'),mgrOpt=mgrSel.options[mgrSel.selectedIndex];
-  const data={by:CU.name,email,name:document.getElementById('e-name').value.trim(),
+  const data={by:CU.name,byRole:CU.role,email,name:document.getElementById('e-name').value.trim(),
     whatsapp:document.getElementById('e-wa').value.trim(),role:document.getElementById('e-role').value,
     department:document.getElementById('e-dept').value,managerName:mgrSel.value,managerWA:mgrOpt?.dataset?.wa||'',
     password:document.getElementById('e-pass').value};
@@ -1917,13 +1972,13 @@ async function saveEdit(){
 async function delPerson(email,name){
   if(CU.role!=='superadmin'){toast('Only Super Admin can delete users. Use Archive instead.','er2');return;}
   if(!confirm('Permanently DELETE '+name+'? This cannot be undone. (Consider Archive instead.)'))return;
-  const r=await api('deleteUser',{email,by:CU.name});
+  const r=await api('deleteUser',{email,by:CU.name,byRole:CU.role});
   if(r.ok!==false){toast('Deleted '+name,'ok');ldPeople();loadUsers();}
   else toast('Failed: '+(r.error||'error'),'er2');
 }
 async function archivePerson(email,name,doArchive){
   if(!confirm((doArchive?'Archive ':'Unarchive ')+name+'?'+(doArchive?' They will be hidden from assignment but their data is kept.':'')))return;
-  const r=await api('updateUser',{email,archived:doArchive,by:CU.name});
+  const r=await api('updateUser',{email,archived:doArchive,by:CU.name,byRole:CU.role});
   if(r.ok!==false){toast((doArchive?'Archived ':'Unarchived ')+name,'ok');CACHE=null;ldPeople();loadUsers();}
   else toast('Failed: '+(r.error||'error'),'er2');
 }
