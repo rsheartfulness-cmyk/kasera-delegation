@@ -434,6 +434,33 @@ tr:hover td{background:rgba(37,99,235,.04);}
   .kbc{min-width:86vw;}
 }
 
+
+/* ═══ LOGIN SCREEN ENHANCEMENTS ═══ */
+#ls{
+  background:
+    linear-gradient(135deg,rgba(37,99,235,0.07),rgba(59,130,246,0.04)),
+    radial-gradient(ellipse 70% 50% at 80% 10%,rgba(37,99,235,0.08),transparent 55%),
+    radial-gradient(ellipse 60% 50% at 10% 90%,rgba(59,130,246,0.06),transparent 55%),
+    repeating-linear-gradient(45deg,rgba(15,23,42,0.012) 0 2px,transparent 2px 22px),
+    var(--bg);
+}
+.lc{max-width:430px;width:92vw;}
+.lc .lt{font-size:24px;line-height:1.25;}
+.lc .ls3{font-size:13.5px;line-height:1.5;max-width:340px;margin-left:auto;margin-right:auto;}
+/* Bigger, mobile-friendly fields */
+#ls .fi input{font-size:16px;padding:14px 15px;border-radius:11px;min-height:52px;}
+#ls .fi label{font-size:12.5px;margin-bottom:6px;}
+#ls .sb{font-size:16px;padding:15px;min-height:54px;border-radius:11px;}
+/* Internal-use note */
+.login-note{margin-top:18px;padding:13px 15px;background:rgba(37,99,235,0.05);border:1px solid rgba(37,99,235,0.13);border-radius:11px;font-size:12.5px;color:var(--t3);line-height:1.5;text-align:center;}
+.login-contact{margin-top:13px;text-align:center;font-size:12.5px;color:var(--t3);}
+.login-contact strong{color:var(--ac);}
+@media (max-width:480px){
+  .lc{width:94vw;padding:26px 22px!important;}
+  .lc .lt{font-size:21px;}
+  #ls .fi input,#ls .sb{font-size:16px;} /* 16px prevents iOS zoom */
+}
+
 </style>
 
 <!-- Firebase SDK -->
@@ -472,21 +499,29 @@ tr:hover td{background:rgba(37,99,235,.04);}
 
 <div id="ls">
   <div class="lc">
-    <div class="ll"><div class="lm">📋</div><div><div class="ln">Delegation</div><div class="ls2">Kasera Industries</div></div></div>
-    <div class="lt">Welcome back</div>
-    <div class="ls3">Sign in with your Kasera account</div>
+    <div class="ll">
+      <!-- LOGO: replace the src below with your logo URL, or keep the icon fallback -->
+      <img id="kicLogo" src="logo.png" alt="Kasera Industries" onerror="this.style.display='none';document.getElementById('logoFallback').style.display='flex';" style="height:54px;width:auto;max-width:180px;object-fit:contain;margin:0 auto 4px">
+      <div id="logoFallback" class="lm" style="display:none">🏭</div>
+    </div>
+    <div class="lt">Kasera Industries Task Portal</div>
+    <div class="ls3">Manage daily tasks, approvals, team performance, and WhatsApp updates in one place.</div>
     <div id="gok" class="am" style="display:none;"></div>
     <div id="aer" class="am ae"></div>
-    <div class="fi"><label>Email</label><input type="email" id="em" placeholder="you@kaseraindustries.in" onkeydown="if(event.key==='Enter')doL()"></div>
+    <div class="fi"><label>Email</label><input type="email" id="em" placeholder="you@kaseraindustries.in" autocomplete="email" onkeydown="if(event.key==='Enter')doL()"></div>
     <div class="fi"><label>Password</label>
       <div style="position:relative">
-        <input type="password" id="pw" placeholder="••••••••" style="padding-right:42px" onkeydown="if(event.key==='Enter')doL()">
-        <button type="button" id="pweye" onclick="togglePw()" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;padding:4px;line-height:1;color:var(--t3)">👁</button>
+        <input type="password" id="pw" placeholder="Enter your password" autocomplete="current-password" style="padding-right:46px" onkeydown="if(event.key==='Enter')doL()">
+        <button type="button" id="pweye" onclick="togglePw()" aria-label="Show password" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:18px;padding:4px;line-height:1;color:var(--t3)">👁</button>
       </div>
     </div>
     <button class="sb" onclick="doL()">Sign in →</button>
-    <div style="text-align:center;margin-top:14px"><a href="#" onclick="forgotPw();return false;" style="font-size:12.5px;color:var(--ac);text-decoration:none">Forgot password?</a></div>
-
+    <div style="text-align:center;margin-top:14px"><a href="#" onclick="forgotPw();return false;" style="font-size:13px;color:var(--ac);text-decoration:none">Forgot password?</a></div>
+    <div class="login-note">
+      <div style="font-weight:600;color:var(--t2);margin-bottom:3px">🔒 For internal team use only</div>
+      Login with your registered company email.
+    </div>
+    <div class="login-contact">Need login access? <strong>Contact Admin</strong></div>
   </div>
 </div>
 
@@ -521,7 +556,7 @@ tr:hover td{background:rgba(37,99,235,.04);}
 
     <div class="pg" id="pg-rep">
       <div class="sg" id="rstats"></div>
-      <div class="sec"><div class="sh2"><div class="st">Performance report</div><button class="btn bg bs" onclick="expCSV()">⬇ Export</button></div>
+      <div class="sec"><div class="sh2"><div class="st">Performance report</div><div style="display:flex;gap:6px"><button class="btn bg bs" onclick="expTasks()">⬇ Export all tasks</button><button class="btn bg bs" onclick="expCSV()">⬇ Export log</button></div></div>
       <div class="tw"><table><thead><tr><th>Name</th><th>Dept</th><th>Tasks</th><th>Done</th><th>Overdue</th><th>Avg hrs</th><th>Score</th></tr></thead><tbody id="rtbl"></tbody></table></div></div>
     </div>
 
@@ -661,9 +696,10 @@ tr:hover td{background:rgba(37,99,235,.04);}
       <div class="cd">
         <button class="btn bp" onclick="saveStages()">💾 Save stages & departments (shared with everyone)</button>
       </div>
-      <div class="cd">
-        <div class="ct">🔗 Apps Script connection</div>
-        <div class="ff" style="margin-bottom:12px"><label>Apps Script URL</label><input type="text" id="curl" value="https://script.google.com/macros/s/AKfycbwK4wukGnGPnYsJikJnkRkgWfr2YOpd-wQfZS68sSdrQk4skcRGsFGO2ZpPxO4BGTzd/exec"></div>
+      <div class="cd" id="techCard" style="display:none">
+        <div class="ct">🔗 Technical (Super Admin only)</div>
+        <div style="font-size:12px;color:var(--t3);margin-bottom:10px">WhatsApp connection URL. Don't change unless you know what you're doing.</div>
+        <div class="ff" style="margin-bottom:12px"><label>WhatsApp Service URL</label><input type="text" id="curl" value="https://script.google.com/macros/s/AKfycbwK4wukGnGPnYsJikJnkRkgWfr2YOpd-wQfZS68sSdrQk4skcRGsFGO2ZpPxO4BGTzd/exec"></div>
         <button class="btn bp" onclick="saveCfg()">Save & test</button>
       </div>
     </div>
@@ -674,7 +710,7 @@ tr:hover td{background:rgba(37,99,235,.04);}
   <div class="md">
     <div class="mh"><div class="mtt" id="mttl">Task detail</div><button class="mx" onclick="cmod()">✕</button></div>
     <div class="mb" id="mbdy"></div>
-    <div class="mf"><button class="btn bw bs" id="remindBtn" onclick="rWA()">📲 Resend WA</button><button class="btn bp bs" onclick="cmod()">Close</button></div>
+    <div class="mf"><button class="btn bs" id="delBtn" onclick="deleteTicket()" style="display:none;background:rgba(225,29,72,.1);border:1px solid rgba(225,29,72,.3);color:var(--rd)">🗑 Delete</button><button class="btn bw bs" id="remindBtn" onclick="rWA()">📲 Resend WA</button><button class="btn bp bs" onclick="cmod()">Close</button></div>
   </div>
 </div>
 
@@ -751,20 +787,27 @@ async function api(action,data){
   try{
     switch(action){
       case 'login': {
-        // Authenticate with Firebase Auth (secure - password never in our DB)
+        const emailIn=(data.email||'').trim().toLowerCase();
+        // First check the email exists in our users list (for a clear message)
+        const snap=await F.getDocs(F.collection(db,'users'));
+        let user=null;
+        snap.forEach(d=>{const u=d.data(); if((u.email||'').toLowerCase()===emailIn) user={id:d.id,...u};});
+        if(!user) return {ok:false,error:'Email not registered. Please check your email or contact your admin for access.'};
+        // Now authenticate with Firebase Auth
         try{
           await F.signInWithEmailAndPassword(F.auth, (data.email||'').trim(), data.password||'');
         }catch(authErr){
           var code=authErr.code||'';
-          if(code.indexOf('user-not-found')>=0||code.indexOf('invalid-credential')>=0||code.indexOf('invalid-email')>=0||code.indexOf('wrong-password')>=0)
-            return {ok:false,error:'Incorrect email or password.'};
+          if(code.indexOf('wrong-password')>=0||code.indexOf('invalid-credential')>=0)
+            return {ok:false,error:'Wrong password. Please try again or use "Forgot password".'};
+          if(code.indexOf('too-many-requests')>=0)
+            return {ok:false,error:'Too many attempts. Please wait a few minutes and try again.'};
+          if(code.indexOf('invalid-email')>=0)
+            return {ok:false,error:'That email address looks invalid.'};
+          if(code.indexOf('user-not-found')>=0)
+            return {ok:false,error:'No login found for this email. Contact your admin.'};
           return {ok:false,error:'Login failed: '+(authErr.message||code)};
         }
-        // Load profile (role/department/etc) from users collection
-        const snap=await F.getDocs(F.collection(db,'users'));
-        let user=null;
-        snap.forEach(d=>{const u=d.data(); if((u.email||'').toLowerCase()===(data.email||'').toLowerCase()) user={id:d.id,...u};});
-        if(!user) return {ok:false,error:'Your login exists but no profile found. Contact admin.'};
         const clean={name:user.name,email:user.email,whatsapp:user.whatsapp,role:normRoleJS(user.role),department:user.department,managerName:user.managerName,managerWA:user.managerWA};
         return {ok:true,user:clean,boot:await buildBoot(clean)};
       }
@@ -784,6 +827,7 @@ async function api(action,data){
       case 'addUser': return await fbAddUser(data);
       case 'updateUser': return await fbUpdateUser(data);
       case 'deleteUser': return await fbDeleteUser(data);
+      case 'deleteTask': return await fbDeleteTask(data);
       case 'saveSettings': return await fbSaveSettings(data);
       case 'getSettings': return await fbGetSettings();
       case 'resetRequest': {
@@ -947,6 +991,14 @@ async function fbUpdateUser(d){
   const patch={}; ['name','whatsapp','role','department','managerName','managerWA'].forEach(k=>{if(d[k]!==undefined)patch[k]=d[k];});
   await F.updateDoc(ref,patch);
   await fbLog(d.by||'Admin','User updated','',d.name||d.email,false,'');
+  return {ok:true};
+}
+async function fbDeleteTask(d){
+  const F=window.FB, ref=F.doc(F.db,'tasks',d.taskId), snap=await F.getDoc(ref);
+  if(!snap.exists()) return {ok:false,error:'Task not found'};
+  const t=snap.data();
+  await F.deleteDoc(ref);
+  await fbLog(d.by||'Super Admin','Ticket DELETED',d.taskId,t.title,false,'Reason: '+(d.reason||'none'));
   return {ok:true};
 }
 async function fbDeleteUser(d){
@@ -1189,6 +1241,7 @@ async function getBoot(force){
 }
 // ── STAGE + DEPARTMENT EDITOR ──
 function renderStageEditor(){
+  const tc=document.getElementById('techCard'); if(tc)tc.style.display=(CU&&CU.role==='superadmin')?'block':'none';
   const el=document.getElementById('stage-editor');
   if(el){
     el.innerHTML=STAGES.map((s,i)=>
@@ -1549,11 +1602,25 @@ async function openTM(id){
   window._mTask=id;
   const _closed=(task.status==='Closed'||task.status==='Completed');
   const ob=document.getElementById('ovr-btn'); if(ob)ob.style.display=((CU.role==='superadmin'||CU.role==='admin')&&!_closed)?'inline-flex':'none';
+  const db_=document.getElementById('delBtn'); if(db_)db_.style.display=(CU.role==='superadmin')?'inline-flex':'none';
   if(_closed){document.getElementById('mbdy').innerHTML+='<div style="margin-top:12px;background:rgba(43,221,134,.08);border:1px solid rgba(43,221,134,.25);border-radius:8px;padding:11px 13px;font-size:12.5px;color:var(--gr)">🔒 This ticket is closed and locked. You cannot change its status. To continue this work, please create a New ticket.</div>';}
   document.getElementById('tmod').classList.add('op');
 }
 
 
+async function deleteTicket(){
+  if(CU.role!=='superadmin'){toast('Only Super Admin can delete tickets','er2');return;}
+  const id=window._mTask; if(!id)return;
+  if(!confirm('Permanently DELETE ticket '+id+'? This cannot be undone.'))return;
+  const reason=prompt('Reason for deletion (logged):')||'';
+  cmod();
+  const r=await api('deleteTask',{taskId:id,by:CU.name,reason});
+  CACHE=null;
+  if(r.ok!==false){toast('Ticket '+id+' deleted','ok');
+    const cur=document.querySelector('.pg.ac')?.id;
+    if(cur==='pg-dash')ldDash();else if(cur==='pg-closed')ldClosed();else if(cur==='pg-approvals')ldApprovals();else if(cur==='pg-asgn')ldMgr();else ldDash();
+  } else toast('Failed: '+(r.error||'error'),'er2');
+}
 function adminOverride(){
   const id=window._mTask; if(!id)return;
   const ns=prompt('Set status to (Pending / In Progress / Completed / Closed / Overdue):','Closed');
@@ -1728,7 +1795,16 @@ function pb(p){const m={'High':'ph','Medium':'pm','Low':'pl'};return'<span class
 function wb(s){const m={'Yes':'✅','Sent':'✅','Failed':'❌','Pending':'⏳','Reminded':'✅'};return'<span style="font-size:13px">'+(m[s]||'—')+'</span>';}
 function setDl(){const d=document.getElementById('tdl');if(d){const n=new Date();n.setDate(n.getDate()+1);d.value=n.toISOString().split('T')[0];}}
 function saveCfg(){toast('✅ Settings saved','ok');}
-function expCSV(){if(!AL.length){toast('No data to export','er2');return;}const rows=[['Time','User','Action','Task','WA'],...AL.map(l=>[l.timestamp,l.user,l.action,l.taskTitle,l.waSent])];const csv=rows.map(r=>r.map(c=>'"'+c+'"').join(',')).join('\n');const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='kasera_log.csv';a.click();}
+function expCSV(){if(!AL.length){toast('No data to export','er2');return;}const rows=[['Time','User','Action','Task','Details','WA'],...AL.map(l=>[l.timestamp,l.user,l.action,l.taskTitle,l.details||'',l.waSent])];dlCSV(rows,'kasera_activity_log.csv');}
+function dlCSV(rows,fname){const csv=rows.map(r=>r.map(c=>'"'+String(c==null?'':c).replace(/"/g,'""')+'"').join(',')).join('\n');const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent('\ufeff'+csv);a.download=fname;a.click();}
+async function expTasks(){
+  const r=await getBoot(); const all=r.allTasks||r.tasks||[];
+  if(!all.length){toast('No tasks to export','er2');return;}
+  const rows=[['ID','Title','Assignee','Department','Priority','Deadline','Status','Created By','Created On','Completed On','Time (hrs)','Tags','Notes'],
+    ...all.map(t=>[t.id,t.title,t.assigneeName,t.department,t.priority,t.deadline,t.status,t.createdBy,t.createdOn,t.completedOn||'',t.timeTaken||'',(t.tags||[]).join('; '),t.notes||''])];
+  dlCSV(rows,'kasera_tasks_'+new Date().toISOString().split('T')[0]+'.csv');
+  toast('Exported '+all.length+' tasks','ok');
+}
 function toast(m,t='in'){const el=document.createElement('div');el.className='to '+t;el.innerHTML=m;document.getElementById('tc').appendChild(el);setTimeout(()=>el.remove(),3500);}
 
 
