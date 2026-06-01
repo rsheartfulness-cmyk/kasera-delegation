@@ -461,6 +461,30 @@ tr:hover td{background:rgba(37,99,235,.04);}
   #ls .fi input,#ls .sb{font-size:16px;} /* 16px prevents iOS zoom */
 }
 
+
+/* ═══ DASHBOARD COLOR CARDS (#5) ═══ */
+.sg{grid-template-columns:repeat(auto-fit,minmax(155px,1fr));}
+.card-total::before{background:var(--ac)!important;}
+.card-pending::before{background:#f59e0b!important;}
+.card-prog::before{background:#2563eb!important;}
+.card-done::before{background:#16a34a!important;}
+.card-over::before{background:#e11d48!important;}
+.card-appr::before{background:#7c3aed!important;}
+.card-wa::before{background:#ea580c!important;}
+.card-emp::before{background:#0891b2!important;}
+.sc .sd{font-size:10.5px;color:var(--t3);margin-top:3px;text-transform:none;letter-spacing:0;}
+@media (max-width:860px){ .sg{grid-template-columns:1fr 1fr;} }
+
+
+/* Fix mobile input overflow */
+input,select,textarea{max-width:100%;box-sizing:border-box;}
+.ff input,.ff select,.ff textarea{width:100%;box-sizing:border-box;}
+@media (max-width:860px){
+  .fg,.wg{grid-template-columns:1fr!important;}
+  .pg,.sec{overflow-x:hidden;}
+  select,input,textarea{font-size:16px;} /* prevents iOS zoom + fits */
+}
+
 </style>
 
 <!-- Firebase SDK -->
@@ -504,8 +528,9 @@ tr:hover td{background:rgba(37,99,235,.04);}
       <img id="kicLogo" src="logo.png" alt="Kasera Industries" onerror="this.style.display='none';document.getElementById('logoFallback').style.display='flex';" style="height:54px;width:auto;max-width:180px;object-fit:contain;margin:0 auto 4px">
       <div id="logoFallback" class="lm" style="display:none">🏭</div>
     </div>
-    <div class="lt">Kasera Industries Task Portal</div>
-    <div class="ls3">Manage daily tasks, approvals, team performance, and WhatsApp updates in one place.</div>
+    <div class="lt">Kasera Task Manager</div>
+    <div class="ls3">Daily work tracking system for Kasera Industries. Manage tasks, deadlines, approvals, WhatsApp updates, and team performance from one secure portal.</div>
+    <div style="font-size:12.5px;color:var(--t3);margin-bottom:18px">Sign in with your registered company account</div>
     <div id="gok" class="am" style="display:none;"></div>
     <div id="aer" class="am ae"></div>
     <div class="fi"><label>Email</label><input type="email" id="em" placeholder="you@kaseraindustries.in" autocomplete="email" onkeydown="if(event.key==='Enter')doL()"></div>
@@ -515,13 +540,14 @@ tr:hover td{background:rgba(37,99,235,.04);}
         <button type="button" id="pweye" onclick="togglePw()" aria-label="Show password" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:18px;padding:4px;line-height:1;color:var(--t3)">👁</button>
       </div>
     </div>
-    <button class="sb" onclick="doL()">Sign in →</button>
+    <button class="sb" onclick="doL()">Login to Dashboard →</button>
     <div style="text-align:center;margin-top:14px"><a href="#" onclick="forgotPw();return false;" style="font-size:13px;color:var(--ac);text-decoration:none">Forgot password?</a></div>
     <div class="login-note">
       <div style="font-weight:600;color:var(--t2);margin-bottom:3px">🔒 For internal team use only</div>
       Login with your registered company email.
     </div>
     <div class="login-contact">Need login access? <strong>Contact Admin</strong></div>
+    <div style="text-align:center;margin-top:16px;padding-top:14px;border-top:1px solid var(--bd);font-size:11px;color:var(--t3)">© Kasera Industries | Internal Use Only</div>
   </div>
 </div>
 
@@ -773,6 +799,7 @@ function fbReady(){ return new Promise(res=>{ if(window.FB)return res(); window.
 
 function normRoleJS(r){r=String(r||'').toLowerCase().replace(/[^a-z]/g,'');if(r==='superadmin'||r==='super')return 'superadmin';if(r==='admin')return 'admin';if(r==='supervisor'||r==='manager'||r==='boss')return 'supervisor';return 'employee';}
 function todayStr(){return new Date().toISOString().split('T')[0];}
+function _sameDay(dateStr,iso){ try{ var d=new Date(dateStr); if(isNaN(d))return false; return d.toISOString().split('T')[0]===iso; }catch(e){return false;} }
 
 // Fire WhatsApp via Apps Script without blocking the UI (best-effort)
 async function fireWA(payload){
@@ -877,7 +904,11 @@ async function buildBoot(who){
   const allTasks=await fbTasks();
   const my=filterTasks(allTasks,{role:who.role,userName:who.name});
   const cnt=(a,s)=>a.filter(t=>t.status===s).length;
-  const stats={total:my.length,completed:cnt(my,'Completed')+cnt(my,'Closed'),inProgress:cnt(my,'In Progress'),pending:cnt(my,'Pending'),overdue:cnt(my,'Overdue'),pendingApproval:cnt(my,'Pending Approval'),closed:cnt(my,'Closed')};
+  const todayD=new Date().toISOString().split('T')[0];
+  const completedToday=my.filter(t=>(t.status==='Completed'||t.status==='Closed')&&(t.completedOn||'').length&&_sameDay(t.completedOn,todayD)).length;
+  const waFailed=my.filter(t=>t.waSent==='Failed').length;
+  const activeEmps=new Set(allTasks.filter(t=>t.status!=='Closed'&&t.status!=='Completed'&&t.assigneeName).map(t=>t.assigneeName)).size;
+  const stats={total:my.length,completed:cnt(my,'Completed')+cnt(my,'Closed'),inProgress:cnt(my,'In Progress'),pending:cnt(my,'Pending'),overdue:cnt(my,'Overdue'),pendingApproval:cnt(my,'Pending Approval'),closed:cnt(my,'Closed'),completedToday:completedToday,waFailed:waFailed,activeEmps:activeEmps};
   const emps=users.filter(u=>u.role==='employee');
   const scores=emps.map(u=>{const mt=allTasks.filter(t=>t.assigneeName===u.name);const done=mt.filter(t=>t.status==='Completed'||t.status==='Closed').length;const times=mt.filter(t=>t.timeTaken&&!isNaN(parseFloat(t.timeTaken))).map(t=>parseFloat(t.timeTaken));const avg=times.length?(times.reduce((a,b)=>a+b,0)/times.length).toFixed(1):'-';return {name:u.name,department:u.department,total:mt.length,completed:done,score:mt.length?Math.round(done/mt.length*100):0,avgTime:avg};});
   const st=await fbGetSettings();
@@ -1337,11 +1368,14 @@ function _paintDash(r){
   const ftEl=document.getElementById('ftag'); if(ftEl&&ftEl.options.length<=1)ftEl.innerHTML='<option value="">All tags</option>'+TAGS.map(tg=>'<option>'+tg+'</option>').join('');
   const s=r.stats||{total:0,completed:0,inProgress:0,pending:0,overdue:0};
   document.getElementById('dstats').innerHTML=`
-    <div class="sc"><div class="sl2">Total tasks</div><div class="sv" style="color:var(--ac)">${s.total}</div></div>
-    <div class="sc"><div class="sl2">Completed</div><div class="sv" style="color:var(--gr)">${s.completed}</div><div class="sd">${s.total?Math.round(s.completed/s.total*100):0}% rate</div></div>
-    <div class="sc"><div class="sl2">In progress</div><div class="sv" style="color:var(--ac)">${s.inProgress}</div></div>
-    <div class="sc"><div class="sl2">Overdue</div><div class="sv" style="color:var(--rd)">${s.overdue}</div></div>
-    <div class="sc"><div class="sl2">Pending</div><div class="sv" style="color:var(--am)">${s.pending}</div></div>`;
+    <div class="sc card-total"><div class="sl2">Total Tasks</div><div class="sv" style="color:var(--ac)">${s.total||0}</div><div class="sd">all tasks created</div></div>
+    <div class="sc card-pending"><div class="sl2">Pending</div><div class="sv" style="color:#d97706">${s.pending||0}</div><div class="sd">not started</div></div>
+    <div class="sc card-prog"><div class="sl2">In Progress</div><div class="sv" style="color:#2563eb">${s.inProgress||0}</div><div class="sd">currently active</div></div>
+    <div class="sc card-done"><div class="sl2">Completed Today</div><div class="sv" style="color:#16a34a">${s.completedToday||0}</div><div class="sd">closed today</div></div>
+    <div class="sc card-over"><div class="sl2">Overdue</div><div class="sv" style="color:#e11d48">${s.overdue||0}</div><div class="sd">deadline crossed</div></div>
+    <div class="sc card-appr"><div class="sl2">Approval Pending</div><div class="sv" style="color:#7c3aed">${s.pendingApproval||0}</div><div class="sd">awaiting supervisor</div></div>
+    <div class="sc card-wa"><div class="sl2">WhatsApp Failed</div><div class="sv" style="color:#ea580c">${s.waFailed||0}</div><div class="sd">not delivered</div></div>
+    <div class="sc card-emp"><div class="sl2">Active Employees</div><div class="sv" style="color:#0891b2">${s.activeEmps||0}</div><div class="sd">currently assigned</div></div>`;
   const scores=r.scores||[];
   document.getElementById('ptbl').innerHTML=scores.length?scores.map(u=>{
     const c=u.score>=70?'var(--gr)':u.score>=40?'var(--am)':'var(--rd)';
@@ -1698,16 +1732,16 @@ async function filW(){
   const sel=document.getElementById('ta3');if(!sel)return;
   // If users not loaded yet, load them (from cache or server)
   if(!AU||!AU.length){
-    const r=await getBoot();
+    const r=await getBoot(true);
     if(r&&r.users)AU=r.users;
   }
+  if(!AU||!AU.length){
+    // last resort: direct fetch
+    try{ const r2=await api('getUsers',{}); if(Array.isArray(r2))AU=r2; else if(r2&&r2.users)AU=r2.users; }catch(e){}
+  }
   const dept=document.getElementById('td2')?.value||'';
-  // Show all assignable people (employees + supervisors), normalize role text.
-  // Department is NOT a hard filter — show everyone, label their dept. (Avoids empty dropdown.)
-  const assignable=AU.filter(u=>{
-    const r=normRole(u.role);
-    return r==='employee'||r==='supervisor';
-  });
+  // Anyone can be assigned (employee, supervisor, admin, super admin). Department not a hard filter.
+  const assignable=AU.filter(u=>u&&u.name);
   // Prefer same-dept first if a dept is chosen, but always include everyone
   let list=assignable;
   if(dept){ list=[...assignable.filter(u=>u.department===dept),...assignable.filter(u=>u.department!==dept)]; }
