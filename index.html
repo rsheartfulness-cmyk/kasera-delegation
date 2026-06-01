@@ -817,8 +817,8 @@ async function api(action,data){
         const emailIn=(data.email||'').trim().toLowerCase();
         // First check the email exists in our users list (for a clear message)
         const snap=await F.getDocs(F.collection(db,'users'));
-        let user=null;
-        snap.forEach(d=>{const u=d.data(); if((u.email||'').toLowerCase()===emailIn) user={id:d.id,...u};});
+        let user=null; const allUsers=[];
+        snap.forEach(d=>{const u=d.data(); const obj={id:d.id,name:u.name,email:u.email,whatsapp:u.whatsapp,role:normRoleJS(u.role),department:u.department,managerName:u.managerName,managerWA:u.managerWA,archived:!!u.archived,hasPassword:!!u.password}; allUsers.push(obj); if((u.email||'').toLowerCase()===emailIn) user={id:d.id,...u};});
         if(!user) return {ok:false,error:'Email not registered. Please check your email or contact your admin for access.'};
         // Now authenticate with Firebase Auth
         try{
@@ -836,7 +836,7 @@ async function api(action,data){
           return {ok:false,error:'Login failed: '+(authErr.message||code)};
         }
         const clean={name:user.name,email:user.email,whatsapp:user.whatsapp,role:normRoleJS(user.role),department:user.department,managerName:user.managerName,managerWA:user.managerWA};
-        return {ok:true,user:clean,boot:await buildBoot(clean)};
+        return {ok:true,user:clean,boot:await buildBoot(clean,allUsers)};
       }
       case 'bootstrap': return await buildBoot({role:data.role,name:data.userName,department:data.department});
       case 'getUsers': return await fbUsers();
@@ -869,7 +869,7 @@ async function api(action,data){
 // ---- Firestore readers ----
 async function fbUsers(){
   const F=window.FB, snap=await F.getDocs(F.collection(F.db,'users'));
-  const out=[]; snap.forEach(d=>{const u=d.data(); out.push({id:d.id,name:u.name,email:u.email,whatsapp:u.whatsapp,role:normRoleJS(u.role),department:u.department,managerName:u.managerName,managerWA:u.managerWA,hasPassword:!!u.password});});
+  const out=[]; snap.forEach(d=>{const u=d.data(); out.push({id:d.id,name:u.name,email:u.email,whatsapp:u.whatsapp,role:normRoleJS(u.role),department:u.department,managerName:u.managerName,managerWA:u.managerWA,archived:!!u.archived,hasPassword:!!u.password});});
   return out;
 }
 async function fbTasks(){
@@ -896,12 +896,12 @@ async function fbLogs(){
 function filterTasks(all,data){
   let t=all;
   if(data.role==='employee'&&data.userName) t=t.filter(x=>x.assigneeName===data.userName);
-  else if(data.role==='supervisor'&&data.userName) t=t.filter(x=>x.managerName===data.userName||x.createdBy===data.userName);
+  else if(data.role==='supervisor'&&data.userName) t=t.filter(x=>x.managerName===data.userName||x.createdBy===data.userName||x.assigneeName===data.userName);
   return t;
 }
-async function buildBoot(who){
-  const users=await fbUsers();
-  const allTasks=await fbTasks();
+async function buildBoot(who,preUsers){
+  // Read users + tasks + settings in PARALLEL (faster than sequential)
+  const [users,allTasks,st]=await Promise.all([ preUsers?Promise.resolve(preUsers):fbUsers(), fbTasks(), fbGetSettings() ]);
   const my=filterTasks(allTasks,{role:who.role,userName:who.name});
   const cnt=(a,s)=>a.filter(t=>t.status===s).length;
   const todayD=new Date().toISOString().split('T')[0];
@@ -911,7 +911,6 @@ async function buildBoot(who){
   const stats={total:my.length,completed:cnt(my,'Completed')+cnt(my,'Closed'),inProgress:cnt(my,'In Progress'),pending:cnt(my,'Pending'),overdue:cnt(my,'Overdue'),pendingApproval:cnt(my,'Pending Approval'),closed:cnt(my,'Closed'),completedToday:completedToday,waFailed:waFailed,activeEmps:activeEmps};
   const emps=users.filter(u=>u.role==='employee');
   const scores=emps.map(u=>{const mt=allTasks.filter(t=>t.assigneeName===u.name);const done=mt.filter(t=>t.status==='Completed'||t.status==='Closed').length;const times=mt.filter(t=>t.timeTaken&&!isNaN(parseFloat(t.timeTaken))).map(t=>parseFloat(t.timeTaken));const avg=times.length?(times.reduce((a,b)=>a+b,0)/times.length).toFixed(1):'-';return {name:u.name,department:u.department,total:mt.length,completed:done,score:mt.length?Math.round(done/mt.length*100):0,avgTime:avg};});
-  const st=await fbGetSettings();
   return {ok:true,users,tasks:my,allTasks,stats,scores,stages:st.stages,departments:st.departments};
 }
 
@@ -1019,7 +1018,7 @@ async function fbUpdateUser(d){
   const F=window.FB, snap=await F.getDocs(F.collection(F.db,'users'));
   let ref=null,cur=null; snap.forEach(doc=>{if((doc.data().email||'').toLowerCase()===(d.email||'').toLowerCase()){ref=doc.ref;cur=doc.data();}});
   if(!ref) return {ok:false,error:'User not found'};
-  const patch={}; ['name','whatsapp','role','department','managerName','managerWA'].forEach(k=>{if(d[k]!==undefined)patch[k]=d[k];});
+  const patch={}; ['name','whatsapp','role','department','managerName','managerWA','archived'].forEach(k=>{if(d[k]!==undefined)patch[k]=d[k];});
   await F.updateDoc(ref,patch);
   await fbLog(d.by||'Admin','User updated','',d.name||d.email,false,'');
   return {ok:true};
@@ -1160,8 +1159,8 @@ function startApp(){
 // ── SIDEBAR ──────────────────────────────────────────────────────
 const NAV={
   superadmin:[{g:'Overview',items:[{id:'dash',ic:'📊',lb:'Dashboard'},{id:'asgn',ic:'➕',lb:'Assign task'},{id:'approvals',ic:'✔️',lb:'Approvals'},{id:'closed',ic:'🗂️',lb:'Closed tickets'},{id:'rep',ic:'📈',lb:'Reports'},{id:'wa',ic:'💬',lb:'WA log'},{id:'log',ic:'📝',lb:'Activity log'}]},{g:'Admin',items:[{id:'people',ic:'👥',lb:'Manage people'},{id:'cfg',ic:'⚙️',lb:'Settings'}]}],
-  admin:[{g:'Overview',items:[{id:'dash',ic:'📊',lb:'Dashboard'},{id:'asgn',ic:'➕',lb:'Assign task'},{id:'approvals',ic:'✔️',lb:'Approvals'},{id:'closed',ic:'🗂️',lb:'Closed tickets'},{id:'rep',ic:'📈',lb:'Reports'},{id:'wa',ic:'💬',lb:'WA log'},{id:'log',ic:'📝',lb:'Activity log'}]},{g:'Admin',items:[{id:'people',ic:'👥',lb:'Manage people'},{id:'cfg',ic:'⚙️',lb:'Settings'}]}],
-  supervisor:[{g:'Tasks',items:[{id:'asgn',ic:'➕',lb:'Assign task'},{id:'approvals',ic:'✔️',lb:'Approvals'},{id:'team',ic:'👷',lb:'My team'},{id:'closed',ic:'🗂️',lb:'Closed tickets'},{id:'wa',ic:'💬',lb:'WA log'},{id:'log',ic:'📝',lb:'Activity log'}]}],
+  admin:[{g:'Overview',items:[{id:'dash',ic:'📊',lb:'Dashboard'},{id:'asgn',ic:'➕',lb:'Assign task'},{id:'approvals',ic:'✔️',lb:'Approvals'},{id:'closed',ic:'🗂️',lb:'Closed tickets'},{id:'rep',ic:'📈',lb:'Reports'}]},{g:'Admin',items:[{id:'people',ic:'👥',lb:'Manage people'},{id:'cfg',ic:'⚙️',lb:'Settings'}]}],
+  supervisor:[{g:'Tasks',items:[{id:'asgn',ic:'➕',lb:'Assign task'},{id:'approvals',ic:'✔️',lb:'Approvals'},{id:'team',ic:'👷',lb:'My team'},{id:'closed',ic:'🗂️',lb:'Closed tickets'}]}],
   employee:[{g:'My work',items:[{id:'wtask',ic:'✅',lb:'My tasks'},{id:'closed',ic:'🗂️',lb:'Closed tickets'},{id:'wperf',ic:'📊',lb:'My performance'}]}]
 }
 const PTITLES={dash:'Dashboard',people:'Manage people',approvals:'Approvals',closed:'Closed tickets',rep:'Reports',wa:'WhatsApp log',log:'Activity log',cfg:'Settings',asgn:'Assign task',team:'My team',wtask:'My tasks',wperf:'My performance'};
@@ -1183,6 +1182,9 @@ function setupSB(){
 }
 function sp2f(id,fromPop){
   closeSidebar();
+  // Access guards
+  if((id==='wa'||id==='log')&&CU&&CU.role!=='superadmin'){toast('Logs are visible to Super Admin only','er2');return;}
+  if((id==='people'||id==='cfg')&&CU&&CU.role!=='superadmin'&&CU.role!=='admin'){toast('Admin access required','er2');return;}
   if(!fromPop){ try{history.pushState({page:id},'','#'+id);}catch(e){} }
   document.querySelectorAll('.pg').forEach(p=>p.classList.remove('ac'));
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('ac'));
@@ -1440,7 +1442,7 @@ async function ldMgr(){
   const r=await getBoot();
   if(r.ok===false)return;
   let all=r.allTasks||r.tasks||[];
-  if(CU.role==='supervisor') all=all.filter(t=>t.managerName===CU.name||t.createdBy===CU.name);
+  if(CU.role==='supervisor') all=all.filter(t=>t.managerName===CU.name||t.createdBy===CU.name||t.assigneeName===CU.name);
   _mgrTasks=all;
   if(AU&&AU.length)filW();  // populate assignee dropdown
   // populate filter dropdowns
@@ -1741,7 +1743,7 @@ async function filW(){
   }
   const dept=document.getElementById('td2')?.value||'';
   // Anyone can be assigned (employee, supervisor, admin, super admin). Department not a hard filter.
-  const assignable=AU.filter(u=>u&&u.name);
+  const assignable=AU.filter(u=>u&&u.name&&!u.archived);
   // Prefer same-dept first if a dept is chosen, but always include everyone
   let list=assignable;
   if(dept){ list=[...assignable.filter(u=>u.department===dept),...assignable.filter(u=>u.department!==dept)]; }
@@ -1855,13 +1857,16 @@ async function ldPeople(){
   const tb=document.getElementById('people-tbl');
   tb.innerHTML=AU.length?AU.map(u=>{
     const rc=(u.role==='superadmin'||u.role==='admin')?'rb':u.role==='supervisor'?'rm':'rw';
-    return '<tr><td><strong>'+u.name+'</strong></td><td style="font-size:12px;color:var(--t2)">'+u.email+'</td>'+
+    return '<tr'+(u.archived?' style="opacity:.55"':'')+'><td><strong>'+u.name+'</strong>'+(u.archived?' <span style="font-size:9px;padding:2px 6px;border-radius:10px;background:rgba(234,154,12,.15);color:var(--am)">ARCHIVED</span>':'')+'</td><td style="font-size:12px;color:var(--t2)">'+u.email+'</td>'+
       '<td style="font-size:12px;color:var(--wa)">'+(u.whatsapp||'—')+'</td>'+
       '<td><span class="ur '+rc+'">'+u.role+'</span></td>'+
       '<td style="font-size:12px;color:var(--t3)">'+(u.department||'—')+'</td>'+
       '<td style="font-size:12px;color:var(--t2)">'+(u.managerName||'—')+'</td>'+
       '<td>'+(u.hasPassword?'<span style="color:var(--gr);font-size:12px">🔒 Set</span>':'<span style="color:var(--t3);font-size:12px">email only</span>')+'</td>'+
-      '<td><div style="display:flex;gap:5px"><button class="btn bg bs" onclick="openEdit(\''+u.email+'\')">Edit</button><button class="btn bs" style="background:rgba(255,68,85,.1);border:1px solid rgba(255,68,85,.2);color:var(--rd)" onclick="delPerson(\''+u.email+'\',\''+u.name+'\')">Del</button></div></td></tr>';
+      '<td><div style="display:flex;gap:5px;flex-wrap:wrap"><button class="btn bg bs" onclick="openEdit(\''+u.email+'\')">Edit</button>'+
+      (u.archived?('<button class="btn bg bs" onclick="archivePerson(\''+u.email+'\',\''+u.name+'\',false)">Unarchive</button>'):('<button class="btn bs" style="background:rgba(234,154,12,.1);border:1px solid rgba(234,154,12,.25);color:var(--am)" onclick="archivePerson(\''+u.email+'\',\''+u.name+'\',true)">Archive</button>'))+
+      (CU.role==='superadmin'?('<button class="btn bs" style="background:rgba(255,68,85,.1);border:1px solid rgba(255,68,85,.2);color:var(--rd)" onclick="delPerson(\''+u.email+'\',\''+u.name+'\')">Del</button>'):'')+
+      '</div></td></tr>';
   }).join(''):'<tr class="er"><td colspan="8">No people yet</td></tr>';
 }
 function uMgrChange(){
@@ -1910,9 +1915,16 @@ async function saveEdit(){
   else toast('Failed: '+(r.error||'error'),'er2');
 }
 async function delPerson(email,name){
-  if(!confirm('Remove '+name+'? This cannot be undone.'))return;
+  if(CU.role!=='superadmin'){toast('Only Super Admin can delete users. Use Archive instead.','er2');return;}
+  if(!confirm('Permanently DELETE '+name+'? This cannot be undone. (Consider Archive instead.)'))return;
   const r=await api('deleteUser',{email,by:CU.name});
-  if(r.ok!==false){toast('Removed '+name,'ok');ldPeople();loadUsers();}
+  if(r.ok!==false){toast('Deleted '+name,'ok');ldPeople();loadUsers();}
+  else toast('Failed: '+(r.error||'error'),'er2');
+}
+async function archivePerson(email,name,doArchive){
+  if(!confirm((doArchive?'Archive ':'Unarchive ')+name+'?'+(doArchive?' They will be hidden from assignment but their data is kept.':'')))return;
+  const r=await api('updateUser',{email,archived:doArchive,by:CU.name});
+  if(r.ok!==false){toast((doArchive?'Archived ':'Unarchived ')+name,'ok');CACHE=null;ldPeople();loadUsers();}
   else toast('Failed: '+(r.error||'error'),'er2');
 }
 
