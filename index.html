@@ -648,6 +648,7 @@ input,select,textarea{max-width:100%;box-sizing:border-box;}
       <div class="sec">
         <div class="sh2"><div class="st">My team tasks</div>
           <div style="display:flex;align-items:center;gap:8px">
+            <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--t2);cursor:pointer"><input type="checkbox" id="fc-mine" onchange="applyMgrFilter()" style="width:auto;min-height:auto"> Only mine</label>
             <select class="fcol" id="fc-tag" onchange="applyMgrFilter()" style="width:auto;min-width:120px"><option value="">All tags</option></select>
             <span style="font-size:10.5px;color:var(--t3)">Closed hidden — filter Status to see them</span>
             <span style="font-size:11.5px;color:var(--t3)">+ column filters ↓</span>
@@ -1547,7 +1548,7 @@ async function ldMgr(){
   const ftg=document.getElementById('fc-tag'); if(ftg&&ftg.options.length<=1)ftg.innerHTML='<option value="">All tags</option>'+TAGS.map(tg=>'<option>'+tg+'</option>').join('');
   applyMgrFilter();
 }
-function clearMgrFilter(){['fc-title','fc-assignee','fc-priority','fc-deadline','fc-status','fc-tag'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});applyMgrFilter();}
+function clearMgrFilter(){['fc-title','fc-assignee','fc-priority','fc-deadline','fc-status','fc-tag'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});var m=document.getElementById('fc-mine');if(m)m.checked=false;applyMgrFilter();}
 function applyMgrFilter(){
   const ft=(document.getElementById('fc-title')?.value||'').toLowerCase();
   const fa=document.getElementById('fc-assignee')?.value||'';
@@ -1555,6 +1556,7 @@ function applyMgrFilter(){
   const fd=document.getElementById('fc-deadline')?.value||'';
   const fs=document.getElementById('fc-status')?.value||'';
   const ftag=document.getElementById('fc-tag')?.value||'';
+  const fmine=document.getElementById('fc-mine')?.checked;
   let tasks=_mgrTasks.filter(t=>{
     if(ft&&!(t.title||'').toLowerCase().includes(ft))return false;
     if(fa&&t.assigneeName!==fa)return false;
@@ -1563,6 +1565,7 @@ function applyMgrFilter(){
     if(fs){ if(t.status!==fs)return false; }
     else { if(t.status==='Closed'||t.status==='Completed')return false; } // hide closed by default
     if(ftag&&!(t.tags||[]).includes(ftag))return false;
+    if(fmine&&!(t.assigneeName===CU.name||t.createdBy===CU.name||t.managerName===CU.name))return false;
     return true;
   });
   document.getElementById('mtbl').innerHTML=tasks.length?tasks.map(t=>`<tr>
@@ -1696,7 +1699,9 @@ async function openTM(id){
   const r=await api('getUpdates',{taskId:id});
   const upd=r.ok!==false?r.updates||[]:[];
   const _si=stageIdx(task.status);
-  const _stepper='<div class="stp">'+STAGES.map((s,i)=>'<div class="stp-item '+(i<_si?'done':i===_si?'active':'')+'"><div class="stp-dot">'+(i<_si?'✓':(i+1))+'</div><div class="stp-line"></div><div class="stp-lb">'+s.label+'</div></div>').join('')+'</div>';
+  const _closedNow=(task.status==='Closed'||task.status==='Completed');
+  const _canChange=(CU.role==='superadmin'||CU.role==='admin'||CU.role==='supervisor'||task.assigneeName===CU.name)&&!_closedNow;
+  const _stepper='<div class="stp">'+STAGES.map((s,i)=>'<div class="stp-item '+(i<_si?'done':i===_si?'active':'')+'"'+(_canChange?' onclick="setStage(\''+id+'\',\''+s.key.replace(/\x27/g,"")+'\')" style="cursor:pointer" title="Click to move to '+s.label+'"':'')+'><div class="stp-dot">'+(i<_si?'✓':(i+1))+'</div><div class="stp-line"></div><div class="stp-lb">'+s.label+'</div></div>').join('')+'</div>'+(_canChange?'<div style="text-align:center;font-size:11px;color:var(--t3);margin:-6px 0 14px">↑ Tap a stage to update status</div>':'');
   document.getElementById('mbdy').innerHTML=_stepper+`
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:14px">
       <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Assignee</div><div>${task.assigneeName}</div></div>
@@ -1778,6 +1783,24 @@ async function deleteTicket(){
   if(r.ok!==false){toast('Ticket '+id+' deleted','ok');
     const cur=document.querySelector('.pg.ac')?.id;
     if(cur==='pg-dash')ldDash();else if(cur==='pg-closed')ldClosed();else if(cur==='pg-approvals')ldApprovals();else if(cur==='pg-asgn')ldMgr();else ldDash();
+  } else toast('Failed: '+(r.error||'error'),'er2');
+}
+async function setStage(id,stage){
+  if(window._busy)return;
+  const task=AT.find(t=>t.id===id); if(!task)return;
+  if(task.status===stage)return; // no change
+  // If moving to Closed and not yet approved, suggest using Approvals — but allow admins
+  let note='';
+  if(stage==='Pending Approval'){ note='Submitted for approval'; }
+  if(stage==='Closed'&&CU.role==='supervisor'){ /* supervisor closing = approval */ }
+  window._busy=true;
+  const r=await api('updateStatus',{taskId:id,newStatus:stage,updatedBy:CU.name,note:note,role:CU.role});
+  window._busy=false; CACHE=null;
+  if(r.ok!==false){
+    toast('Status → '+stage,'ok');
+    cmod();
+    const cur=document.querySelector('.pg.ac')?.id;
+    if(cur==='pg-dash')ldDash();else if(cur==='pg-closed')ldClosed();else if(cur==='pg-approvals')ldApprovals();else if(cur==='pg-asgn')ldMgr();else if(cur==='pg-wtask')ldWT();else ldDash();
   } else toast('Failed: '+(r.error||'error'),'er2');
 }
 function adminOverride(){
