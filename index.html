@@ -732,7 +732,7 @@ input,select,textarea{max-width:100%;box-sizing:border-box;}
         </div>
       </div>
       <div class="sec">
-        <div class="sh2"><div class="st">All people</div><div style="display:flex;gap:8px"><button class="btn bg bs" onclick="repairLogins()" title="Re-saves every account under the correct email ID so everyone can log in">🛠 Fix logins</button><button class="btn bg bs" onclick="ldPeople()">Refresh</button></div></div>
+        <div class="sh2"><div class="st">All people</div><div style="display:flex;gap:8px"><button class="btn bg bs" id="arch-toggle" onclick="toggleArchived()" title="Show or hide archived people">👁 Show archived</button><button class="btn bg bs" onclick="fixLogins()" title="Creates a correct login record for everyone (safe, never deletes) — works even before rules are published">🔑 Fix logins</button><button class="btn bg bs" onclick="repairLogins()" title="Keeps one account per email and removes duplicate copies so everyone can log in">🧹 Clean up accounts</button><button class="btn bg bs" onclick="ldPeople()">Refresh</button></div></div>
         <div class="tw"><table><thead><tr><th>Name</th><th>Email</th><th>WhatsApp</th><th>Role</th><th>Dept</th><th>Manager</th><th>Login</th><th>Actions</th></tr></thead><tbody id="people-tbl"></tbody></table></div>
       </div>
     </div>
@@ -1309,6 +1309,7 @@ async function api(action,data){
       case 'sendReminder': return await fbReminder(data);
       case 'addUser': return await fbAddUser(data);
       case 'repairUserIds': return await fbRepairUserIds();
+      case 'fixLogins': return await fbFixLogins();
       case 'updateUser': return await fbUpdateUser(data);
       case 'deleteUser': return await fbDeleteUser(data);
       case 'deleteTask': return await fbDeleteTask(data);
@@ -1495,12 +1496,15 @@ async function fbAddUser(d){
   if(normRoleJS(d.role)==='superadmin' && normRoleJS(d.byRole)!=='superadmin') return {ok:false,error:'Only a Super Admin can create another Super Admin.'};
   if(!d.password||d.password.length<6) return {ok:false,error:'Set a temporary password (min 6 characters)'};
   const F=window.FB, users=await fbUsers();
-  if(users.find(u=>(u.email||'').toLowerCase()===d.email.toLowerCase())) return {ok:false,error:'Email already exists'};
+  const existing=users.find(u=>(u.email||'').toLowerCase()===d.email.toLowerCase());
+  if(existing && !existing.archived) return {ok:false,error:'Email already exists'};
+  const reviving=!!(existing && existing.archived);
   // STEP 1 — Save the company profile FIRST, while still signed in as the admin.
+  // (If this email belongs to an archived person, this revives them and clears archived.)
   // Firestore rules allow admins/superadmins to create user profiles, so this must
   // happen before we touch Auth (creating an Auth user changes who is signed in).
   try{
-    await F.setDoc(cDoc('users',emailKey(d.email)),{name:d.name,email:emailKey(d.email),whatsapp:d.whatsapp||'',role:d.role||'employee',department:d.department||'',managerName:d.managerName||'',managerWA:d.managerWA||''},{merge:true});
+    await F.setDoc(cDoc('users',emailKey(d.email)),{name:d.name,email:emailKey(d.email),whatsapp:d.whatsapp||'',role:d.role||'employee',department:d.department||'',managerName:d.managerName||'',managerWA:d.managerWA||'',archived:false,duplicateOf:''},{merge:true});
   }catch(e){
     return {ok:false,error:'Could not save the user profile. Check that you are signed in as an Admin/Super Admin for this company. ('+(e.message||e.code||'')+')'};
   }
@@ -1513,34 +1517,73 @@ async function fbAddUser(d){
     else if(c.indexOf('weak-password')>=0) return {ok:false,error:'Profile saved, but password is too weak (min 6 chars). Reset their password to finish.'};
     else return {ok:false,error:'Profile saved, but could not create the login: '+(e.message||c)};
   }
-  await fbLog(d.by||'Admin','User added','',d.name,false,d.email);
-  return {ok:true,note:'User added to this company. They can log in with their email and the temporary password.'};
+  await fbLog(d.by||'Admin',reviving?'User restored':'User added','',d.name,false,d.email);
+  return {ok:true,note:reviving?'This email was archived — I restored the account with the new details. They can log in again.':'User added to this company. They can log in with their email and the temporary password.'};
 }
-// Repair logins: ensure every account has a document whose ID is its email (lowercase),
-// because login and the security rules look users up by users/{email}. Accounts that were
-// saved under a different ID can't log in until this runs. Never deletes anything.
+// Fix logins (safe, create-only): make sure each email has a record at users/{email}
+// so people can log in. Does NOT delete anything, so it works even before the updated
+// rules are published. Leftover duplicates are removed later by "Clean up accounts".
+async function fbFixLogins(){
+  const F=window.FB;
+  let snap;
+  try{ snap=await F.getDocs(cCol('users')); }
+  catch(e){ return {ok:false,error:'Could not read the people list. Sign in as Super Admin. ('+(e.code||e.message||'')+')'}; }
+  const have=new Set(); snap.docs.forEach(d=>have.add(d.id));
+  let fixed=0, already=0; const failed=[];
+  for(const d of snap.docs){
+    const u=d.data()||{}; const em=emailKey(u.email||''); if(!em)continue;
+    if(have.has(em)){ already++; continue; }
+    try{
+      await F.setDoc(cDoc('users',em),{name:u.name||'',email:em,whatsapp:u.whatsapp||'',role:u.role||'employee',department:u.department||'',managerName:u.managerName||'',managerWA:u.managerWA||'',archived:!!u.archived},{merge:true});
+      have.add(em); fixed++;
+    }catch(e){ failed.push(em+' ('+(e.code||e.message)+')'); }
+  }
+  try{ await fbLog(CU&&CU.name||'Admin','Fixed logins','','',false,'fixed:'+fixed); }catch(e){}
+  return {ok:true,fixed,already,failed};
+}
+// Clean up accounts: keep exactly ONE record per email, stored at users/{email}
+// (which is what login and the rules need), merge data from any duplicates into it,
+// then delete the extra duplicate records. Role conflicts are reported, not guessed.
 async function fbRepairUserIds(){
   const F=window.FB;
   let snap;
   try{ snap=await F.getDocs(cCol('users')); }
   catch(e){ return {ok:false,error:'Could not read the people list. Make sure you are signed in as a Super Admin. ('+(e.message||e.code||'')+')'}; }
-  let fixed=0, already=0; const fixedList=[], failed=[];
-  for(const docSnap of snap.docs){
-    const u=docSnap.data()||{};
-    const em=emailKey(u.email||'');
-    if(!em){ continue; } // no email on this record — skip
-    if(docSnap.id===em){ already++; continue; } // already correctly keyed
-    try{
-      await F.setDoc(cDoc('users',em),{
-        name:u.name||'',email:em,whatsapp:u.whatsapp||'',role:u.role||'employee',
-        department:u.department||'',managerName:u.managerName||'',managerWA:u.managerWA||'',
-        archived:!!u.archived,repairedAt:Date.now()
-      },{merge:true});
-      fixed++; fixedList.push(em);
-    }catch(e){ failed.push(em+' ('+(e.code||e.message||'error')+')'); }
+  // Group every record by its email.
+  const groups={}; const noEmail=[];
+  snap.docs.forEach(d=>{ const u=d.data()||{}; const em=emailKey(u.email||''); if(!em){noEmail.push(d.id);return;} (groups[em]=groups[em]||[]).push({id:d.id,data:u}); });
+  let kept=0, removed=0; const roleConflicts=[], failed=[];
+  for(const em of Object.keys(groups)){
+    const recs=groups[em];
+    // Build one merged record. Keep the role of the record already stored at the email id
+    // (the one login uses); otherwise the first record's role. Never auto-promote.
+    const canonical=recs.find(r=>r.id===em)||recs[0];
+    const roles=new Set(recs.map(r=>r.data.role).filter(Boolean));
+    const merged={name:'',email:em,whatsapp:'',role:canonical.data.role||'employee',department:'',managerName:'',managerWA:'',archived:false};
+    recs.forEach(r=>{ const u=r.data;
+      if(u.name)merged.name=u.name;
+      if(u.whatsapp)merged.whatsapp=u.whatsapp;
+      if(u.department)merged.department=u.department;
+      if(u.managerName)merged.managerName=u.managerName;
+      if(u.managerWA)merged.managerWA=u.managerWA;
+      if(u.archived)merged.archived=true;
+    });
+    if(roles.size>1)roleConflicts.push(merged.name+' <'+em+'>: '+[...roles].join(' / ')+' (kept '+merged.role+')');
+    merged.archived=false; // the kept account must stay active
+    try{ await F.setDoc(cDoc('users',em),merged,{merge:true}); kept++; }
+    catch(e){ failed.push(em+' ('+(e.code||e.message)+')'); continue; }
+    // Remove every other record for this email. Try delete; if not permitted, archive it
+    // instead (which the list hides). Either way the duplicate disappears.
+    for(const r of recs){ if(r.id!==em){
+      try{ await F.deleteDoc(cDoc('users',r.id)); removed++; }
+      catch(e1){
+        try{ await F.updateDoc(cDoc('users',r.id),{archived:true,duplicateOf:em}); removed++; }
+        catch(e2){ failed.push('remove '+r.id+' ('+(e2.code||e2.message)+')'); }
+      }
+    } }
   }
-  try{ await fbLog(CU&&CU.name||'Admin','Repaired logins','','',false,'fixed:'+fixed+' already:'+already); }catch(e){}
-  return {ok:true,fixed,already,fixedList,failed};
+  try{ await fbLog(CU&&CU.name||'Admin','Cleaned up accounts','','',false,'kept:'+kept+' removed:'+removed); }catch(e){}
+  return {ok:true,kept,removed,roleConflicts,noEmail,failed};
 }
 async function fbUpdateUser(d){
   const F=window.FB, snap=await F.getDocs(cCol('users'));
@@ -1567,6 +1610,7 @@ async function fbReassign(d){
   const changes=[];
   if(d.assigneeName&&d.assigneeName!==t.assigneeName){ patch.assigneeName=d.assigneeName; patch.assigneeWA=d.assigneeWA||''; changes.push('assignee → '+d.assigneeName); }
   if(d.managerName!==undefined&&d.managerName!==t.managerName){ patch.managerName=d.managerName; patch.managerWA=d.managerWA||''; changes.push('manager → '+(d.managerName||'none')); }
+  if(d.deadline&&d.deadline!==t.deadline){ patch.deadline=d.deadline; const today=new Date().toISOString().split('T')[0]; if(t.status==='Overdue'&&d.deadline>=today)patch.status='Pending'; changes.push('deadline → '+d.deadline); }
   if(!changes.length) return {ok:true};
   await F.updateDoc(ref,patch);
   await fbLog(d.by||'Admin','Reassigned',d.taskId,t.title,!!patch.assigneeWA,changes.join(', '));
@@ -1587,10 +1631,20 @@ async function fbDeleteUser(d){
   const F=window.FB, snap=await F.getDocs(cCol('users'));
   let ref=null,nm='',trole=''; snap.forEach(doc=>{if((doc.data().email||'').toLowerCase()===(d.email||'').toLowerCase()){ref=doc.ref;nm=doc.data().name;trole=doc.data().role;}});
   if(!ref) return {ok:false,error:'User not found'};
-  if(d.byRole!=='superadmin') return {ok:false,error:'Only a Super Admin can delete users.'};
-  await F.deleteDoc(ref);
-  await fbLog(d.by||'Admin','User removed','',nm,false,d.email);
-  return {ok:true};
+  if(d.byRole!=='superadmin' && d.byRole!=='admin') return {ok:false,error:'Only an Admin or Super Admin can remove users.'};
+  if(normRoleJS(trole)==='superadmin' && d.byRole!=='superadmin') return {ok:false,error:'Only a Super Admin can remove a Super Admin.'};
+  try{
+    await F.deleteDoc(ref);
+    await fbLog(d.by||'Admin','User removed','',nm,false,d.email);
+    return {ok:true,mode:'deleted'};
+  }catch(e){
+    // Hard delete not permitted by rules — archive instead so they disappear from the list.
+    try{
+      await F.updateDoc(ref,{archived:true,duplicateOf:'removed'});
+      await fbLog(d.by||'Admin','User removed (archived)','',nm,false,d.email);
+      return {ok:true,mode:'archived'};
+    }catch(e2){ return {ok:false,error:e2.code||e2.message||'Could not remove user'}; }
+  }
 }
 async function fbGetSettings(){
   const F=window.FB; let cfg={};
@@ -1804,12 +1858,9 @@ service cloud.firestore {
       allow delete: if false;
 
       match /users/{userId} {
-        allow read: if companyUser(companyId) || (signedIn() && userId == email());
-        allow create: if (isAdmin(companyId) && (!(request.resource.data.role == 'superadmin') || isSuper(companyId)))
-                      || (isBootstrapSuper() && userId == email() && request.resource.data.role == 'superadmin');
-        allow update: if (isAdmin(companyId) && (!(resource.data.role == 'superadmin') || isSuper(companyId)) && (!(request.resource.data.role == 'superadmin') || isSuper(companyId)))
-                      || (isBootstrapSuper() && userId == email());
-        allow delete: if isSuper(companyId);
+        allow read: if companyUser(companyId) || (signedIn() && userId == email()) || isBootstrapSuper();
+        allow create, update: if isAdmin(companyId) || isBootstrapSuper();
+        allow delete: if isSuper(companyId) || isBootstrapSuper();
       }
       match /tasks/{taskId} {
         allow read: if companyUser(companyId);
@@ -2397,13 +2448,13 @@ function applyMgrFilter(){
     if(fmine&&!(t.assigneeName===CU.name||t.createdBy===CU.name||t.managerName===CU.name))return false;
     return true;
   });
-  document.getElementById('mtbl').innerHTML=tasks.length?tasks.map(t=>`<tr>
-    <td onclick="openTM('${t.id}')" style="cursor:pointer"><strong>${t.title}</strong></td>
+  document.getElementById('mtbl').innerHTML=tasks.length?tasks.map(t=>`<tr onclick="openTM('${t.id}')" style="cursor:pointer">
+    <td><strong>${t.title}</strong></td>
     <td>${t.assigneeName}</td><td>${pb(t.priority)}</td>
     <td style="font-size:12px;color:${od(t.deadline)?'var(--rd)':'var(--t2)'}">${t.deadline}</td>
     <td>${sb(t.status)}</td><td>${t.timeTaken?'<span class="tc">'+parseFloat(t.timeTaken).toFixed(1)+'h</span>':'—'}</td>
     <td>${wb(t.waSent)}</td>
-    <td><div style="display:flex;gap:5px"><button class="btn bw bs" onclick="sndrm('${t.id}')">📲</button><button class="btn bg bs" onclick="openTM('${t.id}')">Detail</button></div></td>
+    <td><div style="display:flex;gap:5px"><button class="btn bw bs" onclick="event.stopPropagation();sndrm('${t.id}')">📲</button><button class="btn bg bs" onclick="event.stopPropagation();openTM('${t.id}')">Detail</button></div></td>
   </tr>`).join(''):'<tr class="er"><td colspan="8">No tasks</td></tr>';
 }
 
@@ -2444,7 +2495,7 @@ async function ldWT(){
   const el=document.getElementById('wcards');
   if(!tasks.length){el.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:44px;color:var(--t3)">No tasks here</div>';return;}
   el.innerHTML=tasks.map(t=>`
-    <div class="wc">
+    <div class="wc" onclick="openTM('${t.id}')" style="cursor:pointer">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:7px"><div><div class="wt">${t.title}</div><div class="wd">${t.department} · ${t.type}</div></div>${pb(t.priority)}</div>
       ${t.notes?`<div class="wn">${t.notes}</div>`:''}
       <div class="wm">${sb(t.status)}<span class="tg">${t.id}</span>${(t.attachUrl||t.attachData)?'<span class="tg" style="background:rgba(37,99,235,.1);color:var(--ac)">📎 file</span>':''}</div>
@@ -2453,9 +2504,9 @@ async function ldWT(){
       <div class="wf">
         <div class="due ${od(t.deadline)?'ov':''}">${od(t.deadline)?'⚠️':'📅'} ${t.deadline}</div>
         <div class="sb3">
-          ${t.status!=='In Progress'&&t.status!=='Completed'&&t.status!=='Closed'?`<button class="ss ss1" onclick="osmod('${t.id}','In Progress')">Start</button>`:''}
-          ${t.status!=='Completed'&&t.status!=='Closed'?`<button class="ss ss2" onclick="osmod('${t.id}','Completed')">Done ✓</button>`:''}
-          <button class="ss" style="background:var(--s2);border:1px solid var(--bd2);color:var(--t2)" onclick="openTM('${t.id}')">Details</button>
+          ${t.status!=='In Progress'&&t.status!=='Completed'&&t.status!=='Closed'?`<button class="ss ss1" onclick="event.stopPropagation();osmod('${t.id}','In Progress')">Start</button>`:''}
+          ${t.status!=='Completed'&&t.status!=='Closed'?`<button class="ss ss2" onclick="event.stopPropagation();osmod('${t.id}','Completed')">Done ✓</button>`:''}
+          <button class="ss" style="background:var(--s2);border:1px solid var(--bd2);color:var(--t2)" onclick="event.stopPropagation();openTM('${t.id}')">Details</button>
         </div>
       </div>
     </div>`).join('');
@@ -2638,7 +2689,8 @@ async function openTM(id){
       '<div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">⚙ Reassign / Reporting manager</div>'+
       '<div class="fg"><div class="ff"><label>Assignee</label><select id="ra-assignee">'+aOpts+'</select></div>'+
       '<div class="ff"><label>Reporting manager</label><select id="ra-mgr">'+mOpts+'</select></div></div>'+
-      '<button class="btn bp bs" style="margin-top:10px" onclick="saveReassign(\''+id+'\')">💾 Update assignee / manager</button></div>';
+      '<div class="ff" style="margin-top:8px"><label>Deadline date</label><input type="date" id="ra-deadline" value="'+(task.deadline||'')+'"></div>'+
+      '<button class="btn bp bs" style="margin-top:10px" onclick="saveReassign(\''+id+'\')">💾 Update assignee / manager / deadline</button></div>';
   }
   const ob=document.getElementById('ovr-btn'); if(ob)ob.style.display=((CU.role==='superadmin'||CU.role==='admin')&&!_closed)?'inline-flex':'none';
   const db_=document.getElementById('delBtn'); if(db_)db_.style.display=((CU.role==='superadmin'||CU.role==='admin')&&!_closed)?'inline-flex':'none';
@@ -2653,12 +2705,13 @@ async function saveReassign(id){
   const aOpt=aSel.options[aSel.selectedIndex], mOpt=mSel?mSel.options[mSel.selectedIndex]:null;
   const data={taskId:id,by:CU.name,
     assigneeName:aSel.value, assigneeWA:aOpt?.dataset?.wa||'',
-    managerName:mSel?mSel.value:'', managerWA:mOpt?.dataset?.wa||''};
+    managerName:mSel?mSel.value:'', managerWA:mOpt?.dataset?.wa||'',
+    deadline:(document.getElementById('ra-deadline')?.value||'')};
   const r=await api('reassignTask',data);
   CACHE=null;
   if(r.ok!==false){toast('Updated','ok');cmod();
     const cur=document.querySelector('.pg.ac')?.id;
-    if(cur==='pg-dash')ldDash();else if(cur==='pg-asgn')ldMgr();else if(cur==='pg-approvals')ldApprovals();else ldDash();
+    if(cur==='pg-dash')ldDash();else if(cur==='pg-asgn')ldMgr();else if(cur==='pg-approvals')ldApprovals();else if(cur==='pg-wtask')ldWT();else ldDash();
   } else toast('Failed: '+(r.error||'error'),'er2');
 }
 async function deleteTicket(){
@@ -2927,33 +2980,56 @@ function toast(m,t='in'){const el=document.createElement('div');el.className='to
 
 
 // ── ADMIN: MANAGE PEOPLE ──────────────────────────────────────────
-async function repairLogins(){
-  const btn=document.querySelector('#pg-people [onclick="repairLogins()"]');
+async function fixLogins(){
+  const btn=document.querySelector('#pg-people [onclick="fixLogins()"]');
   if(btn){btn.disabled=true;btn.textContent='Fixing...';}
   try{
-    const r=await api('repairUserIds',{});
-    if(r.ok===false){ toast('Repair failed: '+(r.error||'error'),'er2'); }
-    else if((r.fixed||0)===0){ toast('✓ All '+(r.already||0)+' accounts are already set up correctly','ok'); }
-    else { toast('✓ Fixed '+r.fixed+' account(s) — they can log in now'+((r.failed&&r.failed.length)?(' · '+r.failed.length+' need attention'):''),'ok'); }
+    const r=await api('fixLogins',{});
+    if(r.ok===false){ toast('Fix logins failed: '+(r.error||'error'),'er2'); }
+    else if((r.fixed||0)===0){ toast('✓ Everyone already has a working login record','ok'); }
+    else { toast('✓ Fixed '+r.fixed+' login(s) — they can sign in now'+((r.failed&&r.failed.length)?(' · '+r.failed.length+' blocked (check rules)'):''),(r.failed&&r.failed.length)?'in':'ok'); }
     CACHE=null; await ldPeople();
-  }catch(e){ toast('Repair error: '+(e.message||e),'er2'); }
-  finally{ if(btn){btn.disabled=false;btn.textContent='🛠 Fix logins';} }
+  }catch(e){ toast('Fix logins error: '+(e.message||e),'er2'); }
+  finally{ if(btn){btn.disabled=false;btn.textContent='🔑 Fix logins';} }
 }
+async function repairLogins(){
+  const btn=document.querySelector('#pg-people [onclick="repairLogins()"]');
+  if(!confirm('This will keep ONE account per email and remove duplicate copies. Data is merged into the kept account first, so nothing is lost. Continue?'))return;
+  if(btn){btn.disabled=true;btn.textContent='Cleaning...';}
+  try{
+    const r=await api('repairUserIds',{});
+    if(r.ok===false){ toast('Cleanup failed: '+(r.error||'error'),'er2'); }
+    else {
+      let msg='✓ '+r.kept+' account(s) kept, '+r.removed+' duplicate(s) cleared';
+      if(r.failed&&r.failed.length)msg+=' · '+r.failed.length+' could not be cleared';
+      toast(msg,(r.failed&&r.failed.length)?'in':'ok');
+      if(r.roleConflicts&&r.roleConflicts.length){ alert('Please review these people — they had more than one role and I kept one; open Edit to confirm it is correct:\n\n'+r.roleConflicts.join('\n')); }
+    }
+    CACHE=null; await ldPeople();
+  }catch(e){ toast('Cleanup error: '+(e.message||e),'er2'); }
+  finally{ if(btn){btn.disabled=false;btn.textContent='🧹 Clean up accounts';} }
+}
+var _showArchived=false;
+function toggleArchived(){_showArchived=!_showArchived;ldPeople();}
 async function ldPeople(){
   const r=await getBoot(true);
   AU=r.users||AU;
+  // Hide archived users and duplicate records unless "Show archived" is on.
+  const PEOPLE=AU.filter(u=>(!u.duplicateOf)&&(_showArchived||!u.archived));
+  const archN=AU.filter(u=>u.archived&&!u.duplicateOf).length;
+  const tgl=document.getElementById('arch-toggle'); if(tgl)tgl.textContent=(_showArchived?'🙈 Hide archived':'👁 Show archived'+(archN?(' ('+archN+')'):''));
   // Non-superadmins cannot create/assign the Super Admin role
   if(CU.role!=='superadmin'){
     ['u-role','e-role'].forEach(id=>{const sel=document.getElementById(id);if(sel){const o=[...sel.options].find(x=>x.value==='superadmin');if(o)o.remove();}});
   }
   // populate manager dropdowns
-  const mgrs=AU.filter(u=>u.role==='supervisor'||u.role==='admin'||u.role==='superadmin');
+  const mgrs=PEOPLE.filter(u=>!u.archived&&(u.role==='supervisor'||u.role==='admin'||u.role==='superadmin'));
   const mgrOpts='<option value="">none</option>'+mgrs.map(m=>'<option value="'+m.name+'" data-wa="'+m.whatsapp+'">'+m.name+' ('+m.role+')</option>').join('');
   const um=document.getElementById('u-mgr'); if(um)um.innerHTML=mgrOpts;
   const em=document.getElementById('e-mgr'); if(em)em.innerHTML=mgrOpts;
   // render table
   const tb=document.getElementById('people-tbl');
-  tb.innerHTML=AU.length?AU.map(u=>{
+  tb.innerHTML=PEOPLE.length?PEOPLE.map(u=>{
     const rc=(u.role==='superadmin'||u.role==='admin')?'rb':u.role==='supervisor'?'rm':'rw';
     return '<tr'+(u.archived?' style="opacity:.55"':'')+'><td><strong>'+u.name+'</strong>'+(u.archived?' <span style="font-size:9px;padding:2px 6px;border-radius:10px;background:rgba(234,154,12,.15);color:var(--am)">ARCHIVED</span>':'')+'</td><td style="font-size:12px;color:var(--t2)">'+u.email+'</td>'+
       '<td style="font-size:12px;color:var(--wa)">'+(u.whatsapp||'—')+'</td>'+
@@ -2963,7 +3039,7 @@ async function ldPeople(){
       '<td>'+(u.hasPassword?'<span style="color:var(--gr);font-size:12px">🔒 Set</span>':'<span style="color:var(--t3);font-size:12px">email only</span>')+'</td>'+
       '<td>'+((normRole(u.role)==='superadmin'&&CU.role!=='superadmin')?'<span style="font-size:11px;color:var(--t3)">🔒 Protected</span>':('<div style="display:flex;gap:5px;flex-wrap:wrap"><button class="btn bg bs" onclick="openEdit(\''+u.email+'\')">Edit</button>'+
       (u.archived?('<button class="btn bg bs" onclick="archivePerson(\''+u.email+'\',\''+u.name+'\',false)">Unarchive</button>'):('<button class="btn bs" style="background:rgba(234,154,12,.1);border:1px solid rgba(234,154,12,.25);color:var(--am)" onclick="archivePerson(\''+u.email+'\',\''+u.name+'\',true)">Archive</button>'))+
-      (CU.role==='superadmin'?('<button class="btn bs" style="background:rgba(255,68,85,.1);border:1px solid rgba(255,68,85,.2);color:var(--rd)" onclick="delPerson(\''+u.email+'\',\''+u.name+'\')">Del</button>'):'')+
+      ((CU.role==='superadmin'||CU.role==='admin')?('<button class="btn bs" style="background:rgba(255,68,85,.1);border:1px solid rgba(255,68,85,.2);color:var(--rd)" onclick="delPerson(\''+u.email+'\',\''+u.name+'\')">Del</button>'):'')+
       '</div>'))+'</td></tr>';
   }).join(''):'<tr class="er"><td colspan="8">No people yet</td></tr>';
 }
@@ -3013,10 +3089,10 @@ async function saveEdit(){
   else toast('Failed: '+(r.error||'error'),'er2');
 }
 async function delPerson(email,name){
-  if(CU.role!=='superadmin'){toast('Only Super Admin can delete users. Use Archive instead.','er2');return;}
-  if(!confirm('Permanently DELETE '+name+'? This cannot be undone. (Consider Archive instead.)'))return;
+  if(CU.role!=='superadmin'&&CU.role!=='admin'){toast('Only Admin/Super Admin can remove users. Use Archive instead.','er2');return;}
+  if(!confirm('Remove '+name+'? (If deletion is not permitted, they will be archived and hidden instead.)'))return;
   const r=await api('deleteUser',{email,by:CU.name,byRole:CU.role});
-  if(r.ok!==false){toast('Deleted '+name,'ok');ldPeople();loadUsers();}
+  if(r.ok!==false){toast((r.mode==='archived'?'Removed (archived) ':'Deleted ')+name,'ok');CACHE=null;ldPeople();loadUsers();}
   else toast('Failed: '+(r.error||'error'),'er2');
 }
 async function archivePerson(email,name,doArchive){
