@@ -732,7 +732,7 @@ input,select,textarea{max-width:100%;box-sizing:border-box;}
         </div>
       </div>
       <div class="sec">
-        <div class="sh2"><div class="st">All people</div><button class="btn bg bs" onclick="ldPeople()">Refresh</button></div>
+        <div class="sh2"><div class="st">All people</div><div style="display:flex;gap:8px"><button class="btn bg bs" onclick="repairLogins()" title="Re-saves every account under the correct email ID so everyone can log in">🛠 Fix logins</button><button class="btn bg bs" onclick="ldPeople()">Refresh</button></div></div>
         <div class="tw"><table><thead><tr><th>Name</th><th>Email</th><th>WhatsApp</th><th>Role</th><th>Dept</th><th>Manager</th><th>Login</th><th>Actions</th></tr></thead><tbody id="people-tbl"></tbody></table></div>
       </div>
     </div>
@@ -1308,6 +1308,7 @@ async function api(action,data){
       case 'addComment': return await fbComment(data);
       case 'sendReminder': return await fbReminder(data);
       case 'addUser': return await fbAddUser(data);
+      case 'repairUserIds': return await fbRepairUserIds();
       case 'updateUser': return await fbUpdateUser(data);
       case 'deleteUser': return await fbDeleteUser(data);
       case 'deleteTask': return await fbDeleteTask(data);
@@ -1514,6 +1515,32 @@ async function fbAddUser(d){
   }
   await fbLog(d.by||'Admin','User added','',d.name,false,d.email);
   return {ok:true,note:'User added to this company. They can log in with their email and the temporary password.'};
+}
+// Repair logins: ensure every account has a document whose ID is its email (lowercase),
+// because login and the security rules look users up by users/{email}. Accounts that were
+// saved under a different ID can't log in until this runs. Never deletes anything.
+async function fbRepairUserIds(){
+  const F=window.FB;
+  let snap;
+  try{ snap=await F.getDocs(cCol('users')); }
+  catch(e){ return {ok:false,error:'Could not read the people list. Make sure you are signed in as a Super Admin. ('+(e.message||e.code||'')+')'}; }
+  let fixed=0, already=0; const fixedList=[], failed=[];
+  for(const docSnap of snap.docs){
+    const u=docSnap.data()||{};
+    const em=emailKey(u.email||'');
+    if(!em){ continue; } // no email on this record — skip
+    if(docSnap.id===em){ already++; continue; } // already correctly keyed
+    try{
+      await F.setDoc(cDoc('users',em),{
+        name:u.name||'',email:em,whatsapp:u.whatsapp||'',role:u.role||'employee',
+        department:u.department||'',managerName:u.managerName||'',managerWA:u.managerWA||'',
+        archived:!!u.archived,repairedAt:Date.now()
+      },{merge:true});
+      fixed++; fixedList.push(em);
+    }catch(e){ failed.push(em+' ('+(e.code||e.message||'error')+')'); }
+  }
+  try{ await fbLog(CU&&CU.name||'Admin','Repaired logins','','',false,'fixed:'+fixed+' already:'+already); }catch(e){}
+  return {ok:true,fixed,already,fixedList,failed};
 }
 async function fbUpdateUser(d){
   const F=window.FB, snap=await F.getDocs(cCol('users'));
@@ -2393,10 +2420,21 @@ async function ldTeam(){
   }).join(''):'<tr class="er"><td colspan="7">No team members</td></tr>';
 }
 
+// Names that belong to the logged-in user. Includes the session name AND the freshest
+// profile name(s) matched by email, so a just-renamed profile works without re-login.
+function myAssigneeNames(users){
+  const set=new Set();
+  if(CU&&CU.name)set.add(String(CU.name).trim().toLowerCase());
+  const myEmail=(CU&&CU.email||'').trim().toLowerCase();
+  try{(users||AU||[]).forEach(u=>{ if(myEmail&&(u.email||'').trim().toLowerCase()===myEmail&&u.name)set.add(String(u.name).trim().toLowerCase()); });}catch(e){}
+  return set;
+}
+function isMyTask(t,users){ return myAssigneeNames(users).has(String(t.assigneeName||'').trim().toLowerCase()); }
+
 async function ldWT(){
   const r=await getBoot();
   if(r.ok===false){toast('Failed to load tasks','er2');return;}
-  let tasks=(r.allTasks||r.tasks||[]).filter(t=>(t.assigneeName||'').trim().toLowerCase()===(CU.name||'').trim().toLowerCase());
+  let tasks=(r.allTasks||r.tasks||[]).filter(t=>isMyTask(t,r.users));
   if(WF==='pending')tasks=tasks.filter(t=>t.status==='Pending');
   if(WF==='prog')tasks=tasks.filter(t=>t.status==='In Progress');
   if(WF==='done')tasks=tasks.filter(t=>t.status==='Completed'||t.status==='Closed'||t.status==='Pending Approval');
@@ -2430,7 +2468,7 @@ function fmtDur(hrs){ const h=parseFloat(hrs); if(isNaN(h)||!isFinite(h)||h<0)re
 async function ldWP(){
   const r=await getBoot();
   if(r.ok===false)return;
-  const tasks=(r.allTasks||r.tasks||[]).filter(t=>(t.assigneeName||'').trim().toLowerCase()===(CU.name||'').trim().toLowerCase());const done=tasks.filter(t=>t.status==='Completed');const ov=tasks.filter(t=>t.status==='Overdue');
+  const tasks=(r.allTasks||r.tasks||[]).filter(t=>isMyTask(t,r.users));const done=tasks.filter(t=>t.status==='Completed');const ov=tasks.filter(t=>t.status==='Overdue');
   const times=done.filter(t=>t.timeTaken&&!isNaN(parseFloat(t.timeTaken))).map(t=>parseFloat(t.timeTaken));
   const avg=times.length?(times.reduce((a,b)=>a+b,0)/times.length).toFixed(1):'-';
   const score=tasks.length?Math.round(done.length/tasks.length*100):0;
@@ -2889,6 +2927,18 @@ function toast(m,t='in'){const el=document.createElement('div');el.className='to
 
 
 // ── ADMIN: MANAGE PEOPLE ──────────────────────────────────────────
+async function repairLogins(){
+  const btn=document.querySelector('#pg-people [onclick="repairLogins()"]');
+  if(btn){btn.disabled=true;btn.textContent='Fixing...';}
+  try{
+    const r=await api('repairUserIds',{});
+    if(r.ok===false){ toast('Repair failed: '+(r.error||'error'),'er2'); }
+    else if((r.fixed||0)===0){ toast('✓ All '+(r.already||0)+' accounts are already set up correctly','ok'); }
+    else { toast('✓ Fixed '+r.fixed+' account(s) — they can log in now'+((r.failed&&r.failed.length)?(' · '+r.failed.length+' need attention'):''),'ok'); }
+    CACHE=null; await ldPeople();
+  }catch(e){ toast('Repair error: '+(e.message||e),'er2'); }
+  finally{ if(btn){btn.disabled=false;btn.textContent='🛠 Fix logins';} }
+}
 async function ldPeople(){
   const r=await getBoot(true);
   AU=r.users||AU;
