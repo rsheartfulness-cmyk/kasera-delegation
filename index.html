@@ -496,7 +496,7 @@ input,select,textarea{max-width:100%;box-sizing:border-box;}
 
 <!-- Firebase SDK -->
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getFirestore, collection, getDocs, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
   import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
@@ -522,6 +522,21 @@ input,select,textarea{max-width:100%;box-sizing:border-box;}
     signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup,
     storageRef, uploadBytes, getDownloadURL, deleteObject
   };
+
+  // Create a new login WITHOUT signing the current admin out.
+  // createUserWithEmailAndPassword always signs in as the NEW user on the app it
+  // runs on, so we run it on a throwaway secondary app and then discard it.
+  window.FB.createSecondaryUser = async function(email, password){
+    const secApp = initializeApp(firebaseConfig, 'secondary-' + Date.now());
+    try{
+      const secAuth = getAuth(secApp);
+      await createUserWithEmailAndPassword(secAuth, email, password);
+      try{ await signOut(secAuth); }catch(e){}
+    } finally {
+      try{ await deleteApp(secApp); }catch(e){}
+    }
+  };
+
   window.dispatchEvent(new Event('fb-ready'));
 </script>
 
@@ -537,10 +552,11 @@ input,select,textarea{max-width:100%;box-sizing:border-box;}
     </div>
     <div class="lt">Kasera Task Manager</div>
     <div class="ls3">Daily work tracking system for Kasera Industries. Manage tasks, deadlines, approvals, WhatsApp updates, and team performance from one secure portal.</div>
-    <div style="font-size:12.5px;color:var(--t3);margin-bottom:18px">Sign in with your registered company account</div>
+    <div style="font-size:12.5px;color:var(--t3);margin-bottom:18px">Select company first. Login opens only that company database.</div>
     <div id="gok" class="am" style="display:none;"></div>
     <div id="aer" class="am ae"></div>
-    <div class="fi"><label>Email</label><input type="email" id="em" placeholder="you@kaseraindustries.in" autocomplete="email" onkeydown="if(event.key==='Enter')doL()"></div>
+    <div class="fi"><label>Company *</label><select id="co" onchange="onCompanyPick()" style="width:100%;background:var(--s2);border:1px solid var(--bd2);border-radius:11px;padding:14px 15px;color:var(--t);font-family:var(--fn);font-size:16px;outline:none;min-height:52px"><option value="">Select company database</option><option value="kasera-industries">Kasera Industries</option></select><script>(function(){function seed(){try{var s=document.getElementById('co');if(!s)return;if(!s.innerHTML||s.innerHTML.indexOf('Loading companies')>-1){s.innerHTML='<option value="">Select company database</option><option value="kasera-industries">Kasera Industries</option>';}}catch(e){}}seed();setTimeout(seed,200);setTimeout(seed,1200);})();</script></div>
+    <div class="fi"><label>Email</label><input type="email" id="em" placeholder="you@company.com" autocomplete="email" onkeydown="if(event.key==='Enter')doL()"></div>
     <div class="fi"><label>Password</label>
       <div style="position:relative">
         <input type="password" id="pw" placeholder="Enter your password" autocomplete="current-password" style="padding-right:46px" onkeydown="if(event.key==='Enter')doL()">
@@ -577,7 +593,7 @@ input,select,textarea{max-width:100%;box-sizing:border-box;}
     <div class="tb"><button class="hbg" onclick="toggleSidebar()" aria-label="Menu">☰</button><div class="tt" id="ptl">Dashboard</div><div class="ta" id="tact"></div></div>
 
     <div class="pg" id="pg-dash">
-      <div class="sy"><div style="display:flex;align-items:center;gap:6px"><div class="sd2"></div>Live data — Firebase</div><button class="btn bg bs" onclick="CACHE=null;ldDash()">↻ Refresh</button></div>
+      <div class="sy"><div style="display:flex;align-items:center;gap:6px"><div class="sd2"></div>Live data — Firebase / selected company</div><button class="btn bg bs" onclick="CACHE=null;ldDash()">↻ Refresh</button></div>
       <div class="sg" id="dstats"></div>
       <div class="sec"><div class="sh2"><div class="st">Team performance</div><button class="btn bg bs" onclick="sp2f('rep')">Full report →</button></div><div class="tw"><table><thead><tr><th>Name</th><th>Dept</th><th>Tasks</th><th>Done</th><th>Avg time</th><th>Score</th></tr></thead><tbody id="ptbl"></tbody></table></div></div>
       <div class="sec">
@@ -699,7 +715,7 @@ input,select,textarea{max-width:100%;box-sizing:border-box;}
     <!-- MANAGE PEOPLE (Admin) -->
     <div class="pg" id="pg-people">
       <div class="cd">
-        <div class="ct">👥 Add a person</div>
+        <div class="ct">👥 Add a person</div><div style="font-size:12px;color:var(--t2);margin-bottom:12px">To give one person access to multiple companies, add the same email in each selected company. The login email/password remains the same; their role can be different per company.</div>
         <div class="fg">
           <div class="ff"><label>Full name *</label><input type="text" id="u-name" placeholder="e.g. Ramesh Kumar"></div>
           <div class="ff"><label>Email *</label><input type="email" id="u-email" placeholder="ramesh@kaseraindustries.in"></div>
@@ -735,6 +751,32 @@ input,select,textarea{max-width:100%;box-sizing:border-box;}
 
     <div class="pg" id="pg-cfg">
       <div class="cd">
+        <div class="ct">🏢 Company details</div>
+        <div style="font-size:12px;color:var(--t2);margin-bottom:12px">This profile controls the company name, logo and details shown in the portal after the company is selected.</div>
+        <div id="company-editor"></div>
+      </div>
+      <div class="cd" id="company-create-card" style="display:none">
+        <div class="ct">➕ Create new company database</div>
+        <div style="font-size:12px;color:var(--t2);margin-bottom:12px">Super Admin can create a new company. It will get its own isolated database path: companies/{companyId}/users, tasks, logs, updates and settings. No data is shared between companies.</div>
+        <div id="company-create-editor"></div>
+      </div>
+
+      <div class="cd" id="whatsapp-settings-card">
+        <div class="ct">💬 Company-wise WhatsApp / 11za settings</div>
+        <div style="font-size:12px;color:var(--t2);margin-bottom:12px">Set 11za API details, sender number, templates, reminders, overdue escalation and retry rules for this selected company only.</div>
+        <div id="whatsapp-editor"></div>
+      </div>
+      <div class="cd" id="role-security-card">
+        <div class="ct">🔐 Security, roles & reliability</div>
+        <div style="font-size:12px;color:var(--t2);margin-bottom:12px">Control role safety, archive rules, audit logging and copy Firebase Rules for cross-company protection.</div>
+        <div id="security-editor"></div>
+      </div>
+      <div class="cd" id="backup-card">
+        <div class="ct">🗄️ Backup / export / automated checks</div>
+        <div style="font-size:12px;color:var(--t2);margin-bottom:12px">Run backup, export company data, and trigger reminder/escalation checks. Daily automated jobs run when an admin opens the portal; for true 24/7 automation use Cloud Scheduler/Cloud Functions.</div>
+        <div id="backup-editor"></div>
+      </div>
+      <div class="cd">
         <div class="ct">🪜 Pipeline stages</div>
         <div style="font-size:12px;color:var(--t2);margin-bottom:12px">Rename the workflow stages. These appear as kanban columns and the ticket stepper.</div>
         <div style="font-size:12px;color:var(--t2);margin-bottom:12px">Rename, add, remove, or <strong>drag to reorder</strong> stages. Shown as kanban columns + ticket stepper.</div>
@@ -767,7 +809,7 @@ input,select,textarea{max-width:100%;box-sizing:border-box;}
   <div class="md">
     <div class="mh"><div class="mtt" id="mttl">Task detail</div><button class="mx" onclick="cmod()">✕</button></div>
     <div class="mb" id="mbdy"></div>
-    <div class="mf"><button class="btn bs" id="delBtn" onclick="deleteTicket()" style="display:none;background:rgba(225,29,72,.1);border:1px solid rgba(225,29,72,.3);color:var(--rd)">🗑 Delete</button><button class="btn bw bs" id="remindBtn" onclick="rWA()">📲 Resend WA</button><button class="btn bp bs" onclick="cmod()">Close</button></div>
+    <div class="mf"><button class="btn bs" id="delBtn" onclick="deleteTicket()" style="display:none;background:rgba(225,29,72,.1);border:1px solid rgba(225,29,72,.3);color:var(--rd)">🗄 Archive</button><button class="btn bw bs" id="remindBtn" onclick="rWA()">📲 Resend WA</button><button class="btn bp bs" onclick="cmod()">Close</button></div>
   </div>
 </div>
 
@@ -809,7 +851,11 @@ const SCRIPT='https://script.google.com/macros/s/AKfycbwK4wukGnGPnYsJikJnkRkgWfr
 const GID='YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
 const DOM='kaseraindustries.in';
 
-let CU=null,GP=null,AU=[],AT=[],AL=[],WF='all',STid=null,CACHE=null,CACHE_TIME=0;
+let CU=null,GP=null,AU=[],AT=[],AL=[],AWL=[],WF='all',STid=null,CACHE=null,CACHE_TIME=0;
+let ACTIVE_COMPANY_ID='',ACTIVE_COMPANY=null,COMPANIES=[];
+const DEFAULT_COMPANY={id:'kasera-industries',name:'Kasera Industries',shortName:'Kasera',logoUrl:'logo.png',email:'',phone:'',address:'',website:'',gst:'',active:true};
+let _kaseraMigrationPromise=null;
+let _companyLogoFile=null,_newCompanyLogoFile=null;
 let DASH_VIEW='board';
 let DEPTS=['Production','Maintenance','QC','Dispatch','Warehouse','Management'];
 // Pipeline stages — editable in Settings (saved to backend later)
@@ -826,7 +872,200 @@ function stageIdx(status){var i=STAGES.findIndex(s=>s.key===status);if(status===
 // FIREBASE DATA LAYER — replaces Apps Script. Same api(action,data) shape.
 // WhatsApp still goes through Apps Script (SCRIPT url) in the background.
 // ═══════════════════════════════════════════════════════════════
-function fbReady(){ return new Promise(res=>{ if(window.FB)return res(); window.addEventListener('fb-ready',()=>res(),{once:true}); }); }
+
+function esc(v){
+  return String(v ?? '').replace(/[&<>"']/g,function(ch){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];
+  });
+}
+
+function fbReady(){
+  // Do not let the login company dropdown wait forever for Firebase SDK/network.
+  return new Promise(res=>{
+    if(window.FB)return res(true);
+    let done=false;
+    const finish=v=>{ if(done)return; done=true; res(!!v); };
+    window.addEventListener('fb-ready',()=>finish(true),{once:true});
+    setTimeout(()=>finish(!!window.FB),1500);
+  });
+}
+function withTimeout(promise,ms,label){
+  return Promise.race([promise,new Promise((_,rej)=>setTimeout(()=>rej(new Error(label||'timeout')),ms))]);
+}
+function renderCompanySelect(list){
+  const sel=document.getElementById('co'); if(!sel)return;
+  COMPANIES=(list&&list.length?list:[{...DEFAULT_COMPANY}]);
+  const old=sel.value||localStorage.getItem('kasera_company')||'kasera-industries';
+  sel.innerHTML='<option value="">Select company database</option>'+COMPANIES.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name||c.id)+'</option>').join('');
+  if(old&&COMPANIES.find(c=>c.id===old)){sel.value=old;}
+}
+function seedDefaultCompanySelect(){
+  if(!COMPANIES.length)COMPANIES=[{...DEFAULT_COMPANY}];
+  renderCompanySelect(COMPANIES);
+}
+function slugifyCompany(v){return String(v||'').trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60)||('company-'+Date.now());}
+function emailKey(v){return String(v||'').trim().toLowerCase().replace(/\//g,'_');}
+const BOOTSTRAP_SUPERADMINS=['ravi@kaseraindustries.in'];
+function isBootstrapSuperEmail(email){return BOOTSTRAP_SUPERADMINS.includes(emailKey(email));}
+// Every company's operational data is isolated under:
+// companies/{companyId}/users, tasks, logs, updates, settings, etc.
+// This includes Kasera Industries also. No task/user/log data is read from shared root collections.
+function cCol(name){
+  const F=window.FB;
+  if(!F)throw new Error('Firebase is not loaded yet. Please check internet connection or refresh.');
+  if(!ACTIVE_COMPANY_ID)throw new Error('Please select company first.');
+  return F.collection(F.db,'companies',ACTIVE_COMPANY_ID,name);
+}
+function cDoc(name,id){
+  const F=window.FB;
+  if(!F)throw new Error('Firebase is not loaded yet. Please check internet connection or refresh.');
+  if(!ACTIVE_COMPANY_ID)throw new Error('Please select company first.');
+  return F.doc(F.db,'companies',ACTIVE_COMPANY_ID,name,id);
+}
+function companyCol(companyId,name){
+  const F=window.FB;
+  if(!F)throw new Error('Firebase is not loaded yet. Please check internet connection or refresh.');
+  if(!companyId)throw new Error('Missing company id.');
+  return F.collection(F.db,'companies',companyId,name);
+}
+function companyDoc(companyId,name,id){
+  const F=window.FB;
+  if(!F)throw new Error('Firebase is not loaded yet. Please check internet connection or refresh.');
+  if(!companyId)throw new Error('Missing company id.');
+  return F.doc(F.db,'companies',companyId,name,id);
+}
+
+async function copyRootCollectionToCompany(colName,companyId){
+  const F=window.FB;
+  let copied=0;
+  try{
+    const src=await F.getDocs(F.collection(F.db,colName));
+    if(!src || src.empty)return 0;
+    for(const d of src.docs){
+      const val=d.data()||{};
+      const targetId=(colName==='users'&&val.email)?emailKey(val.email):d.id;
+      await F.setDoc(companyDoc(companyId,colName,targetId),val,{merge:true});
+      copied++;
+    }
+  }catch(e){
+    console.warn('Legacy copy skipped for '+colName+':',e.message||e);
+  }
+  return copied;
+}
+async function ensureKaseraLegacyData(){
+  if(ACTIVE_COMPANY_ID!=='kasera-industries')return {ok:true,migrated:false};
+  if(_kaseraMigrationPromise)return _kaseraMigrationPromise;
+  _kaseraMigrationPromise=(async()=>{
+    const F=window.FB;
+    try{
+      await F.setDoc(F.doc(F.db,'companies','kasera-industries'),{
+        name:'Kasera Industries',shortName:'Kasera',active:true,databasePath:'companies/kasera-industries',legacyCompany:true,updatedAt:Date.now()
+      },{merge:true});
+      const ts=await F.getDocs(companyCol('kasera-industries','tasks'));
+      if(ts && !ts.empty){
+        await F.setDoc(companyDoc('kasera-industries','settings','legacyMigration'),{done:true,skipped:true,reason:'company tasks already migrated',updatedAt:Date.now()},{merge:true});
+        return {ok:true,migrated:false,reason:'already has company task data'};
+      }
+      let total=0;
+      // Users are copied to deterministic document IDs using the email address. This is required by Firestore rules.
+      for(const col of ['users','tasks','logs','updates','settings']){
+        total+=await copyRootCollectionToCompany(col,'kasera-industries');
+      }
+      await F.setDoc(companyDoc('kasera-industries','settings','legacyMigration'),{done:true,copied:total,completedAt:Date.now()},{merge:true});
+      if(total>0)console.info('Kasera legacy data migrated into companies/kasera-industries:',total);
+      return {ok:true,migrated:total>0,copied:total};
+    }catch(e){
+      console.warn('Kasera legacy migration failed:',e.message||e);
+      return {ok:false,error:e.message||String(e)};
+    }
+  })();
+  return _kaseraMigrationPromise;
+}
+async function readRootCollection(colName){
+  const F=window.FB, out=[];
+  try{
+    const snap=await F.getDocs(F.collection(F.db,colName));
+    snap.forEach(d=>out.push({id:d.id,...(d.data()||{})}));
+  }catch(e){console.warn('Root fallback failed for '+colName+':',e.message||e);}
+  return out;
+}
+async function fbCompanies(){
+  let arr=[{...DEFAULT_COMPANY}];
+  const ready=await fbReady();
+  if(!ready||!window.FB){arr.sort((a,b)=>(a.name||'').localeCompare(b.name||''));return arr;}
+  const F=window.FB;
+  try{
+    const snap=await withTimeout(F.getDocs(F.collection(F.db,'companies')),2500,'Company database loading timeout');
+    snap.forEach(d=>{const v=d.data()||{};if(v.active===false)return;arr=arr.filter(x=>x.id!==d.id);arr.push({id:d.id,...v});});
+  }catch(e){console.warn('Company list fallback:',e);}
+  arr.sort((a,b)=>(a.name||'').localeCompare(b.name||''));return arr;
+}
+async function loadCompanyOptions(){
+  const sel=document.getElementById('co'); if(!sel)return;
+  // Show Kasera immediately. Firebase will update this list when available.
+  seedDefaultCompanySelect();
+  try{COMPANIES=await fbCompanies();}catch(e){console.warn('Could not load companies:',e);COMPANIES=[{...DEFAULT_COMPANY}];}
+  renderCompanySelect(COMPANIES);
+  const last=localStorage.getItem('kasera_company')||'kasera-industries';
+  if(COMPANIES.find(c=>c.id===last)){sel.value=last;onCompanyPick();}
+}
+function onCompanyPick(){const id=document.getElementById('co')?.value||'';ACTIVE_COMPANY_ID=id;ACTIVE_COMPANY=COMPANIES.find(c=>c.id===id)||null;if(id)localStorage.setItem('kasera_company',id);applyCompanyBranding();}
+function applyCompanyBranding(){
+  const c=ACTIVE_COMPANY||DEFAULT_COMPANY;
+  const name=c.name||'Kasera Task Manager';
+  const short=c.shortName||name;
+  const logo=c.logoUrl||'logo.png';
+  const loginTitle=document.querySelector('#ls .lt');
+  if(loginTitle)loginTitle.textContent=(name==='Kasera Industries'?'Kasera Task Manager':name+' Task Manager');
+  const sub=document.querySelector('#ls .ls3');
+  if(sub)sub.textContent='Daily work tracking system for '+name+'. Manage tasks, deadlines, approvals, WhatsApp updates, and team performance from one secure portal.';
+  const img=document.getElementById('kicLogo');
+  if(img){img.src=logo;img.alt=name;img.style.display='block';}
+  const slt=document.querySelector('.slt'); if(slt)slt.textContent=short;
+  const sns=document.querySelector('.sns'); if(sns)sns.textContent=name;
+  const sm=document.querySelector('.sm');
+  if(sm&&logo){
+    sm.innerHTML='<img src="'+esc(logo)+'" onerror="this.style.display=\'none\';this.parentNode.textContent=\'📋\';" style="width:100%;height:100%;object-fit:cover;border-radius:7px">';
+  }
+}
+async function fbAddCompany(d){
+  if(normRoleJS(d.byRole)!=='superadmin')return {ok:false,error:'Only Super Admin can create a new company database.'};
+  if(!d.name)return {ok:false,error:'Company name required'};
+  const F=window.FB;
+  const id=slugifyCompany(d.slug||d.name);
+  const now=Date.now();
+  const companyPatch={
+    name:d.name,shortName:d.shortName||d.name,logoUrl:d.logoUrl||'',email:d.email||'',phone:d.phone||'',address:d.address||'',website:d.website||'',gst:d.gst||'',
+    active:true,createdAt:now,createdBy:d.by||'',databasePath:'companies/'+id
+  };
+  await F.setDoc(F.doc(F.db,'companies',id),companyPatch,{merge:true});
+
+  // Create an empty isolated database area for the company.
+  // The marker/settings document helps you confirm that this company has its own database.
+  await F.setDoc(companyDoc(id,'settings','main'),{
+    departments:[...DEPTS],stages:[...STAGES],tags:[...TAGS],databasePath:'companies/'+id,createdAt:now,createdBy:d.by||''
+  },{merge:true});
+
+  // Multi-company access: the same Firebase Auth email can be added to many companies.
+  // When a Super Admin creates a company, add that same person as Super Admin in the new company.
+  // This creates only the profile in the new company's isolated users path; it does NOT copy tasks/logs/data.
+  if(d.byEmail){
+    const email=emailKey(d.byEmail);
+    await F.setDoc(companyDoc(id,'users',email),{
+      name:d.byName||d.by||'Super Admin',email:email,whatsapp:d.byWA||'',role:'superadmin',department:d.byDept||'Management',
+      managerName:'',managerWA:'',multiCompany:true,createdAt:now,createdBy:d.by||''
+    },{merge:true});
+  }
+  return {ok:true,id,company:{id,...companyPatch},message:'Company database created separately. Current Super Admin was given access to this company.'};
+}
+async function fbSaveCompany(d){
+  if(!ACTIVE_COMPANY_ID)return {ok:false,error:'Select company first'};
+  const F=window.FB;
+  const patch={name:d.name||'',shortName:d.shortName||'',logoUrl:d.logoUrl||'',email:d.email||'',phone:d.phone||'',address:d.address||'',website:d.website||'',gst:d.gst||'',active:d.active!==false,updatedAt:Date.now(),updatedBy:d.by||'',databasePath:'companies/'+ACTIVE_COMPANY_ID};
+  await F.setDoc(F.doc(F.db,'companies',ACTIVE_COMPANY_ID),patch,{merge:true});
+  ACTIVE_COMPANY={...(ACTIVE_COMPANY||{}),id:ACTIVE_COMPANY_ID,...patch};
+  return {ok:true,company:ACTIVE_COMPANY};
+}
 
 function normRoleJS(r){r=String(r||'').toLowerCase().replace(/[^a-z]/g,'');if(r==='superadmin'||r==='super')return 'superadmin';if(r==='admin')return 'admin';if(r==='supervisor'||r==='manager'||r==='boss')return 'supervisor';return 'employee';}
 function todayStr(){return new Date().toISOString().split('T')[0];}
@@ -835,50 +1074,207 @@ function safeHours(startStr,endDate){
   try{ var s=new Date(startStr); if(isNaN(s))return ''; var h=(endDate-s)/3600000; if(!isFinite(h)||h<0||h>8760)return ''; return h.toFixed(2); }catch(e){return '';}
 }
 
-// Fire WhatsApp via Apps Script without blocking the UI (best-effort)
-function fireWA(payload){
+// Fire WhatsApp via Apps Script / 11za without blocking the UI.
+// Company-wise settings are read from companies/{companyId}/settings/config.
+function applyWaTemplate(tpl,params){
+  tpl=String(tpl||''); params=params||[];
+  params.forEach((v,i)=>{tpl=tpl.replace(new RegExp('\\{'+(i+1)+'\\}','g'),String(v||''));});
+  return tpl;
+}
+function defaultWaTemplates(){return {
+  task_delegation:'Hello {1}, new task assigned: {2}. Deadline: {3}. Priority: {4}. Department: {5}.',
+  task_reminder:'Reminder {1}: pending task {2}. Deadline: {3}. Priority: {4}. Department: {5}.',
+  task_completed:'Hello {1}, {2} completed task: {3}. Time: {4}. Department: {5}.',
+  overdue_escalation:'Escalation {1}: task {2} assigned to {3} is overdue since {4}. Priority: {5}.',
+  custom:'{1}'
+};}
+function defaultSecuritySettings(){return {preventAdminSuperadmin:true,archiveInsteadDelete:true,auditAllActions:true,blockCrossCompany:true,disableHardDelete:true};}
+function defaultWhatsappSettings(){return {enabled:true,serviceUrl:SCRIPT,apiKey:'',senderNumber:'',reminderDaysBefore:1,enableAutoReminder:true,enableOverdueEscalation:true,retryLimit:3,deliveryWebhookNote:'Use 11za delivery webhook to update deliveryStatus when available.'};}
+async function fireWA(payload){
+  payload=payload||{};
   try{
-    fetch(SCRIPT,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)}).catch(()=>{});
-  }catch(e){ console.warn('WA send issue:',e.message); }
+    await fbReady();
+    const F=window.FB;
+    if(!F){ try{fetch(SCRIPT,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)}).catch(()=>{});}catch(e){} return; }
+    let settings={whatsapp:defaultWhatsappSettings(),templates:defaultWaTemplates()};
+    try{settings=await fbGetSettings();}catch(e){}
+    const wa={...defaultWhatsappSettings(),...(settings.whatsapp||{})};
+    const templates={...defaultWaTemplates(),...(settings.templates||{})};
+    const templateKey=payload.template||'custom';
+    const message=applyWaTemplate(templates[templateKey]||templates.custom,payload.params||[]);
+    const log={companyId:ACTIVE_COMPANY_ID||'',ts:Date.now(),timestamp:new Date().toLocaleString(),provider:'11za',to:payload.to||'',template:templateKey,taskId:payload.taskId||'',taskTitle:payload.taskTitle||'',message,requestPayload:payload,status:'Queued',deliveryStatus:'Queued',attempts:1,createdBy:payload.by||payload.sentBy||'System'};
+    let ref=null;
+    try{ref=await F.addDoc(cCol('waLogs'),log);}catch(e){console.warn('WA log skipped:',e.message||e);}
+    if(wa.enabled===false){ if(ref)await F.updateDoc(ref,{status:'Skipped',deliveryStatus:'WhatsApp disabled for this company'}); return; }
+    const serviceUrl=wa.serviceUrl||SCRIPT;
+    if(!serviceUrl)throw new Error('11za service URL is missing in company WhatsApp settings.');
+    const outgoing={...payload,companyId:ACTIVE_COMPANY_ID,apiKey:wa.apiKey||'',senderNumber:wa.senderNumber||'',message};
+    await withTimeout(fetch(serviceUrl,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify(outgoing)}),15000,'11za request timeout');
+    if(ref)await F.updateDoc(ref,{status:'Sent',deliveryStatus:'Sent to 11za endpoint. Final delivery needs 11za webhook/status.',lastAttemptAt:Date.now()});
+  }catch(e){
+    console.warn('WA send issue:',e.message||e);
+    try{const F=window.FB;if(F)await F.addDoc(cCol('waLogs'),{companyId:ACTIVE_COMPANY_ID||'',ts:Date.now(),timestamp:new Date().toLocaleString(),provider:'11za',to:payload.to||'',template:payload.template||'',taskId:payload.taskId||'',status:'Failed',deliveryStatus:e.message||'Failed',attempts:1,requestPayload:payload});}catch(_e){}
+  }
 }
 
+
+async function migrateOneRootUserProfile(emailIn){
+  const F=window.FB;
+  const email=emailKey(emailIn);
+  if(!F || ACTIVE_COMPANY_ID!=='kasera-industries' || !email)return {ok:false,error:'Root user migration is available for Kasera only.'};
+  try{
+    const snap=await withTimeout(F.getDocs(F.collection(F.db,'users')),12000,'Root users lookup timeout.');
+    let found=null;
+    snap.forEach(d=>{
+      const u=d.data()||{};
+      if(emailKey(u.email||d.id)===email)found={id:d.id,...u};
+    });
+    if(!found)return {ok:false,error:'No matching old root user profile found.'};
+    const role=normRoleJS(found.role||found.type||found.access||'employee');
+    await F.setDoc(cDoc('users',email),{
+      name:found.name||found.fullName||email.split('@')[0],
+      email:email,
+      whatsapp:found.whatsapp||found.wa||found.phone||'',
+      role:role,
+      department:found.department||found.dept||'Management',
+      managerName:found.managerName||'',
+      managerWA:found.managerWA||'',
+      migratedFromRootUser:true,
+      rootUserId:found.id||'',
+      updatedAt:Date.now()
+    },{merge:true});
+    return {ok:true,migrated:true,role};
+  }catch(e){
+    return {ok:false,error:e.message||String(e)};
+  }
+}
+
+
+async function ensureBootstrapCompanyUser(emailIn){
+  const F=window.FB;
+  const email=emailKey(emailIn);
+  if(!F||!ACTIVE_COMPANY_ID||!email)return {ok:false,error:'Missing Firebase/company/email'};
+  // First account bootstrap: lets the known Kasera superadmin create their own company profile when rules are already enabled.
+  if(ACTIVE_COMPANY_ID==='kasera-industries' && isBootstrapSuperEmail(email)){
+    try{
+      await F.setDoc(cDoc('users',email),{
+        name:email.split('@')[0].replace(/[._-]+/g,' ').replace(/(^|\s)\w/g,function(m){return m.toUpperCase();}),
+        email:email,
+        whatsapp:'',
+        role:'superadmin',
+        department:'Management',
+        managerName:'',
+        managerWA:'',
+        bootstrap:true,
+        updatedAt:Date.now()
+      },{merge:true});
+      return {ok:true,bootstrapped:true};
+    }catch(e){return {ok:false,error:e.message||String(e)};}
+  }
+  return {ok:false,error:'No bootstrap allowed for this email/company'};
+}
+
+async function readCompanyUserProfile(emailIn){
+  const F=window.FB;
+  const email=emailKey(emailIn);
+  const ref=cDoc('users',email);
+  try{
+    const snap=await withTimeout(F.getDoc(ref),12000,'Company user profile timeout.');
+    if(snap.exists())return {ok:true,user:{id:snap.id,...(snap.data()||{})}};
+  }catch(e){
+    return {ok:false,error:e.message||String(e)};
+  }
+  return {ok:false,error:'This email is not added in the selected company database.'};
+}
 async function api(action,data){
   await fbReady();
+  if(!window.FB){return {ok:false,error:'Firebase did not load. Please check internet connection, then refresh this page.'};}
   const F=window.FB, db=F.db;
   try{
     switch(action){
       case 'login': {
+        ACTIVE_COMPANY_ID=data.companyId||ACTIVE_COMPANY_ID||'';
+        ACTIVE_COMPANY=COMPANIES.find(c=>c.id===ACTIVE_COMPANY_ID)||ACTIVE_COMPANY;
+        if(!ACTIVE_COMPANY_ID)return {ok:false,error:'Please select company before login.'};
         const emailIn=(data.email||'').trim().toLowerCase();
-        // First check the email exists in our users list (for a clear message)
-        const snap=await F.getDocs(F.collection(db,'users'));
-        let user=null; const allUsers=[];
-        snap.forEach(d=>{const u=d.data(); const obj={id:d.id,name:u.name,email:u.email,whatsapp:u.whatsapp,role:normRoleJS(u.role),department:u.department,managerName:u.managerName,managerWA:u.managerWA,archived:!!u.archived,hasPassword:!!u.password}; allUsers.push(obj); if((u.email||'').toLowerCase()===emailIn) user={id:d.id,...u};});
-        if(!user) return {ok:false,error:'Email not registered. Please check your email or contact your admin for access.'};
-        // Now authenticate with Firebase Auth
+        if(!emailIn)return {ok:false,error:'Enter email.'};
+        if(!data.password)return {ok:false,error:'Enter password.'};
+
+        // IMPORTANT: authenticate first. Many Firestore rules do not allow reading users
+        // before Firebase Auth login, which caused the button to stay on "Signing in...".
         try{
-          await F.signInWithEmailAndPassword(F.auth, (data.email||'').trim(), data.password||'');
+          await withTimeout(
+            F.signInWithEmailAndPassword(F.auth, (data.email||'').trim(), data.password||''),
+            15000,
+            'Login timeout. Please check internet connection and try again.'
+          );
         }catch(authErr){
           var code=authErr.code||'';
+          if((authErr.message||'').indexOf('timeout')>=0)
+            return {ok:false,error:authErr.message};
           if(code.indexOf('wrong-password')>=0||code.indexOf('invalid-credential')>=0)
-            return {ok:false,error:'Wrong password. Please try again or use "Forgot password".'};
+            return {ok:false,error:'Wrong email or password. Please try again or use Forgot password.'};
           if(code.indexOf('too-many-requests')>=0)
             return {ok:false,error:'Too many attempts. Please wait a few minutes and try again.'};
           if(code.indexOf('invalid-email')>=0)
             return {ok:false,error:'That email address looks invalid.'};
           if(code.indexOf('user-not-found')>=0)
             return {ok:false,error:'No login found for this email. Contact your admin.'};
-          return {ok:false,error:'Login failed: '+(authErr.message||code)};
+          return {ok:false,error:'Login failed: '+(authErr.message||code||'Unknown error')};
+        }
+
+        // After Auth login, read only this user's deterministic company profile first.
+        // Firestore rules require users/{email} documents; listing all users before this will be permission-denied.
+        let prof=await readCompanyUserProfile(emailIn);
+        if(!prof.ok){
+          await ensureBootstrapCompanyUser(emailIn);
+          prof=await readCompanyUserProfile(emailIn);
+        }
+        if(!prof.ok && ACTIVE_COMPANY_ID==='kasera-industries'){
+          // Compatibility for old Kasera data: if user exists in old root /users, copy them into the new company path.
+          await migrateOneRootUserProfile(emailIn);
+          prof=await readCompanyUserProfile(emailIn);
+        }
+        if(!prof.ok){
+          try{await F.signOut(F.auth);}catch(e){}
+          return {ok:false,error:(prof.error||'Company access not found')+' Admin must add this email as users/'+emailKey(emailIn)+' under companies/'+ACTIVE_COMPANY_ID+'.'};
+        }
+        let user=prof.user;
+        if(user.archived){
+          try{await F.signOut(F.auth);}catch(e){}
+          return {ok:false,error:'This account is archived. Contact your admin.'};
+        }
+
+        // Now companyUser() is true in rules, so list company users and migrate Kasera old data if needed.
+        if(ACTIVE_COMPANY_ID==='kasera-industries'){ await ensureKaseraLegacyData(); }
+        let allUsers=[];
+        try{ allUsers=await fbUsers(); }
+        catch(profileErr){
+          console.warn('User list fallback:',profileErr);
+          allUsers=[{id:user.id,name:user.name,email:user.email,whatsapp:user.whatsapp,role:normRoleJS(user.role),department:user.department,managerName:user.managerName,managerWA:user.managerWA,archived:!!user.archived,hasPassword:!!user.password}];
         }
         const clean={name:user.name,email:user.email,whatsapp:user.whatsapp,role:normRoleJS(user.role),department:user.department,managerName:user.managerName,managerWA:user.managerWA};
-        return {ok:true,user:clean,boot:await buildBoot(clean,allUsers)};
+        let boot=null;
+        try{
+          boot=await withTimeout(buildBoot(clean,allUsers),15000,'Dashboard loading timeout.');
+        }catch(bootErr){
+          console.warn('Dashboard boot fallback:',bootErr);
+          boot={ok:true,users:allUsers,tasks:[],allTasks:[],stats:{total:0,completed:0,inProgress:0,pending:0,overdue:0,pendingApproval:0,closed:0,completedToday:0,waFailed:0,activeEmps:0},scores:[],stages:STAGES,departments:DEPTS,tags:TAGS,company:ACTIVE_COMPANY};
+        }
+        return {ok:true,user:clean,boot};
       }
-      case 'bootstrap': return await buildBoot({role:data.role,name:data.userName,department:data.department});
+      case 'bootstrap': if(data.companyId)ACTIVE_COMPANY_ID=data.companyId; return await buildBoot({role:data.role,name:data.userName,department:data.department});
       case 'getUsers': return await fbUsers();
       case 'getTasks': { const all=await fbTasks(); return {ok:true,tasks:filterTasks(all,data)}; }
       case 'getDashboard': return await buildBoot({role:data.role,name:data.userName,department:data.department});
       case 'getUpdates': { const u=await fbUpdates(data.taskId); return {ok:true,updates:u}; }
       case 'getComments': { const u=await fbUpdates(data.taskId); return {ok:true,updates:u}; }
       case 'getLogs': return await fbLogs();
+      case 'getWaLogs': return await fbWaLogs();
+      case 'retryWa': return await fbRetryWa(data);
+      case 'runReminders': return await fbRunReminders(data);
+      case 'runBackup': return await fbRunBackup(data);
+      case 'archiveTask': return await fbArchiveTask(data);
       case 'assignTask': return await fbAssign(data);
       case 'updateStatus': return await fbUpdateStatus(data);
       case 'approveTask': return await fbApprove(data);
@@ -892,6 +1288,9 @@ async function api(action,data){
       case 'reassignTask': return await fbReassign(data);
       case 'saveSettings': return await fbSaveSettings(data);
       case 'getSettings': return await fbGetSettings();
+      case 'getCompanies': return {ok:true,companies:await fbCompanies()};
+      case 'addCompany': return await fbAddCompany(data);
+      case 'saveCompany': return await fbSaveCompany(data);
       case 'resetRequest': {
         try{ await F.sendPasswordResetEmail(F.auth,(data.email||'').trim()); return {ok:true}; }
         catch(e){ return {ok:true}; } // don't reveal if email exists
@@ -903,27 +1302,28 @@ async function api(action,data){
 
 // ---- Firestore readers ----
 async function fbUsers(){
-  const F=window.FB, snap=await F.getDocs(F.collection(F.db,'users'));
+  const F=window.FB, snap=await F.getDocs(cCol('users'));
   const out=[]; snap.forEach(d=>{const u=d.data(); out.push({id:d.id,name:u.name,email:u.email,whatsapp:u.whatsapp,role:normRoleJS(u.role),department:u.department,managerName:u.managerName,managerWA:u.managerWA,archived:!!u.archived,hasPassword:!!u.password});});
   return out;
 }
 async function fbTasks(){
-  const F=window.FB, snap=await F.getDocs(F.collection(F.db,'tasks'));
+  const F=window.FB, snap=await F.getDocs(cCol('tasks'));
   const out=[], today=todayStr();
   snap.forEach(d=>{const t={id:d.id,...d.data()};
+    if(t.archived===true||t.status==='Archived')return;
     if(t.status!=='Completed'&&t.status!=='Closed'&&t.status!=='Pending Approval'&&t.deadline&&t.deadline<today) t.status='Overdue';
     out.push(t);
   });
   return out;
 }
 async function fbUpdates(taskId){
-  const F=window.FB, snap=await F.getDocs(F.collection(F.db,'updates'));
+  const F=window.FB, snap=await F.getDocs(cCol('updates'));
   const out=[]; snap.forEach(d=>{const u=d.data(); if(!taskId||u.taskId===taskId) out.push(u);});
   out.sort((a,b)=>(b.ts||0)-(a.ts||0));
   return out;
 }
 async function fbLogs(){
-  const F=window.FB, snap=await F.getDocs(F.collection(F.db,'logs'));
+  const F=window.FB, snap=await F.getDocs(cCol('logs'));
   const out=[]; snap.forEach(d=>out.push(d.data()));
   out.sort((a,b)=>(b.ts||0)-(a.ts||0));
   return {ok:true,logs:out.slice(0,200)};
@@ -935,8 +1335,14 @@ function filterTasks(all,data){
   return t;
 }
 async function buildBoot(who,preUsers){
+  if(ACTIVE_COMPANY_ID==='kasera-industries'){ await ensureKaseraLegacyData(); }
   // Read users + tasks + settings in PARALLEL (faster than sequential)
-  const [users,allTasks,st]=await Promise.all([ preUsers?Promise.resolve(preUsers):fbUsers(), fbTasks(), fbGetSettings() ]);
+  let [users,allTasks,st]=await Promise.all([ preUsers?Promise.resolve(preUsers):fbUsers(), fbTasks(), fbGetSettings() ]);
+  // Kasera legacy fallback: only if the isolated company path is still empty after migration attempt.
+  if(ACTIVE_COMPANY_ID==='kasera-industries' && (!allTasks||!allTasks.length)){
+    const rootTasks=await readRootCollection('tasks');
+    if(rootTasks.length){allTasks=rootTasks;}
+  }
   const my=filterTasks(allTasks,{role:who.role,userName:who.name});
   const cnt=(a,s)=>a.filter(t=>t.status===s).length;
   const todayD=new Date().toISOString().split('T')[0];
@@ -956,7 +1362,7 @@ async function buildBoot(who,preUsers){
     const avg=times.length?(times.reduce((a,b)=>a+b,0)/times.length).toFixed(1):'-';
     return {name:nm,department:profile.department||mt[0]?.department||'—',total:mt.length,completed:done,score:mt.length?Math.round(done/mt.length*100):0,avgTime:avg};
   }).sort((a,b)=>b.total-a.total);
-  return {ok:true,users,tasks:my,allTasks,stats,scores,stages:st.stages,departments:st.departments};
+  return {ok:true,users,tasks:my,allTasks,stats,scores,stages:st.stages,departments:st.departments,tags:st.tags,company:ACTIVE_COMPANY};
 }
 
 // ---- Firestore writers ----
@@ -966,30 +1372,30 @@ async function nextTaskId(){
   // so we never reuse an ID that ever existed (prevents timeline bleed-through).
   let maxN=0;
   try{
-    const tsnap=await F.getDocs(F.collection(F.db,'tasks'));
+    const tsnap=await F.getDocs(cCol('tasks'));
     tsnap.forEach(d=>{const m=String(d.id).match(/KI-(\d+)/)||String(d.data().id||'').match(/KI-(\d+)/); if(m){const n=parseInt(m[1]);if(n>maxN)maxN=n;}});
   }catch(e){}
   try{
-    const usnap=await F.getDocs(F.collection(F.db,'updates'));
+    const usnap=await F.getDocs(cCol('updates'));
     usnap.forEach(d=>{const m=String(d.data().taskId||'').match(/KI-(\d+)/); if(m){const n=parseInt(m[1]);if(n>maxN)maxN=n;}});
   }catch(e){}
   return 'KI-'+String(maxN+1).padStart(4,'0');
 }
-async function fbLog(u,a,ti,tt,wa,de){ try{const F=window.FB; await F.addDoc(F.collection(F.db,'logs'),{ts:Date.now(),timestamp:new Date().toLocaleString(),user:u||'',action:a||'',taskId:ti||'',taskTitle:tt||'',waSent:wa?'Yes':'No',details:de||''});}catch(e){} }
-async function fbUpd(taskId,title,by,oldS,newS,note,att){ try{const F=window.FB; const rec={ts:Date.now(),timestamp:new Date().toLocaleString(),taskId,title:title||'',updatedBy:by||'',oldStatus:oldS||'',newStatus:newS||'',note:note||''}; if(att&&att.url){rec.attachUrl=att.url;rec.attachName=att.name||'';rec.attachType=att.type||'';} await F.addDoc(F.collection(F.db,'updates'),rec);}catch(e){} }
+async function fbLog(u,a,ti,tt,wa,de){ try{const F=window.FB; await F.addDoc(cCol('logs'),{ts:Date.now(),timestamp:new Date().toLocaleString(),user:u||'',action:a||'',taskId:ti||'',taskTitle:tt||'',waSent:wa?'Yes':'No',details:de||''});}catch(e){} }
+async function fbUpd(taskId,title,by,oldS,newS,note,att){ try{const F=window.FB; const rec={ts:Date.now(),timestamp:new Date().toLocaleString(),taskId,title:title||'',updatedBy:by||'',oldStatus:oldS||'',newStatus:newS||'',note:note||''}; if(att&&att.url){rec.attachUrl=att.url;rec.attachName=att.name||'';rec.attachType=att.type||'';} await F.addDoc(cCol('updates'),rec);}catch(e){} }
 
 async function fbAssign(d){
   if(!d.title||!d.assigneeName||!d.deadline) return {ok:false,error:'Missing required fields'};
   const F=window.FB, id=await nextTaskId();
   const task={id,title:d.title,assigneeName:d.assigneeName,assigneeWA:d.assigneeWA||'',department:d.department||'',priority:d.priority||'Medium',deadline:d.deadline,status:'Pending',type:d.type||'One-time',notes:d.notes||'',createdBy:d.createdBy||'Admin',createdOn:new Date().toLocaleString(),waSent:d.sendWA?'Sent':'Not sent',managerName:d.managerName||'',managerWA:d.managerWA||'',startedOn:'',completedOn:'',timeTaken:'',workerNotes:'',tags:d.tags||[],contactName:d.contactName||'',contactPhone:d.contactPhone||'',contactAddr:d.contactAddr||'',attachUrl:d.attachUrl||'',attachName:d.attachName||'',attachType:d.attachType||''};
-  await F.setDoc(F.doc(F.db,'tasks',id),task);
+  await F.setDoc(cDoc('tasks',id),task);
   await fbLog(d.createdBy,'Task assigned',id,d.title,!!(d.sendWA&&d.assigneeWA),'To:'+d.assigneeName+(d.sendWA&&d.assigneeWA?' (WA sent)':''));
   await fbUpd(id,d.title,d.createdBy||'Admin','','Pending','Task assigned');
   if(d.sendWA&&d.assigneeWA){ fireWA({action:'waOnly',template:'task_delegation',to:d.assigneeWA,params:[d.assigneeName.split(' ')[0],d.title,d.deadline,d.priority||'Medium',d.department||'']}); }
   return {ok:true,taskId:id,waSent:!!d.sendWA};
 }
 async function fbUpdateStatus(d){
-  const F=window.FB, ref=F.doc(F.db,'tasks',d.taskId), snap=await F.getDoc(ref);
+  const F=window.FB, ref=cDoc('tasks',d.taskId), snap=await F.getDoc(ref);
   if(!snap.exists()) return {ok:false,error:'Task not found'};
   const t=snap.data(); const role=normRoleJS(d.role); const isAdmin=(role==='superadmin'||role==='admin');
   let req=d.newStatus;
@@ -1009,7 +1415,7 @@ async function fbUpdateStatus(d){
   return {ok:true,newStatus:req};
 }
 async function fbApprove(d){
-  const F=window.FB, ref=F.doc(F.db,'tasks',d.taskId), snap=await F.getDoc(ref);
+  const F=window.FB, ref=cDoc('tasks',d.taskId), snap=await F.getDoc(ref);
   if(!snap.exists()) return {ok:false,error:'Task not found'};
   const t=snap.data(), now=new Date();
   const patch={status:'Closed'};
@@ -1023,7 +1429,7 @@ async function fbApprove(d){
 }
 
 async function fbReject(d){
-  const F=window.FB, ref=F.doc(F.db,'tasks',d.taskId), snap=await F.getDoc(ref);
+  const F=window.FB, ref=cDoc('tasks',d.taskId), snap=await F.getDoc(ref);
   if(!snap.exists()) return {ok:false,error:'Task not found'};
   const t=snap.data(), now=new Date();
   // Send back to In Progress so the employee can fix & resubmit (clear completion stamps)
@@ -1038,40 +1444,53 @@ async function fbReject(d){
 }
 async function fbComment(d){
   if(!d.taskId||(!d.comment&&!d.attachUrl)) return {ok:false,error:'Missing comment'};
-  let title=''; try{const s=await window.FB.getDoc(window.FB.doc(window.FB.db,'tasks',d.taskId)); if(s.exists())title=s.data().title;}catch(e){}
+  let title=''; try{const s=await window.FB.getDoc(cDoc('tasks',d.taskId)); if(s.exists())title=s.data().title;}catch(e){}
   await fbUpd(d.taskId,title,d.by||'User','','Comment',d.comment,d.attachUrl?{url:d.attachUrl,name:d.attachName,type:d.attachType}:null);
   await fbLog(d.by||'User','Comment',d.taskId,title,false,d.comment+(d.attachUrl?' [+file]':''));
   return {ok:true};
 }
 async function fbReminder(d){
-  const F=window.FB, snap=await F.getDoc(F.doc(F.db,'tasks',d.taskId));
+  const F=window.FB, snap=await F.getDoc(cDoc('tasks',d.taskId));
   if(!snap.exists()) return {ok:false,error:'Task not found'};
-  const t=snap.data(); if(!t.assigneeWA) return {ok:false,error:'No WA number'};
-  fireWA({action:'waOnly',template:'task_reminder',to:t.assigneeWA,params:[(t.assigneeName||'').split(' ')[0],t.title,t.deadline,t.priority,t.department]});
-  await fbLog(d.sentBy||'Manager','Manual reminder',d.taskId,t.title,true,t.assigneeWA);
-  return {ok:true,waSent:true};
+  const t=snap.data();
+  let waNum=t.assigneeWA||'';
+  // If the task has no number saved, fall back to the assignee's current profile number.
+  if(!waNum && t.assigneeName){
+    try{ const u=(await fbUsers()).find(x=>x.name===t.assigneeName); if(u&&u.whatsapp) waNum=u.whatsapp; }catch(e){}
+  }
+  if(!waNum) return {ok:false,error:'No WhatsApp number saved for '+(t.assigneeName||'this assignee')+'. Add it in Manage people, then try again.'};
+  fireWA({action:'waOnly',template:'task_reminder',to:waNum,params:[(t.assigneeName||'').split(' ')[0],t.title,t.deadline,t.priority,t.department]});
+  await fbLog(d.sentBy||'Manager','Manual reminder',d.taskId,t.title,true,waNum);
+  return {ok:true,waSent:true,to:waNum};
 }
 async function fbAddUser(d){
   if(!d.name||!d.email) return {ok:false,error:'Name and email required'};
+  if(normRoleJS(d.role)==='superadmin' && normRoleJS(d.byRole)!=='superadmin') return {ok:false,error:'Only a Super Admin can create another Super Admin.'};
   if(!d.password||d.password.length<6) return {ok:false,error:'Set a temporary password (min 6 characters)'};
   const F=window.FB, users=await fbUsers();
   if(users.find(u=>(u.email||'').toLowerCase()===d.email.toLowerCase())) return {ok:false,error:'Email already exists'};
-  // Create the secure Auth login (password stored by Firebase, not us)
+  // STEP 1 — Save the company profile FIRST, while still signed in as the admin.
+  // Firestore rules allow admins/superadmins to create user profiles, so this must
+  // happen before we touch Auth (creating an Auth user changes who is signed in).
   try{
-    await F.createUserWithEmailAndPassword(F.auth, d.email.trim(), d.password);
+    await F.setDoc(cDoc('users',emailKey(d.email)),{name:d.name,email:emailKey(d.email),whatsapp:d.whatsapp||'',role:d.role||'employee',department:d.department||'',managerName:d.managerName||'',managerWA:d.managerWA||''},{merge:true});
+  }catch(e){
+    return {ok:false,error:'Could not save the user profile. Check that you are signed in as an Admin/Super Admin for this company. ('+(e.message||e.code||'')+')'};
+  }
+  // STEP 2 — Create the secure Auth login on a SECONDARY app so YOU stay logged in.
+  try{
+    await F.createSecondaryUser(d.email.trim(), d.password);
   }catch(e){
     var c=e.code||'';
-    if(c.indexOf('email-already-in-use')>=0) {/* auth exists, continue to create profile */}
-    else if(c.indexOf('weak-password')>=0) return {ok:false,error:'Password too weak (min 6 chars)'};
-    else return {ok:false,error:'Could not create login: '+(e.message||c)};
+    if(c.indexOf('email-already-in-use')>=0) {/* login already exists in Firebase Auth — profile above is enough */}
+    else if(c.indexOf('weak-password')>=0) return {ok:false,error:'Profile saved, but password is too weak (min 6 chars). Reset their password to finish.'};
+    else return {ok:false,error:'Profile saved, but could not create the login: '+(e.message||c)};
   }
-  // Store profile WITHOUT password (secure)
-  await F.addDoc(F.collection(F.db,'users'),{name:d.name,email:d.email,whatsapp:d.whatsapp||'',role:d.role||'employee',department:d.department||'',managerName:d.managerName||'',managerWA:d.managerWA||''});
   await fbLog(d.by||'Admin','User added','',d.name,false,d.email);
-  return {ok:true,note:'Auth created. Note: creating a user signs you in as them; please log out and back in as yourself.'};
+  return {ok:true,note:'User added to this company. They can log in with their email and the temporary password.'};
 }
 async function fbUpdateUser(d){
-  const F=window.FB, snap=await F.getDocs(F.collection(F.db,'users'));
+  const F=window.FB, snap=await F.getDocs(cCol('users'));
   let ref=null,cur=null; snap.forEach(doc=>{if((doc.data().email||'').toLowerCase()===(d.email||'').toLowerCase()){ref=doc.ref;cur=doc.data();}});
   if(!ref) return {ok:false,error:'User not found'};
   // Protect Super Admin accounts — only a Super Admin can modify another Super Admin
@@ -1088,7 +1507,7 @@ async function fbUpdateUser(d){
   return {ok:true};
 }
 async function fbReassign(d){
-  const F=window.FB, ref=F.doc(F.db,'tasks',d.taskId), snap=await F.getDoc(ref);
+  const F=window.FB, ref=cDoc('tasks',d.taskId), snap=await F.getDoc(ref);
   if(!snap.exists()) return {ok:false,error:'Task not found'};
   const t=snap.data();
   const patch={};
@@ -1104,7 +1523,7 @@ async function fbReassign(d){
   return {ok:true};
 }
 async function fbDeleteTask(d){
-  const F=window.FB, ref=F.doc(F.db,'tasks',d.taskId), snap=await F.getDoc(ref);
+  const F=window.FB, ref=cDoc('tasks',d.taskId), snap=await F.getDoc(ref);
   if(!snap.exists()) return {ok:false,error:'Task not found'};
   const t=snap.data();
   await F.deleteDoc(ref);
@@ -1112,7 +1531,7 @@ async function fbDeleteTask(d){
   return {ok:true};
 }
 async function fbDeleteUser(d){
-  const F=window.FB, snap=await F.getDocs(F.collection(F.db,'users'));
+  const F=window.FB, snap=await F.getDocs(cCol('users'));
   let ref=null,nm='',trole=''; snap.forEach(doc=>{if((doc.data().email||'').toLowerCase()===(d.email||'').toLowerCase()){ref=doc.ref;nm=doc.data().name;trole=doc.data().role;}});
   if(!ref) return {ok:false,error:'User not found'};
   if(d.byRole!=='superadmin') return {ok:false,error:'Only a Super Admin can delete users.'};
@@ -1121,26 +1540,265 @@ async function fbDeleteUser(d){
   return {ok:true};
 }
 async function fbGetSettings(){
-  const F=window.FB; let stages=null,depts=null;
-  try{const s=await F.getDoc(F.doc(F.db,'settings','config')); if(s.exists()){const v=s.data(); stages=v.stages; depts=v.departments;}}catch(e){}
+  const F=window.FB; let cfg={};
+  try{const s=await F.getDoc(cDoc('settings','config')); if(s.exists())cfg=s.data()||{};}catch(e){}
+  let stages=cfg.stages,depts=cfg.departments,tags=cfg.tags;
   if(!stages) stages=[{key:'Pending',label:'New'},{key:'In Progress',label:'In Progress'},{key:'Pending Approval',label:'Pending Approval'},{key:'Closed',label:'Closed'}];
   if(!depts) depts=['Production','Maintenance','QC','Dispatch','Warehouse','Management'];
-  let tags=null; try{const s2=await F.getDoc(F.doc(F.db,'settings','config')); if(s2.exists())tags=s2.data().tags;}catch(e){}
   if(!tags) tags=['Urgent','Repair','Safety','Quality','Routine','Customer'];
-  return {ok:true,stages,departments:depts,tags};
+  const whatsapp={...defaultWhatsappSettings(),...(cfg.whatsapp||{})};
+  const templates={...defaultWaTemplates(),...(cfg.templates||{})};
+  const security={...defaultSecuritySettings(),...(cfg.security||{})};
+  const backup={autoDailyBackup:true,lastBackupDate:'',lastBackupAt:0,lastReminderRunDate:'',...(cfg.backup||{})};
+  return {ok:true,stages,departments:depts,tags,whatsapp,templates,security,backup,settings:cfg};
 }
 async function fbSaveSettings(d){
-  const F=window.FB; const patch={};
+  const F=window.FB; const patch={updatedAt:Date.now(),updatedBy:d.by||'Admin'};
   if(d.stages!==undefined)patch.stages=d.stages;
   if(d.departments!==undefined)patch.departments=d.departments;
   if(d.tags!==undefined)patch.tags=d.tags;
-  await F.setDoc(F.doc(F.db,'settings','config'),patch,{merge:true});
-  await fbLog(d.by||'Admin','Settings updated','','',false,'stages/departments');
+  if(d.whatsapp!==undefined)patch.whatsapp=d.whatsapp;
+  if(d.templates!==undefined)patch.templates=d.templates;
+  if(d.security!==undefined)patch.security=d.security;
+  if(d.backup!==undefined)patch.backup=d.backup;
+  await F.setDoc(cDoc('settings','config'),patch,{merge:true});
+  await fbLog(d.by||'Admin','Settings updated','','',false,Object.keys(patch).filter(k=>!['updatedAt','updatedBy'].includes(k)).join(', '));
   return {ok:true};
 }
 
-// ── GOOGLE AUTH ──────────────────────────────────────────────────
-window.onload=()=>{ restoreSession(); setDl(); };
+async function fbWaLogs(){
+  const F=window.FB; const snap=await F.getDocs(cCol('waLogs'));
+  const out=[]; snap.forEach(d=>out.push({id:d.id,...(d.data()||{})}));
+  out.sort((a,b)=>(b.ts||0)-(a.ts||0));
+  return {ok:true,waLogs:out.slice(0,250)};
+}
+async function fbRetryWa(d){
+  if(!d.logId)return {ok:false,error:'Missing WhatsApp log id'};
+  const F=window.FB, ref=cDoc('waLogs',d.logId), snap=await F.getDoc(ref);
+  if(!snap.exists())return {ok:false,error:'WhatsApp log not found'};
+  const l=snap.data()||{};
+  const attempts=(parseInt(l.attempts||0)||0)+1;
+  await F.updateDoc(ref,{status:'Retrying',deliveryStatus:'Retry requested by '+(d.by||'Admin'),attempts,lastRetryAt:Date.now()});
+  const payload=l.requestPayload||{action:'waOnly',template:l.template,to:l.to,params:[l.message||''],taskId:l.taskId,taskTitle:l.taskTitle,by:d.by||'Admin'};
+  payload.retryOf=d.logId; payload.by=d.by||'Admin';
+  fireWA(payload);
+  await fbLog(d.by||'Admin','WA retry',l.taskId||'',l.taskTitle||'',true,'Retry attempt '+attempts+' to '+(l.to||''));
+  return {ok:true};
+}
+async function fbRunReminders(d){
+  const role=normRoleJS(d.byRole||''); if(!['admin','superadmin','supervisor'].includes(role))return {ok:false,error:'Admin/Supervisor access required for reminders.'};
+  const settings=await fbGetSettings(); const wa=settings.whatsapp||defaultWhatsappSettings();
+  const tasks=await fbTasks(); const F=window.FB;
+  const today=todayStr(); const now=new Date(); const days=parseInt(wa.reminderDaysBefore||1)||1;
+  const future=new Date(now); future.setDate(future.getDate()+days); const futureStr=future.toISOString().split('T')[0];
+  let reminders=0,escalations=0,failed=0;
+  for(const t of tasks){
+    if(['Closed','Completed','Pending Approval'].includes(t.status))continue;
+    try{
+      if(wa.enableAutoReminder!==false && t.deadline && t.deadline>=today && t.deadline<=futureStr && t.reminderSentDate!==today && t.assigneeWA){
+        fireWA({action:'waOnly',template:'task_reminder',to:t.assigneeWA,taskId:t.id,taskTitle:t.title,params:[(t.assigneeName||'').split(' ')[0],t.title,t.deadline,t.priority||'Medium',t.department||''],by:d.by||'System'});
+        await F.updateDoc(cDoc('tasks',t.id),{reminderSentDate:today,waSent:'Reminded',updatedAt:Date.now()}); reminders++;
+      }
+      if(wa.enableOverdueEscalation!==false && t.deadline && t.deadline<today && t.escalatedDate!==today && t.managerWA){
+        fireWA({action:'waOnly',template:'overdue_escalation',to:t.managerWA,taskId:t.id,taskTitle:t.title,params:[(t.managerName||'Manager').split(' ')[0],t.title,t.assigneeName||'',t.deadline,t.priority||'Medium'],by:d.by||'System'});
+        await F.updateDoc(cDoc('tasks',t.id),{escalatedDate:today,status:t.status==='Pending'?'Overdue':t.status,updatedAt:Date.now()}); escalations++;
+      }
+    }catch(e){failed++;}
+  }
+  await F.setDoc(cDoc('settings','config'),{backup:{...(settings.backup||{}),lastReminderRunDate:today,lastReminderRunAt:Date.now()}},{merge:true});
+  await fbLog(d.by||'System','Reminder/escalation run','','',true,'Reminders: '+reminders+', escalations: '+escalations+', failed: '+failed);
+  return {ok:true,reminders,escalations,failed};
+}
+async function fbRunBackup(d){
+  const role=normRoleJS(d.byRole||''); if(!['admin','superadmin'].includes(role))return {ok:false,error:'Admin access required for backup.'};
+  const F=window.FB, date=todayStr();
+  const [users,tasks,logs,updates,waLogs,settings]=await Promise.all([fbUsers(),fbTasks(),fbLogs(),fbUpdates(),fbWaLogs(),fbGetSettings()]);
+  const profile=ACTIVE_COMPANY||{};
+  const backup={companyId:ACTIVE_COMPANY_ID,company:profile,createdAt:Date.now(),createdBy:d.by||'Admin',date,counts:{users:users.length,tasks:tasks.length,logs:(logs.logs||[]).length,updates:updates.length,waLogs:(waLogs.waLogs||[]).length},data:{users,tasks,logs:logs.logs||[],updates,waLogs:waLogs.waLogs||[],settings}};
+  const summary={companyId:ACTIVE_COMPANY_ID,date,createdAt:backup.createdAt,createdBy:backup.createdBy,counts:backup.counts};
+  const json=JSON.stringify(backup);
+  if(!d.downloadOnly){
+    try{await F.setDoc(cDoc('backups',date),json.length<850000?backup:summary,{merge:true});}catch(e){console.warn('Backup summary only:',e.message||e); await F.setDoc(cDoc('backups',date),summary,{merge:true});}
+    const s=await fbGetSettings(); await F.setDoc(cDoc('settings','config'),{backup:{...(s.backup||{}),lastBackupDate:date,lastBackupAt:Date.now(),lastBackupBy:d.by||'Admin'}},{merge:true});
+    await fbLog(d.by||'Admin','Daily backup','','',false,'Backup created for '+ACTIVE_COMPANY_ID+' | '+json.length+' bytes');
+  }
+  return {ok:true,backup,summary,storedFull:json.length<850000};
+}
+async function fbArchiveTask(d){
+  const F=window.FB, ref=cDoc('tasks',d.taskId), snap=await F.getDoc(ref);
+  if(!snap.exists())return {ok:false,error:'Task not found'};
+  const t=snap.data();
+  if(!['admin','superadmin'].includes(normRoleJS(d.byRole||'')))return {ok:false,error:'Only Admin or Super Admin can archive tickets.'};
+  await F.updateDoc(ref,{archived:true,archivedAt:Date.now(),archivedBy:d.by||'Admin',archiveReason:d.reason||'',status:'Archived'});
+  await fbLog(d.by||'Admin','Ticket archived',d.taskId,t.title,false,'Reason: '+(d.reason||'none'));
+  await fbUpd(d.taskId,t.title,d.by||'Admin',t.status,'Archived','Archived: '+(d.reason||''));
+  return {ok:true};
+}
+
+
+// ── ADMIN ENHANCEMENTS: WhatsApp, permissions, backup, Firebase rules ──
+async function renderAdminEnhancements(){
+  const waEl=document.getElementById('whatsapp-editor'), secEl=document.getElementById('security-editor'), bakEl=document.getElementById('backup-editor');
+  if(!waEl&&!secEl&&!bakEl)return;
+  let st={whatsapp:defaultWhatsappSettings(),templates:defaultWaTemplates(),security:defaultSecuritySettings(),backup:{}};
+  try{const r=await api('getSettings',{}); if(r.ok!==false)st=r;}catch(e){}
+  if(waEl)renderWhatsAppEditor(st);
+  if(secEl)renderSecurityEditor(st);
+  if(bakEl)renderBackupEditor(st);
+}
+function renderWhatsAppEditor(st){
+  const w={...defaultWhatsappSettings(),...(st.whatsapp||{})};
+  const t={...defaultWaTemplates(),...(st.templates||{})};
+  document.getElementById('whatsapp-editor').innerHTML=
+    '<div class="fg">'+
+    '<div class="ff"><label>Enable WhatsApp</label><select id="wa-enabled"><option value="true" '+(w.enabled!==false?'selected':'')+'>Enabled</option><option value="false" '+(w.enabled===false?'selected':'')+'>Disabled</option></select></div>'+
+    '<div class="ff"><label>11za / Apps Script Service URL</label><input id="wa-url" value="'+esc(w.serviceUrl||SCRIPT)+'" placeholder="https://..."></div>'+
+    '<div class="ff"><label>API key / token</label><input id="wa-key" value="'+esc(w.apiKey||'')+'" placeholder="optional"></div>'+
+    '<div class="ff"><label>Sender WhatsApp number</label><input id="wa-sender" value="'+esc(w.senderNumber||'')+'" placeholder="company sender number"></div>'+
+    '<div class="ff"><label>Reminder days before deadline</label><input id="wa-rem-days" type="number" min="0" max="30" value="'+esc(w.reminderDaysBefore||1)+'"></div>'+
+    '<div class="ff"><label>Retry limit</label><input id="wa-retry" type="number" min="0" max="10" value="'+esc(w.retryLimit||3)+'"></div>'+ 
+    '<div class="ff"><label>Auto reminder</label><select id="wa-auto-rem"><option value="true" '+(w.enableAutoReminder!==false?'selected':'')+'>On</option><option value="false" '+(w.enableAutoReminder===false?'selected':'')+'>Off</option></select></div>'+
+    '<div class="ff"><label>Overdue escalation to manager</label><select id="wa-overdue"><option value="true" '+(w.enableOverdueEscalation!==false?'selected':'')+'>On</option><option value="false" '+(w.enableOverdueEscalation===false?'selected':'')+'>Off</option></select></div>'+ 
+    '</div>'+
+    '<div class="ff" style="margin-bottom:10px"><label>Task assigned template</label><textarea id="tpl-task_delegation">'+esc(t.task_delegation)+'</textarea></div>'+ 
+    '<div class="ff" style="margin-bottom:10px"><label>Reminder template</label><textarea id="tpl-task_reminder">'+esc(t.task_reminder)+'</textarea></div>'+ 
+    '<div class="ff" style="margin-bottom:10px"><label>Completion / approval template</label><textarea id="tpl-task_completed">'+esc(t.task_completed)+'</textarea></div>'+ 
+    '<div class="ff" style="margin-bottom:10px"><label>Overdue escalation template</label><textarea id="tpl-overdue_escalation">'+esc(t.overdue_escalation)+'</textarea></div>'+ 
+    '<div class="sy"><div>Template variables: {1}, {2}, {3}, {4}, {5}. Failed/queued WA messages can be retried from WA Log.</div><button class="btn bg bs" onclick="runReminderEscalation()">Run reminders now</button></div>'+ 
+    '<button class="btn bp" onclick="saveWhatsAppSettings()">💾 Save WhatsApp / 11za settings</button>';
+}
+async function saveWhatsAppSettings(){
+  const whatsapp={enabled:document.getElementById('wa-enabled').value==='true',serviceUrl:document.getElementById('wa-url').value.trim(),apiKey:document.getElementById('wa-key').value.trim(),senderNumber:document.getElementById('wa-sender').value.trim(),reminderDaysBefore:parseInt(document.getElementById('wa-rem-days').value||1)||0,retryLimit:parseInt(document.getElementById('wa-retry').value||3)||0,enableAutoReminder:document.getElementById('wa-auto-rem').value==='true',enableOverdueEscalation:document.getElementById('wa-overdue').value==='true'};
+  const templates={task_delegation:document.getElementById('tpl-task_delegation').value,task_reminder:document.getElementById('tpl-task_reminder').value,task_completed:document.getElementById('tpl-task_completed').value,overdue_escalation:document.getElementById('tpl-overdue_escalation').value};
+  const r=await api('saveSettings',{by:CU.name,whatsapp,templates});
+  if(r.ok!==false)toast('WhatsApp settings saved','ok'); else toast('Failed: '+(r.error||'error'),'er2');
+}
+function renderSecurityEditor(st){
+  const s={...defaultSecuritySettings(),...(st.security||{})};
+  document.getElementById('security-editor').innerHTML=
+    '<div class="fg">'+
+    '<div class="ff"><label>Admin can create Super Admin?</label><select id="sec-prevent-super"><option value="true" '+(s.preventAdminSuperadmin!==false?'selected':'')+'>No, only Super Admin</option><option value="false" '+(s.preventAdminSuperadmin===false?'selected':'')+'>Allow</option></select></div>'+ 
+    '<div class="ff"><label>Delete policy</label><select id="sec-archive"><option value="true" '+(s.archiveInsteadDelete!==false?'selected':'')+'>Archive instead of delete</option><option value="false" '+(s.archiveInsteadDelete===false?'selected':'')+'>Allow delete by Super Admin</option></select></div>'+ 
+    '<div class="ff"><label>Audit log</label><select id="sec-audit"><option value="true" '+(s.auditAllActions!==false?'selected':'')+'>Log every action</option><option value="false" '+(s.auditAllActions===false?'selected':'')+'>Basic logs only</option></select></div>'+ 
+    '<div class="ff"><label>Cross-company access</label><select id="sec-cross"><option value="true" '+(s.blockCrossCompany!==false?'selected':'')+'>Block with Firebase Rules</option><option value="false" '+(s.blockCrossCompany===false?'selected':'')+'>Frontend only</option></select></div>'+ 
+    '</div>'+ 
+    '<div class="ff" style="margin-bottom:10px"><label>Firebase Rules — copy to Firebase Console → Firestore Database → Rules</label><textarea id="rules-box" style="min-height:180px;font-family:var(--fm);font-size:11px">'+esc(securityRulesText())+'</textarea></div>'+ 
+    '<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn bp" onclick="saveSecuritySettings()">💾 Save security settings</button><button class="btn bg" onclick="copyRules()">Copy rules</button><button class="btn bg" onclick="downloadSecurityRules()">Download rules file</button></div>';
+}
+async function saveSecuritySettings(){
+  const security={preventAdminSuperadmin:document.getElementById('sec-prevent-super').value==='true',archiveInsteadDelete:document.getElementById('sec-archive').value==='true',auditAllActions:document.getElementById('sec-audit').value==='true',blockCrossCompany:document.getElementById('sec-cross').value==='true'};
+  const r=await api('saveSettings',{by:CU.name,security});
+  if(r.ok!==false)toast('Security settings saved','ok'); else toast('Failed: '+(r.error||'error'),'er2');
+}
+function renderBackupEditor(st){
+  const b={autoDailyBackup:true,...(st.backup||{})};
+  document.getElementById('backup-editor').innerHTML=
+    '<div class="fg">'+
+    '<div class="ff"><label>Auto daily backup when admin opens portal</label><select id="bk-auto"><option value="true" '+(b.autoDailyBackup!==false?'selected':'')+'>On</option><option value="false" '+(b.autoDailyBackup===false?'selected':'')+'>Off</option></select></div>'+ 
+    '<div class="ff"><label>Last backup</label><input value="'+esc(b.lastBackupDate||'Not yet')+'" readonly></div>'+ 
+    '</div>'+ 
+    '<div class="sy"><div>Backup includes selected company only: profile, users, tasks, logs, updates, WhatsApp logs and settings.</div></div>'+ 
+    '<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn bp" onclick="runBackupNow()">Create backup now</button><button class="btn bg" onclick="downloadCompanyBackup()">Download company JSON</button><button class="btn bg" onclick="runReminderEscalation()">Run reminder/escalation check</button><button class="btn bg" onclick="saveBackupSettings()">Save backup setting</button></div>';
+}
+async function saveBackupSettings(){
+  const backup={autoDailyBackup:document.getElementById('bk-auto').value==='true'};
+  const r=await api('saveSettings',{by:CU.name,backup});
+  if(r.ok!==false)toast('Backup setting saved','ok'); else toast('Failed: '+(r.error||'error'),'er2');
+}
+async function runReminderEscalation(){
+  const r=await api('runReminders',{by:CU.name,byRole:CU.role});
+  if(r.ok!==false){toast('Reminders: '+r.reminders+', escalations: '+r.escalations,'ok');CACHE=null;ldDash();}else toast('Failed: '+(r.error||'error'),'er2');
+}
+async function runBackupNow(){
+  const r=await api('runBackup',{by:CU.name,byRole:CU.role});
+  if(r.ok!==false){toast('Backup created for '+(r.summary?.date||todayStr()),'ok');renderAdminEnhancements();}else toast('Backup failed: '+(r.error||'error'),'er2');
+}
+async function downloadCompanyBackup(){
+  const r=await api('runBackup',{by:CU.name,byRole:CU.role,downloadOnly:true});
+  if(r.ok!==false){dlJSON(r.backup,(ACTIVE_COMPANY_ID||'company')+'_backup_'+todayStr()+'.json');toast('Backup downloaded','ok');}else toast('Download failed: '+(r.error||'error'),'er2');
+}
+function dlJSON(obj,fname){const a=document.createElement('a');a.href='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(obj,null,2));a.download=fname;a.click();}
+async function runAutoCompanyJobs(){
+  if(!CU||!['admin','superadmin','supervisor'].includes(CU.role))return;
+  try{
+    const st=await api('getSettings',{}); if(st.ok===false)return;
+    const today=todayStr();
+    if(st.whatsapp&&((st.whatsapp.enableAutoReminder!==false)||(st.whatsapp.enableOverdueEscalation!==false)) && st.backup?.lastReminderRunDate!==today){ await api('runReminders',{by:CU.name,byRole:CU.role,auto:true}); }
+    if(['admin','superadmin'].includes(CU.role) && st.backup?.autoDailyBackup!==false && st.backup?.lastBackupDate!==today){ await api('runBackup',{by:CU.name,byRole:CU.role,auto:true}); }
+  }catch(e){console.warn('Auto company jobs skipped:',e.message||e);}
+}
+function securityRulesText(){return `rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function email() { return request.auth.token.email.lower(); }
+    function companyUser(companyId) {
+      return signedIn() && exists(/databases/$(database)/documents/companies/$(companyId)/users/$(email()));
+    }
+    function role(companyId) {
+      return get(/databases/$(database)/documents/companies/$(companyId)/users/$(email())).data.role;
+    }
+    function isAdmin(companyId) { return companyUser(companyId) && role(companyId) in ['admin','superadmin']; }
+    function isSuper(companyId) { return companyUser(companyId) && role(companyId) == 'superadmin'; }
+    function isBootstrapSuper() { return signedIn() && email() in ['ravi@kaseraindustries.in']; }
+
+    // Company profile documents are public so the login dropdown can load before sign-in.
+    // Do not store API keys or private data on this document. Store secrets in settings/config.
+    match /companies/{companyId} {
+      allow read: if true;
+      allow create: if isBootstrapSuper() || signedIn();
+      allow update: if isAdmin(companyId) || isBootstrapSuper();
+      allow delete: if false;
+
+      match /users/{userId} {
+        allow read: if companyUser(companyId) || (signedIn() && userId == email());
+        allow create: if (isAdmin(companyId) && (!(request.resource.data.role == 'superadmin') || isSuper(companyId)))
+                      || (isBootstrapSuper() && userId == email() && request.resource.data.role == 'superadmin');
+        allow update: if (isAdmin(companyId) && (!(resource.data.role == 'superadmin') || isSuper(companyId)) && (!(request.resource.data.role == 'superadmin') || isSuper(companyId)))
+                      || (isBootstrapSuper() && userId == email());
+        allow delete: if isSuper(companyId);
+      }
+      match /tasks/{taskId} {
+        allow read: if companyUser(companyId);
+        allow create, update: if companyUser(companyId);
+        allow delete: if isSuper(companyId);
+      }
+      match /logs/{logId} { allow read, create: if companyUser(companyId); allow update, delete: if false; }
+      match /updates/{updateId} { allow read, create: if companyUser(companyId); allow update, delete: if false; }
+      match /waLogs/{logId} { allow read, create, update: if isAdmin(companyId); allow delete: if false; }
+      match /settings/{docId} { allow read: if companyUser(companyId); allow write: if isAdmin(companyId); }
+      match /backups/{backupId} { allow read, write: if isAdmin(companyId); allow delete: if false; }
+      match /comments/{commentId} { allow read, write: if companyUser(companyId); allow delete: if false; }
+      match /attachments/{attachmentId} { allow read, write: if companyUser(companyId); allow delete: if false; }
+      match /{document=**} { allow read, write: if false; }
+    }
+
+    // Temporary Kasera legacy migration reads. Remove these after migration is complete.
+    match /users/{docId} { allow read: if isBootstrapSuper() || isSuper('kasera-industries'); allow write: if false; }
+    match /tasks/{docId} { allow read: if isBootstrapSuper() || isSuper('kasera-industries'); allow write: if false; }
+    match /logs/{docId} { allow read: if isBootstrapSuper() || isSuper('kasera-industries'); allow write: if false; }
+    match /updates/{docId} { allow read: if isBootstrapSuper() || isSuper('kasera-industries'); allow write: if false; }
+    match /settings/{docId} { allow read: if isBootstrapSuper() || isSuper('kasera-industries'); allow write: if false; }
+
+    match /{document=**} { allow read, write: if false; }
+  }
+}`;}
+function copyRules(){const box=document.getElementById('rules-box'); if(!box)return; navigator.clipboard?.writeText(box.value).then(()=>toast('Rules copied','ok')).catch(()=>toast('Copy failed — select and copy manually','er2'));}
+function downloadSecurityRules(){const a=document.createElement('a');a.href='data:text/plain;charset=utf-8,'+encodeURIComponent(securityRulesText());a.download='firestore_company_isolation.rules';a.click();}
+
+// ── GOOGLE AUTH// ── GOOGLE AUTH ──────────────────────────────────────────────────
+function initApp(){
+  seedDefaultCompanySelect();
+  loadCompanyOptions();
+  restoreSession();
+  setDl();
+}
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',initApp,{once:true});
+}else{initApp();}
+// Also refresh company list once the Firebase module finishes loading.
+window.addEventListener('fb-ready',()=>{try{loadCompanyOptions();}catch(e){console.warn(e);}});
+
 function sigG(){
   if(GID.startsWith('YOUR_')){aerr('Google ID not configured. Use email login or the demo buttons.');return;}
   try{google.accounts.id.prompt(n=>{if(n.isNotDisplayed()||n.isSkippedMoment()){const c=google.accounts.oauth2.initTokenClient({client_id:GID,scope:'openid email profile',callback:r=>{if(r.access_token)fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:'Bearer '+r.access_token}}).then(x=>x.json()).then(gProc);}});c.requestAccessToken();}});}catch(e){aerr('Google sign-in failed.');}
@@ -1175,7 +1833,7 @@ function forgotPw(){
 }
 function aok(m){const el=document.getElementById('gok');el.className='am ao';el.style.display='flex';el.textContent=m;setTimeout(()=>el.style.display='none',6000);}
 
-function doL(){const e=document.getElementById('em').value.trim();const p=document.getElementById('pw').value;if(!e){aerr('Enter email');return;}loginEM(e,p);}
+function doL(){const c=document.getElementById('co')?.value||'';const e=document.getElementById('em').value.trim();const p=document.getElementById('pw').value;if(!c){aerr('Select company first');return;}ACTIVE_COMPANY_ID=c;ACTIVE_COMPANY=COMPANIES.find(x=>x.id===c)||ACTIVE_COMPANY;if(!e){aerr('Enter email');return;}loginEM(e,p,c);}
 
 
 function toggleSidebar(){
@@ -1196,6 +1854,9 @@ function restoreSession(){
     const s=JSON.parse(raw);
     if(!s||!s.user||!s.exp||Date.now()>s.exp){ localStorage.removeItem('kasera_session'); return; }
     CU=s.user;
+    ACTIVE_COMPANY_ID=s.companyId||s.user.companyId||localStorage.getItem('kasera_company')||DEFAULT_COMPANY.id;
+    ACTIVE_COMPANY=s.company||COMPANIES.find(c=>c.id===ACTIVE_COMPANY_ID)||DEFAULT_COMPANY;
+    localStorage.setItem('kasera_company',ACTIVE_COMPANY_ID);
     // Re-enter the app; data will load fresh from server
     startApp();
   }catch(e){ try{localStorage.removeItem('kasera_session');}catch(e2){} }
@@ -1203,6 +1864,7 @@ function restoreSession(){
 
 
 async function loginGoogle(){
+  const c=document.getElementById('co')?.value||''; if(!c){aerr('Select company first');return;} ACTIVE_COMPANY_ID=c;ACTIVE_COMPANY=COMPANIES.find(x=>x.id===c)||ACTIVE_COMPANY;
   await fbReady(); const F=window.FB;
   const btn=document.querySelector('.gbtn'); if(btn){btn.textContent='Opening Google...';btn.disabled=true;}
   try{
@@ -1210,9 +1872,10 @@ async function loginGoogle(){
     const result=await F.signInWithPopup(F.auth,provider);
     const email=(result.user&&result.user.email||'').toLowerCase();
     if(!email){throw new Error('No email from Google');}
-    // Check this email is registered in our users list
-    const snap=await F.getDocs(F.collection(F.db,'users'));
-    let user=null; snap.forEach(d=>{const u=d.data(); if((u.email||'').toLowerCase()===email) user={id:d.id,...u};});
+    // Check this email is registered in the selected company using deterministic users/{email}
+    let prof=await readCompanyUserProfile(email);
+    if(!prof.ok){ await ensureBootstrapCompanyUser(email); prof=await readCompanyUserProfile(email); }
+    let user=prof.ok?prof.user:null;
     if(!user){
       await F.signOut(F.auth); // sign them back out — not authorized
       aerr('This Google account ('+email+') is not registered. Contact your admin for access.');
@@ -1220,8 +1883,8 @@ async function loginGoogle(){
       return;
     }
     if(user.archived){ await F.signOut(F.auth); aerr('This account is archived. Contact your admin.'); if(btn){btn.disabled=false;btn.textContent='Sign in with Google';} return; }
-    CU={name:user.name,email:user.email,whatsapp:user.whatsapp,role:normRoleJS(user.role),department:user.department,managerName:user.managerName,managerWA:user.managerWA};
-    try{localStorage.setItem('kasera_session',JSON.stringify({user:CU,exp:Date.now()+43200000}));}catch(e){}
+    CU={name:user.name,email:user.email,whatsapp:user.whatsapp,role:normRoleJS(user.role),department:user.department,managerName:user.managerName,managerWA:user.managerWA,companyId:ACTIVE_COMPANY_ID,companyName:(ACTIVE_COMPANY&&ACTIVE_COMPANY.name)||''};
+    try{localStorage.setItem('kasera_session',JSON.stringify({user:CU,companyId:ACTIVE_COMPANY_ID,company:ACTIVE_COMPANY,exp:Date.now()+43200000}));}catch(e){}
     const boot=await buildBoot(CU);
     if(boot&&boot.ok!==false){CACHE=boot;CACHE_TIME=Date.now();AU=boot.users||[];AT=boot.allTasks||boot.tasks||[];applySettings(boot);}
     startApp();
@@ -1231,17 +1894,21 @@ async function loginGoogle(){
   }
 }
 
-async function loginEM(email,password){
-  const btn=document.querySelector('.sb'); if(btn){btn.textContent='Signing in...';btn.style.opacity='.7';}
-  const r=await api('login',{email,password});
-  if(btn){btn.textContent='Sign in →';btn.style.opacity='1';}
-  if(r.ok===false){aerr(r.error||'Login failed');return;}
-  CU=r.user||r;
-  // Persist session so a page refresh keeps the user logged in (12h expiry)
-  try{localStorage.setItem('kasera_session',JSON.stringify({user:CU,exp:Date.now()+43200000}));}catch(e){}
-  // Use the bootstrap data that came WITH login (no 2nd round-trip)
-  if(r.boot&&r.boot.ok!==false){CACHE=r.boot;CACHE_TIME=Date.now();AU=r.boot.users||[];AT=r.boot.allTasks||r.boot.tasks||[];applySettings(r.boot);}
-  startApp();
+async function loginEM(email,password,companyId){
+  const btn=document.querySelector('.sb');
+  if(btn){btn.textContent='Signing in...';btn.style.opacity='.7';btn.disabled=true;}
+  try{
+    const r=await withTimeout(api('login',{email,password,companyId:companyId||ACTIVE_COMPANY_ID}),30000,'Sign-in is taking too long. Please check internet/Firebase access and try again.');
+    if(r.ok===false){aerr(r.error||'Login failed');return;}
+    CU=r.user||r; CU.companyId=ACTIVE_COMPANY_ID; CU.companyName=(ACTIVE_COMPANY&&ACTIVE_COMPANY.name)||'';
+    try{localStorage.setItem('kasera_session',JSON.stringify({user:CU,companyId:ACTIVE_COMPANY_ID,company:ACTIVE_COMPANY,exp:Date.now()+43200000}));}catch(e){}
+    if(r.boot&&r.boot.ok!==false){CACHE=r.boot;CACHE_TIME=Date.now();AU=r.boot.users||[];AT=r.boot.allTasks||r.boot.tasks||[];applySettings(r.boot);}
+    startApp();
+  }catch(e){
+    aerr(e.message||'Login failed. Please try again.');
+  }finally{
+    if(btn){btn.textContent='Login to Dashboard →';btn.style.opacity='1';btn.disabled=false;}
+  }
 }
 
 function doLo(){try{localStorage.removeItem('kasera_session');}catch(e){}try{if(window.FB&&window.FB.auth)window.FB.signOut(window.FB.auth);}catch(e){}document.getElementById('app').style.display='none';document.getElementById('ls').style.display='flex';document.getElementById('gok').style.display='none';document.getElementById('gok').classList.remove('ao');CU=null;GP=null;AU=[];AT=[];CACHE=null;}
@@ -1259,12 +1926,14 @@ window.addEventListener('popstate',function(e){
 });
 function startApp(){
   CU.role=normRole(CU.role);
+  applyCompanyBranding();
   document.getElementById('ls').style.display='none';
   document.getElementById('app').style.display='flex';
   loadStages(); setupSB(); loadUsers(); setTimeout(refreshDeptDropdowns,300);
   const home=(CU.role==='superadmin'||CU.role==='admin')?'dash':CU.role==='supervisor'?'asgn':'wtask';
   sp2f(home);
   toast('Welcome, '+CU.name.split(' ')[0]+' \uD83D\uDC4B','ok');
+  setTimeout(runAutoCompanyJobs,4000);
 }
 
 // ── SIDEBAR ──────────────────────────────────────────────────────
@@ -1307,7 +1976,7 @@ function sp2f(id,fromPop){
   if(id==='people'){ldPeople();return;}
   if(id==='approvals'){ldApprovals();return;}
   if(id==='closed'){ldClosed();return;}
-  if(id==='cfg'){renderStageEditor();}
+  if(id==='cfg'){renderCompanyEditor();renderStageEditor();renderAdminEnhancements();}
   if(id==='dash')ldDash();
   else if(id==='rep')ldRep();
   else if(id==='wa'||id==='log')ldLogs();
@@ -1379,11 +2048,92 @@ async function dropCard(e){
 // ── FAST BOOTSTRAP with 30s cache ─────────────────────────────────
 async function getBoot(force){
   const now=Date.now();
-  if(!force&&CACHE&&(now-CACHE_TIME)<300000){return CACHE;}
-  const r=await api('bootstrap',{role:CU.role,userName:CU.name,department:CU.department});
+  if(!force&&CACHE&&(now-CACHE_TIME)<20000){return CACHE;}
+  const r=await api('bootstrap',{role:CU.role,userName:CU.name,department:CU.department,companyId:ACTIVE_COMPANY_ID});
   if(r.ok!==false){CACHE=r;CACHE_TIME=now;AU=r.users||[];AT=r.allTasks||r.tasks||[];applySettings(r);}
   return r;
 }
+// ── COMPANY PROFILE EDITOR ──
+function renderCompanyEditor(){
+  const c=ACTIVE_COMPANY||DEFAULT_COMPANY;
+  const el=document.getElementById('company-editor');
+  if(el){
+    el.innerHTML='<div class="fg">'+
+      '<div class="ff"><label>Company name *</label><input id="cmp-name" value="'+esc(c.name||'')+'" placeholder="Company name"></div>'+
+      '<div class="ff"><label>Short name</label><input id="cmp-short" value="'+esc(c.shortName||'')+'" placeholder="Shown in sidebar"></div>'+
+      '<div class="ff"><label>Logo URL</label><input id="cmp-logo" value="'+esc(c.logoUrl||'')+'" placeholder="https://.../logo.png or logo.png"></div>'+
+      '<div class="ff"><label>Upload logo image</label><input type="file" id="cmp-logo-file" accept="image/*" onchange="prepCompanyLogo(this,\'current\')"><div id="cmp-logo-info" style="font-size:12px;color:var(--t3);margin-top:4px">PNG/JPG/WebP up to 2MB. URL field will fill after save.</div></div>'+
+      '<div class="ff"><label>Email</label><input id="cmp-email" value="'+esc(c.email||'')+'" placeholder="company@email.com"></div>'+
+      '<div class="ff"><label>Phone</label><input id="cmp-phone" value="'+esc(c.phone||'')+'" placeholder="Phone number"></div>'+
+      '<div class="ff"><label>Website</label><input id="cmp-web" value="'+esc(c.website||'')+'" placeholder="Website"></div>'+
+      '<div class="ff"><label>GST / Registration</label><input id="cmp-gst" value="'+esc(c.gst||'')+'" placeholder="GST or registration no."></div>'+
+      '</div><div class="ff" style="margin-bottom:12px"><label>Address / Details</label><textarea id="cmp-addr" placeholder="Company address and details">'+esc(c.address||'')+'</textarea></div>'+
+      '<div style="display:flex;gap:8px;align-items:center"><button class="btn bp" onclick="saveCompanyProfile()">💾 Save company details</button><span style="font-size:11.5px;color:var(--t3);margin-left:auto">Current isolated path: companies/'+esc(ACTIVE_COMPANY_ID||'Not selected')+'</span></div>';
+  }
+  const crd=document.getElementById('company-create-card'); if(crd)crd.style.display=(CU&&CU.role==='superadmin')?'block':'none';
+  const ce=document.getElementById('company-create-editor');
+  if(ce&&CU&&CU.role==='superadmin'){
+    ce.innerHTML='<div class="fg">'+
+      '<div class="ff"><label>New company name *</label><input id="new-cmp-name" placeholder="e.g. ABC Industries"></div>'+
+      '<div class="ff"><label>Database ID / slug</label><input id="new-cmp-slug" placeholder="auto-created if blank"></div>'+
+      '<div class="ff"><label>Logo URL</label><input id="new-cmp-logo" placeholder="logo URL or upload below"></div>'+
+      '<div class="ff"><label>Upload logo image</label><input type="file" id="new-cmp-logo-file" accept="image/*" onchange="prepCompanyLogo(this,\'new\')"><div id="new-cmp-logo-info" style="font-size:12px;color:var(--t3);margin-top:4px">Logo uploads into this new company folder.</div></div>'+
+      '<div class="ff"><label>Email</label><input id="new-cmp-email" placeholder="company email"></div>'+
+      '</div><div class="sy" style="margin-top:6px"><div>Current logged-in Super Admin will be automatically added to this new company users database.</div></div><button class="btn bp" onclick="createCompanyDb()">Create company database</button>';
+  }
+}
+
+function prepCompanyLogo(inp,mode){
+  const f=inp.files&&inp.files[0];
+  const info=document.getElementById(mode==='new'?'new-cmp-logo-info':'cmp-logo-info');
+  if(mode==='new')_newCompanyLogoFile=null; else _companyLogoFile=null;
+  if(!f){if(info)info.textContent='';return;}
+  if(!f.type.startsWith('image/')){if(info)info.innerHTML='<span style="color:var(--rd)">Only image logo is allowed.</span>'; inp.value=''; return;}
+  if(f.size>2*1024*1024){if(info)info.innerHTML='<span style="color:var(--rd)">Logo too large. Max 2MB.</span>'; inp.value=''; return;}
+  if(mode==='new')_newCompanyLogoFile=f; else _companyLogoFile=f;
+  const url=URL.createObjectURL(f);
+  if(info)info.innerHTML='✓ '+esc(f.name)+' ready. <img src="'+url+'" style="height:26px;width:auto;vertical-align:middle;margin-left:8px;border-radius:4px;border:1px solid var(--bd)">';
+}
+async function uploadCompanyLogo(companyId,file){
+  if(!file)return '';
+  const F=window.FB;
+  if(!F||!F.storage||!F.storageRef||!F.uploadBytes||!F.getDownloadURL)throw new Error('Firebase Storage is not ready. You can paste Logo URL instead.');
+  const safe=(file.name||'logo.png').replace(/[^a-zA-Z0-9._-]/g,'_');
+  const path='companies/'+companyId+'/company-logo/logo_'+Date.now()+'_'+safe;
+  const r=F.storageRef(F.storage,path);
+  await F.uploadBytes(r,file);
+  return await F.getDownloadURL(r);
+}
+async function saveCompanyProfile(){
+  const d={by:CU.name,name:document.getElementById('cmp-name')?.value.trim(),shortName:document.getElementById('cmp-short')?.value.trim(),logoUrl:document.getElementById('cmp-logo')?.value.trim(),email:document.getElementById('cmp-email')?.value.trim(),phone:document.getElementById('cmp-phone')?.value.trim(),website:document.getElementById('cmp-web')?.value.trim(),gst:document.getElementById('cmp-gst')?.value.trim(),address:document.getElementById('cmp-addr')?.value.trim()};
+  try{
+    if(_companyLogoFile){toast('Uploading logo...','in'); d.logoUrl=await uploadCompanyLogo(ACTIVE_COMPANY_ID,_companyLogoFile); const x=document.getElementById('cmp-logo'); if(x)x.value=d.logoUrl;}
+  }catch(e){toast(e.message||'Logo upload failed','er2');return;}
+  const r=await api('saveCompany',d);
+  if(r.ok===false){toast(r.error||'Could not save company','er2');return;}
+  ACTIVE_COMPANY=r.company||{...(ACTIVE_COMPANY||{}),...d,id:ACTIVE_COMPANY_ID};
+  await loadCompanyOptions(); const sel=document.getElementById('co'); if(sel)sel.value=ACTIVE_COMPANY_ID; applyCompanyBranding();
+  _companyLogoFile=null; const lf=document.getElementById('cmp-logo-file'); if(lf)lf.value=''; toast('Company details updated','ok');
+}
+async function createCompanyDb(){
+  const d={
+    by:CU.name,byName:CU.name,byEmail:CU.email,byRole:CU.role,byWA:CU.whatsapp||'',byDept:CU.department||'Management',
+    name:document.getElementById('new-cmp-name')?.value.trim(),
+    slug:document.getElementById('new-cmp-slug')?.value.trim(),
+    logoUrl:document.getElementById('new-cmp-logo')?.value.trim(),
+    email:document.getElementById('new-cmp-email')?.value.trim()
+  };
+  if(!d.name){toast('Enter new company name','er2');return;}
+  try{
+    if(_newCompanyLogoFile){toast('Uploading company logo...','in'); const newId=slugifyCompany(d.slug||d.name); d.logoUrl=await uploadCompanyLogo(newId,_newCompanyLogoFile); const x=document.getElementById('new-cmp-logo'); if(x)x.value=d.logoUrl;}
+  }catch(e){toast(e.message||'Logo upload failed','er2');return;}
+  const r=await api('addCompany',d);
+  if(r.ok===false){toast(r.error||'Could not create company','er2');return;}
+  await loadCompanyOptions();
+  toast(r.message||'Company database created separately. Same Super Admin login can access it.','ok');
+  ['new-cmp-name','new-cmp-slug','new-cmp-logo','new-cmp-email','new-cmp-logo-file'].forEach(id=>{const x=document.getElementById(id);if(x)x.value='';}); _newCompanyLogoFile=null;
+}
+
 // ── STAGE + DEPARTMENT EDITOR ──
 function renderStageEditor(){
   const tc=document.getElementById('techCard'); if(tc)tc.style.display=(CU&&CU.role==='superadmin')?'block':'none';
@@ -1444,6 +2194,7 @@ function normalizeStage(s){
   return {key:s.key,label:s.label||s.key,ic:s.ic||k.ic,color:s.color||k.color};
 }
 function applySettings(r){
+  if(r&&r.company){ACTIVE_COMPANY=r.company;applyCompanyBranding();}
   if(r&&r.stages&&r.stages.length){STAGES=r.stages.map(normalizeStage);}
   if(r&&r.departments&&r.departments.length){DEPTS=r.departments;}
   if(r&&r.tags&&r.tags.length){TAGS=r.tags;}
@@ -1534,21 +2285,27 @@ async function ldRep(){
 let _logsCache=null,_logsTime=0;
 async function ldLogs(force){
   const now=Date.now();
-  if(!force&&_logsCache&&(now-_logsTime)<120000){AL=_logsCache;_renderLogs();return;}
-  const r=await api('getLogs',{});
+  if(!force&&_logsCache&&(now-_logsTime)<120000){AL=_logsCache.logs||[];AWL=_logsCache.waLogs||[];_renderLogs();return;}
+  const [r,w]=await Promise.all([api('getLogs',{}),api('getWaLogs',{})]);
   AL=r.ok!==false?r.logs||[]:[];
-  _logsCache=AL;_logsTime=now;
+  AWL=w.ok!==false?w.waLogs||[]:[];
+  _logsCache={logs:AL,waLogs:AWL};_logsTime=now;
   _renderLogs();
 }
 function _renderLogs(){
-  const waL=AL.filter(l=>l.waSent==='Yes'||l.waSent==='Failed'||l.action.includes('WA')||l.action.includes('reminder')||l.action.includes('report'));
-  document.getElementById('waent').innerHTML=waL.length?waL.map(l=>`
-    <div class="we"><div class="wv">${l.user.split(' ').map(n=>n[0]).join('').slice(0,2)}</div>
-    <div class="wb"><div class="wn2">${l.user}<span style="font-size:11px;color:var(--t3);font-weight:400;margin-left:6px">${l.taskTitle||''}</span></div>
-    <div class="wg2">${l.action} — ${l.details||''}</div><div class="wti">${l.timestamp}</div></div>
-    <span class="ws ${l.waSent==='Yes'?'ws1':l.waSent==='Failed'?'ws3':'ws2'}">${l.waSent==='Yes'?'✓ Sent':l.waSent==='Failed'?'✗ Failed':'—'}</span></div>`
-  ).join(''):'<div style="padding:28px;text-align:center;color:var(--t3)">No WA logs yet</div>';
+  const waRows=(AWL||[]).slice(0,120);
+  document.getElementById('waent').innerHTML=waRows.length?waRows.map(l=>{
+    const st=l.status||l.deliveryStatus||'Queued';
+    const cls=st==='Sent'?'ws1':st==='Failed'?'ws3':'ws2';
+    const retry=(st==='Failed'||st==='Queued'||st==='Retrying')?'<button class="btn bg bs" style="margin-left:6px" onclick="retryWaLog(\''+l.id+'\')">Retry</button>':'';
+    return '<div class="we"><div class="wv">WA</div><div class="wb"><div class="wn2">'+esc(l.to||'No number')+'<span style="font-size:11px;color:var(--t3);font-weight:400;margin-left:6px">'+esc(l.template||'')+'</span></div><div class="wg2">'+esc(l.taskTitle||l.message||'')+'</div><div class="wti">'+esc(l.timestamp||'')+' • '+esc(l.deliveryStatus||st)+'</div></div><span class="ws '+cls+'">'+esc(st)+'</span>'+retry+'</div>';
+  }).join(''):'<div style="padding:28px;text-align:center;color:var(--t3)">No WA logs yet</div>';
   document.getElementById('ltbl').innerHTML=AL.length?AL.map(l=>`<tr><td><span class="tg">${l.timestamp}</span></td><td>${l.user}</td><td style="color:var(--t2)">${l.action}</td><td>${l.taskTitle||l.taskId||'—'}</td><td style="color:var(--t3);font-size:12px">${l.details||'—'}</td><td>${wb(l.waSent)}</td></tr>`).join(''):'<tr class="er"><td colspan="6">No logs yet</td></tr>';
+}
+async function retryWaLog(id){
+  if(!id)return;
+  const r=await api('retryWa',{logId:id,by:CU.name,byRole:CU.role});
+  if(r.ok!==false){toast('WhatsApp retry queued','ok');ldLogs(true);}else toast('Retry failed: '+(r.error||'error'),'er2');
 }
 
 let _mgrTasks=[];
@@ -1612,7 +2369,7 @@ async function ldTeam(){
 async function ldWT(){
   const r=await getBoot();
   if(r.ok===false){toast('Failed to load tasks','er2');return;}
-  let tasks=(r.allTasks||r.tasks||[]).filter(t=>t.assigneeName===CU.name);
+  let tasks=(r.allTasks||r.tasks||[]).filter(t=>(t.assigneeName||'').trim().toLowerCase()===(CU.name||'').trim().toLowerCase());
   if(WF==='pending')tasks=tasks.filter(t=>t.status==='Pending');
   if(WF==='prog')tasks=tasks.filter(t=>t.status==='In Progress');
   if(WF==='done')tasks=tasks.filter(t=>t.status==='Completed'||t.status==='Closed'||t.status==='Pending Approval');
@@ -1646,7 +2403,7 @@ function fmtDur(hrs){ const h=parseFloat(hrs); if(isNaN(h)||!isFinite(h)||h<0)re
 async function ldWP(){
   const r=await getBoot();
   if(r.ok===false)return;
-  const tasks=(r.allTasks||r.tasks||[]).filter(t=>t.assigneeName===CU.name);const done=tasks.filter(t=>t.status==='Completed');const ov=tasks.filter(t=>t.status==='Overdue');
+  const tasks=(r.allTasks||r.tasks||[]).filter(t=>(t.assigneeName||'').trim().toLowerCase()===(CU.name||'').trim().toLowerCase());const done=tasks.filter(t=>t.status==='Completed');const ov=tasks.filter(t=>t.status==='Overdue');
   const times=done.filter(t=>t.timeTaken&&!isNaN(parseFloat(t.timeTaken))).map(t=>parseFloat(t.timeTaken));
   const avg=times.length?(times.reduce((a,b)=>a+b,0)/times.length).toFixed(1):'-';
   const score=tasks.length?Math.round(done.length/tasks.length*100):0;
@@ -1725,7 +2482,7 @@ async function ldUpdates(){
   let events=[];
   try{
     const F=window.FB;
-    const snap=await F.getDocs(F.collection(F.db,'updates'));
+    const snap=await F.getDocs(cCol('updates'));
     const taskCreated={}; mine.forEach(t=>{taskCreated[t.id]=t.createdOn?new Date(t.createdOn).getTime():0;});
     snap.forEach(d=>{const u=d.data(); if(ids.includes(u.taskId)){ const ct=taskCreated[u.taskId]; if(!ct||!u.ts||u.ts>=ct-60000) events.push(u); }});
   }catch(e){}
@@ -1819,7 +2576,7 @@ async function openTM(id){
       '<button class="btn bp bs" style="margin-top:10px" onclick="saveReassign(\''+id+'\')">💾 Update assignee / manager</button></div>';
   }
   const ob=document.getElementById('ovr-btn'); if(ob)ob.style.display=((CU.role==='superadmin'||CU.role==='admin')&&!_closed)?'inline-flex':'none';
-  const db_=document.getElementById('delBtn'); if(db_)db_.style.display=(CU.role==='superadmin')?'inline-flex':'none';
+  const db_=document.getElementById('delBtn'); if(db_)db_.style.display=((CU.role==='superadmin'||CU.role==='admin')&&!_closed)?'inline-flex':'none';
   if(_closed){document.getElementById('mbdy').innerHTML+='<div style="margin-top:12px;background:rgba(43,221,134,.08);border:1px solid rgba(43,221,134,.25);border-radius:8px;padding:11px 13px;font-size:12.5px;color:var(--gr)">🔒 This ticket is closed and locked. You cannot change its status. To continue this work, please create a New ticket.</div>';}
   document.getElementById('tmod').classList.add('op');
 }
@@ -1840,14 +2597,14 @@ async function saveReassign(id){
   } else toast('Failed: '+(r.error||'error'),'er2');
 }
 async function deleteTicket(){
-  if(CU.role!=='superadmin'){toast('Only Super Admin can delete tickets','er2');return;}
+  if(!['admin','superadmin'].includes(CU.role)){toast('Only Admin/Super Admin can archive tickets','er2');return;}
   const id=window._mTask; if(!id)return;
-  if(!confirm('Permanently DELETE ticket '+id+'? This cannot be undone.'))return;
-  const reason=prompt('Reason for deletion (logged):')||'';
+  if(!confirm('Archive ticket '+id+'? It will be hidden from active dashboard but kept in database and logs.'))return;
+  const reason=prompt('Reason for archive (logged):')||'';
   cmod();
-  const r=await api('deleteTask',{taskId:id,by:CU.name,reason});
+  const r=await api('archiveTask',{taskId:id,by:CU.name,byRole:CU.role,reason});
   CACHE=null;
-  if(r.ok!==false){toast('Ticket '+id+' deleted','ok');
+  if(r.ok!==false){toast('Ticket '+id+' archived','ok');
     const cur=document.querySelector('.pg.ac')?.id;
     if(cur==='pg-dash')ldDash();else if(cur==='pg-closed')ldClosed();else if(cur==='pg-approvals')ldApprovals();else if(cur==='pg-asgn')ldMgr();else ldDash();
   } else toast('Failed: '+(r.error||'error'),'er2');
@@ -1907,7 +2664,7 @@ async function postComment(id){
     const info=document.getElementById('cmt-fileinfo'); if(info)info.innerHTML='⏳ Uploading...';
     try{
       const F=window.FB;
-      const path='comments/'+id+'_'+Date.now()+'_'+_cmtFile.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+      const path='companies/'+(ACTIVE_COMPANY_ID||'default')+'/comments/'+id+'_'+Date.now()+'_'+_cmtFile.name.replace(/[^a-zA-Z0-9._-]/g,'_');
       const rf=F.storageRef(F.storage,path);
       await F.uploadBytes(rf,_cmtFile);
       attachUrl=await F.getDownloadURL(rf); attachName=_cmtFile.name; attachType=_cmtFile.type;
@@ -2040,7 +2797,7 @@ function prepAttach(inp){
 async function uploadAttach(taskId){
   if(!_attachFile) return null;
   const F=window.FB;
-  const path='attachments/'+taskId+'_'+Date.now()+'_'+_attachFile.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+  const path='companies/'+(ACTIVE_COMPANY_ID||'default')+'/attachments/'+taskId+'_'+Date.now()+'_'+_attachFile.name.replace(/[^a-zA-Z0-9._-]/g,'_');
   const r=F.storageRef(F.storage,path);
   await F.uploadBytes(r,_attachFile);
   const url=await F.getDownloadURL(r);
@@ -2078,7 +2835,8 @@ async function sndrm(id){
   if (CU.role === 'employee') { toast('Access Denied: You cannot send reminders.', 'er2'); return; }
 
   const r=await api('sendReminder',{taskId:id,sentBy:CU.name});
-  toast(r.ok!==false&&r.waSent?'📲 Reminder sent via WA':'⚠️ Reminder triggered (WA may have failed)',r.ok!==false?'wa2':'in');
+  if(r.ok!==false && r.waSent){ toast('📲 Reminder sent to '+(r.to||'WhatsApp'),'wa2'); }
+  else { toast('⚠️ '+(r.error||'Reminder not sent'),'er2'); }
 }
 
 function wTab(el,t){WF=t;document.querySelectorAll('#wtabs .tab').forEach(x=>x.classList.remove('ac'));el.classList.add('ac');ldWT();}
@@ -2097,7 +2855,7 @@ async function expTasks(){
   if(!all.length){toast('No tasks to export','er2');return;}
   const rows=[['ID','Title','Assignee','Department','Priority','Deadline','Status','Created By','Created On','Completed On','Time (hrs)','Tags','Notes'],
     ...all.map(t=>[t.id,t.title,t.assigneeName,t.department,t.priority,t.deadline,t.status,t.createdBy,t.createdOn,t.completedOn||'',t.timeTaken||'',(t.tags||[]).join('; '),t.notes||''])];
-  dlCSV(rows,'kasera_tasks_'+new Date().toISOString().split('T')[0]+'.csv');
+  dlCSV(rows,(ACTIVE_COMPANY_ID||'company')+'_tasks_'+new Date().toISOString().split('T')[0]+'.csv');
   toast('Exported '+all.length+' tasks','ok');
 }
 function toast(m,t='in'){const el=document.createElement('div');el.className='to '+t;el.innerHTML=m;document.getElementById('tc').appendChild(el);setTimeout(()=>el.remove(),3500);}
@@ -2142,7 +2900,7 @@ async function addPerson(){
   const email=document.getElementById('u-email').value.trim();
   if(!name||!email){toast('Name and email required','er2');return;}
   const mgrSel=document.getElementById('u-mgr'),mgrOpt=mgrSel.options[mgrSel.selectedIndex];
-  const data={by:CU.name,name,email,whatsapp:document.getElementById('u-wa').value.trim(),
+  const data={by:CU.name,byRole:CU.role,name,email,whatsapp:document.getElementById('u-wa').value.trim(),
     password:document.getElementById('u-pass').value,role:document.getElementById('u-role').value,
     department:document.getElementById('u-dept').value,managerName:mgrSel.value,managerWA:mgrOpt?.dataset?.wa||''};
   window._busy=true;
