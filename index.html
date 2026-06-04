@@ -952,6 +952,26 @@ async function copyRootCollectionToCompany(colName,companyId){
   }
   return copied;
 }
+// Copy ONLY the root/legacy documents that are missing from the company path.
+// Never overwrites a document that already exists in the company list, so newer
+// company data is safe. This keeps everything consolidated in one place.
+async function syncMissingRootDocsToCompany(colName,companyId){
+  const F=window.FB; let copied=0;
+  try{
+    const have=new Set();
+    try{ const cur=await F.getDocs(companyCol(companyId,colName)); cur.forEach(d=>have.add(d.id)); }catch(e){}
+    const src=await F.getDocs(F.collection(F.db,colName));
+    if(!src || src.empty)return 0;
+    for(const d of src.docs){
+      const val=d.data()||{};
+      const targetId=(colName==='users'&&val.email)?emailKey(val.email):d.id;
+      if(have.has(targetId))continue; // already in company path — leave it untouched
+      await F.setDoc(companyDoc(companyId,colName,targetId),val,{merge:true});
+      copied++;
+    }
+  }catch(e){ console.warn('Sync skipped for '+colName+':',e.message||e); }
+  return copied;
+}
 async function ensureKaseraLegacyData(){
   if(ACTIVE_COMPANY_ID!=='kasera-industries')return {ok:true,migrated:false};
   if(_kaseraMigrationPromise)return _kaseraMigrationPromise;
@@ -961,18 +981,21 @@ async function ensureKaseraLegacyData(){
       await F.setDoc(F.doc(F.db,'companies','kasera-industries'),{
         name:'Kasera Industries',shortName:'Kasera',active:true,databasePath:'companies/kasera-industries',legacyCompany:true,updatedAt:Date.now()
       },{merge:true});
-      const ts=await F.getDocs(companyCol('kasera-industries','tasks'));
-      if(ts && !ts.empty){
-        await F.setDoc(companyDoc('kasera-industries','settings','legacyMigration'),{done:true,skipped:true,reason:'company tasks already migrated',updatedAt:Date.now()},{merge:true});
-        return {ok:true,migrated:false,reason:'already has company task data'};
-      }
+      // First-time setup only: if the company has no users yet, do the initial copy.
+      let firstRun=true;
+      try{ const cu=await F.getDocs(companyCol('kasera-industries','users')); firstRun=cu.empty; }catch(e){}
       let total=0;
-      // Users are copied to deterministic document IDs using the email address. This is required by Firestore rules.
-      for(const col of ['users','tasks','logs','updates','settings']){
-        total+=await copyRootCollectionToCompany(col,'kasera-industries');
+      if(firstRun){
+        for(const col of ['users','settings']){ total+=await copyRootCollectionToCompany(col,'kasera-industries'); }
       }
-      await F.setDoc(companyDoc('kasera-industries','settings','legacyMigration'),{done:true,copied:total,completedAt:Date.now()},{merge:true});
-      if(total>0)console.info('Kasera legacy data migrated into companies/kasera-industries:',total);
+      // ALWAYS pull in any tasks/logs/updates that still live in the old root list
+      // but are missing here, so everything ends up in ONE place. Existing company
+      // documents are never overwritten.
+      for(const col of ['tasks','logs','updates']){
+        total+=await syncMissingRootDocsToCompany(col,'kasera-industries');
+      }
+      await F.setDoc(companyDoc('kasera-industries','settings','legacyMigration'),{done:true,lastSync:total,completedAt:Date.now()},{merge:true});
+      if(total>0)console.info('Synced legacy/root docs into companies/kasera-industries:',total);
       return {ok:true,migrated:total>0,copied:total};
     }catch(e){
       console.warn('Kasera legacy migration failed:',e.message||e);
@@ -1244,6 +1267,9 @@ async function api(action,data){
           try{await F.signOut(F.auth);}catch(e){}
           return {ok:false,error:'This account is archived. Contact your admin.'};
         }
+        // Record last login on the user's profile in the database.
+        try{ await F.setDoc(cDoc('users',emailKey(user.email||emailIn)),{lastLogin:new Date().toLocaleString(),lastLoginAt:Date.now()},{merge:true}); }
+        catch(e){ console.warn('lastLogin update skipped:',e.message||e); }
 
         // Now companyUser() is true in rules, so list company users and migrate Kasera old data if needed.
         if(ACTIVE_COMPANY_ID==='kasera-industries'){ await ensureKaseraLegacyData(); }
@@ -1883,6 +1909,7 @@ async function loginGoogle(){
       return;
     }
     if(user.archived){ await F.signOut(F.auth); aerr('This account is archived. Contact your admin.'); if(btn){btn.disabled=false;btn.textContent='Sign in with Google';} return; }
+    try{ await F.setDoc(cDoc('users',emailKey(user.email||email)),{lastLogin:new Date().toLocaleString(),lastLoginAt:Date.now()},{merge:true}); }catch(e){}
     CU={name:user.name,email:user.email,whatsapp:user.whatsapp,role:normRoleJS(user.role),department:user.department,managerName:user.managerName,managerWA:user.managerWA,companyId:ACTIVE_COMPANY_ID,companyName:(ACTIVE_COMPANY&&ACTIVE_COMPANY.name)||''};
     try{localStorage.setItem('kasera_session',JSON.stringify({user:CU,companyId:ACTIVE_COMPANY_ID,company:ACTIVE_COMPANY,exp:Date.now()+43200000}));}catch(e){}
     const boot=await buildBoot(CU);
