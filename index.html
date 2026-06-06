@@ -439,11 +439,49 @@ tr:hover td{background:rgba(37,99,235,.04);}
   .co-switch{margin-right:6px;gap:5px;}
   .co-switch-lb{display:none;}
   .co-switch select{max-width:42vw;padding:7px 9px;}
+}
 @media (max-width:480px){
   .sg{grid-template-columns:1fr 1fr;}
   .sv{font-size:26px!important;}
   .tt{font-size:16px;}
   .kbc{min-width:86vw;}
+}
+
+/* ═══ MOBILE: TABLES → CLEAN CARDS (Requirement #15) ═══ */
+/* On phones, every data table turns into a stack of cards. Each cell shows
+   its column name (from the table header) on the left and the value on the
+   right. Works for all tables automatically via the data-label attribute
+   added by labelizeTables(). */
+@media (max-width:760px){
+  .tw{overflow:visible;border:0;background:transparent;}
+  .tw table{min-width:0!important;width:100%;border:0;border-collapse:collapse;}
+  .tw thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);} /* hide header row visually */
+  .tw tbody{display:block;}
+  .tw tbody tr{
+    display:block;background:var(--s1);border:1px solid var(--bd);
+    border-radius:13px;padding:11px 14px;margin-bottom:11px;box-shadow:var(--sh1);
+  }
+  .tw tbody tr:hover{background:var(--s1);}
+  .tw tbody td{
+    display:flex;justify-content:space-between;align-items:center;gap:14px;
+    padding:7px 0;border:0;text-align:right;font-size:13.5px;
+    border-bottom:1px solid var(--bd);
+  }
+  .tw tbody td:last-child{border-bottom:0;}
+  .tw tbody td::before{
+    content:attr(data-label);flex:0 0 auto;text-align:left;
+    font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;
+    color:var(--t3);font-weight:600;white-space:nowrap;
+  }
+  /* First column (usually the task/name) reads like a card title */
+  .tw tbody td:first-child{
+    font-size:15px;font-weight:600;color:var(--t);
+    border-bottom:1px solid var(--bd2);padding-bottom:9px;margin-bottom:2px;
+  }
+  .tw tbody td:first-child::before{display:none;}
+  /* Action buttons stack neatly and stay easy to tap */
+  .tw tbody td .btn{padding:9px 13px;font-size:13px;}
+  .tw tbody td:last-child{flex-wrap:wrap;justify-content:flex-end;gap:7px;}
 }
 
 
@@ -2216,6 +2254,36 @@ async function switchCompany(id){
   toast('Now viewing '+((ACTIVE_COMPANY&&ACTIVE_COMPANY.name)||ACTIVE_COMPANY_ID),'ok');
 }
 
+// ── MOBILE CARDS HELPER (Requirement #15) ───────────────────────────
+// Copies each table's column headers onto its body cells as data-label,
+// so the responsive CSS can render "Label: value" cards on phones.
+// Runs automatically whenever any table re-renders (via an observer).
+function labelizeTables(root){
+  const scope=root||document.querySelector('main.mn')||document;
+  scope.querySelectorAll('.tw table').forEach(tbl=>{
+    const heads=[...tbl.querySelectorAll('thead tr')]
+      .filter(tr=>!tr.classList.contains('filter-row'))[0];
+    if(!heads)return;
+    const labels=[...heads.children].map(th=>th.textContent.trim());
+    if(!labels.length)return;
+    tbl.querySelectorAll('tbody tr').forEach(tr=>{
+      [...tr.children].forEach((td,i)=>{
+        if(labels[i]!==undefined && !td.hasAttribute('data-label')){
+          td.setAttribute('data-label',labels[i]);
+        }
+      });
+    });
+  });
+}
+let _labelizeTimer=null;
+function setupTableLabelizer(){
+  const main=document.querySelector('main.mn'); if(!main||main._labelObs)return;
+  const obs=new MutationObserver(()=>{ clearTimeout(_labelizeTimer); _labelizeTimer=setTimeout(()=>labelizeTables(),120); });
+  obs.observe(main,{childList:true,subtree:true});
+  main._labelObs=obs;
+  labelizeTables();
+}
+
 function startApp(){
   CU.role=normRole(CU.role);
   applyCompanyBranding();
@@ -2223,6 +2291,7 @@ function startApp(){
   document.getElementById('app').style.display='flex';
   loadStages(); setupSB(); loadUsers(); setTimeout(refreshDeptDropdowns,300);
   buildCompanySwitcher(); // Requirement #2: show switcher if user has >1 company
+  setupTableLabelizer(); // Requirement #15: turn tables into cards on mobile
   const home=(CU.role==='superadmin'||CU.role==='admin')?'dash':CU.role==='supervisor'?'asgn':'wtask';
   sp2f(home);
   toast('Welcome, '+CU.name.split(' ')[0]+' \uD83D\uDC4B','ok');
