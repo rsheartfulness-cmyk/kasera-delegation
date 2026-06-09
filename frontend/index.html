@@ -6,53 +6,7 @@
 <title>Kasera Industries — Delegation</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500&family=DM+Mono:wght@400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/styles.css">
-
-<!-- Firebase SDK -->
-<script type="module">
-  import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getFirestore, collection, getDocs, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-  import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyA1dc3sNuyJo9BK5JguaevvY5nSQdsSvZk",
-    authDomain: "kasera-delegation.firebaseapp.com",
-    projectId: "kasera-delegation",
-    storageBucket: "kasera-delegation.firebasestorage.app",
-    messagingSenderId: "117646348596",
-    appId: "1:117646348596:web:07a7eaf7e1cdb32a0e5561"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  const auth = getAuth(app);
-  const storage = getStorage(app);
-
-  // Expose Firestore helpers globally so the main (non-module) script can use them
-  window.FB = {
-    db, auth, storage, collection, getDocs, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc,
-    query, where, orderBy, serverTimestamp, writeBatch,
-    signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup,
-    storageRef, uploadBytes, getDownloadURL, deleteObject
-  };
-
-  // Create a new login WITHOUT signing the current admin out.
-  // createUserWithEmailAndPassword always signs in as the NEW user on the app it
-  // runs on, so we run it on a throwaway secondary app and then discard it.
-  window.FB.createSecondaryUser = async function(email, password){
-    const secApp = initializeApp(firebaseConfig, 'secondary-' + Date.now());
-    try{
-      const secAuth = getAuth(secApp);
-      await createUserWithEmailAndPassword(secAuth, email, password);
-      try{ await signOut(secAuth); }catch(e){}
-    } finally {
-      try{ await deleteApp(secApp); }catch(e){}
-    }
-  };
-
-  window.dispatchEvent(new Event('fb-ready'));
-</script>
-
+<script type="module" src="js/firebase.js"></script>
 </head>
 <body>
 
