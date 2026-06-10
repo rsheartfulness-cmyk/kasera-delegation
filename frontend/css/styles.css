@@ -269,9 +269,9 @@ table tr{transition:background .1s;}
 .fcol:focus{border-color:var(--ac);}
 .fcol::placeholder{color:var(--t3);}
 
-/* ═══ PREMIUM POLISH ═══ */
+/* â•â•â• PREMIUM POLISH â•â•â• */
 
-/* LOGIN — glassy card, animated gradient orb, refined */
+/* LOGIN â€” glassy card, animated gradient orb, refined */
 #ls{overflow:hidden;}
 .lc{background:rgba(255,255,255,0.96);backdrop-filter:blur(20px);border:1px solid var(--bd);box-shadow:var(--sh3);border-radius:22px;position:relative;overflow:hidden;}
 .lc::before{content:"";position:absolute;top:-50%;right:-30%;width:300px;height:300px;background:radial-gradient(circle,var(--glow),transparent 70%);opacity:0.5;animation:float 8s ease-in-out infinite;pointer-events:none;}
@@ -286,7 +286,7 @@ table tr{transition:background .1s;}
 .sb::after{content:"";position:absolute;inset:0;background:var(--grad-sheen);}
 .sb:hover{transform:translateY(-1px);box-shadow:0 6px 22px var(--glow);}
 
-/* SIDEBAR — depth + active glow */
+/* SIDEBAR â€” depth + active glow */
 .sb2{background:#fff;box-shadow:1px 0 0 var(--bd),var(--sh1);}
 .sm{background:var(--grad);box-shadow:0 2px 10px var(--glow);}
 .ni{font-weight:450;letter-spacing:-0.1px;}
@@ -294,30 +294,30 @@ table tr{transition:background .1s;}
 .ni.ac::before{box-shadow:0 0 8px var(--ac);}
 .uc{background:var(--s2);border:1px solid var(--bd);box-shadow:var(--sh1);}
 
-/* TOPBAR — frosted */
+/* TOPBAR â€” frosted */
 .tb{background:rgba(244,246,251,0.85);backdrop-filter:blur(16px) saturate(140%);box-shadow:0 1px 0 var(--bd);}
 .tt{background:linear-gradient(135deg,#1a2236,#3b5bdb);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-0.4px;}
 
-/* STAT CARDS — glassy with sheen + hover lift */
+/* STAT CARDS â€” glassy with sheen + hover lift */
 .sc{background:#fff;border:1px solid var(--bd);box-shadow:var(--sh1);position:relative;overflow:hidden;border-radius:var(--r);}
 .sc::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--grad);opacity:0.8;}
 .sc:hover{transform:translateY(-3px);box-shadow:var(--sh2);border-color:var(--bd2);}
 .sv{background:linear-gradient(160deg,#1a2236,#2563eb);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-1.5px;}
 
-/* TABLES — refined, subtle row hover, sticky polished header */
+/* TABLES â€” refined, subtle row hover, sticky polished header */
 .tw{background:#fff;border:1px solid var(--bd);box-shadow:var(--sh2);border-radius:var(--r);overflow:hidden;}
 th{background:var(--s2);font-weight:600;color:var(--t3);letter-spacing:0.5px;}
 td{border-color:var(--bd);}
 tr:hover td{background:rgba(37,99,235,.04);}
 .av,.kca,.wv,.ua{background:var(--grad)!important;color:#fff!important;box-shadow:0 2px 6px rgba(0,0,0,0.2);}
 
-/* BADGES — softer pill with glow */
+/* BADGES â€” softer pill with glow */
 .bd3{font-weight:600;letter-spacing:0.1px;backdrop-filter:blur(4px);}
 .pi{box-shadow:0 0 0 1px rgba(109,141,255,0.1);}
 .pc{box-shadow:0 0 12px rgba(52,216,148,0.12);}
 .po{box-shadow:0 0 12px rgba(255,94,108,0.12);}
 
-/* BUTTONS — premium depth */
+/* BUTTONS â€” premium depth */
 .btn{font-weight:550;letter-spacing:-0.1px;border-radius:var(--rs);}
 .bp{background:var(--grad);box-shadow:0 2px 10px var(--glow);position:relative;overflow:hidden;}
 .bp::after{content:"";position:absolute;inset:0;background:var(--grad-sheen);pointer-events:none;}
@@ -325,7 +325,7 @@ tr:hover td{background:rgba(37,99,235,.04);}
 .bg{background:var(--s1);border:1px solid var(--bd2);}
 .bg:hover{background:var(--s3);border-color:var(--bd3);}
 
-/* KANBAN — glassy columns, premium cards, smooth drag */
+/* KANBAN â€” glassy columns, premium cards, smooth drag */
 .kbc{background:var(--s2);border:1px solid var(--bd);box-shadow:var(--sh2);border-radius:var(--r);}
 .kbh{background:var(--s2);}
 .kbt{letter-spacing:-0.2px;}
@@ -336,7 +336,7 @@ tr:hover td{background:rgba(37,99,235,.04);}
 .kbb.drag{background:rgba(109,141,255,0.07);outline:2px dashed rgba(109,141,255,0.4);border-radius:0 0 var(--r) var(--r);}
 .kca{font-weight:700;}
 
-/* STEPPER — glowing active */
+/* STEPPER â€” glowing active */
 .stp-item.active .stp-dot{box-shadow:0 0 0 4px var(--glow),0 2px 8px var(--glow);}
 .stp-item.done .stp-dot{box-shadow:0 2px 8px rgba(52,216,148,0.3);}
 
@@ -346,7 +346,7 @@ tr:hover td{background:rgba(37,99,235,.04);}
 .ff input,.ff select,.ff textarea{background:var(--s2);transition:all .18s;}
 .ff input:focus,.ff select:focus,.ff textarea:focus{box-shadow:0 0 0 3px var(--glow);background:#fff;border-color:var(--ac);}
 
-/* MODAL — deep premium */
+/* MODAL â€” deep premium */
 .md{background:#fff;border:1px solid var(--bd2);box-shadow:var(--sh3),inset 0 1px 0 rgba(255,255,255,0.05);border-radius:18px;}
 .mo{background:rgba(26,34,54,0.4);backdrop-filter:blur(6px);}
 .mtt{letter-spacing:-0.3px;}
@@ -364,7 +364,7 @@ tr:hover td{background:rgba(37,99,235,.04);}
 ::-webkit-scrollbar-thumb{background:#c7d0e0;border-radius:8px;border:2px solid var(--bg);}
 ::-webkit-scrollbar-thumb:hover{background:#a9b5cc;}
 
-/* PAGE ENTRANCE — staggered */
+/* PAGE ENTRANCE â€” staggered */
 .pg.ac .sc{animation:rise .4s cubic-bezier(.2,.8,.2,1) backwards;}
 .pg.ac .sc:nth-child(1){animation-delay:.02s;}
 .pg.ac .sc:nth-child(2){animation-delay:.06s;}
@@ -379,17 +379,17 @@ tr:hover td{background:rgba(37,99,235,.04);}
 .tc,.tg{background:var(--s3);border-color:var(--bd);color:var(--t2);}
 
 
-/* ═══ TAG BOX STYLING (#2) ═══ */
+/* â•â•â• TAG BOX STYLING (#2) â•â•â• */
 .tagbox{background:var(--s2);border:1px solid var(--bd2);border-radius:9px;padding:11px;min-height:46px;display:flex;flex-wrap:wrap;gap:7px;align-items:center;}
 .tagchip{cursor:pointer;user-select:none;font-size:12px;padding:6px 12px;border-radius:20px;border:1px solid var(--bd2);background:#fff;color:var(--t2);transition:all .15s;white-space:nowrap;}
 .tagchip:hover{border-color:var(--ac);}
 .tagchip.on{background:var(--ac);color:#fff;border-color:var(--ac);box-shadow:0 2px 6px var(--glow);}
 
-/* ═══ HAMBURGER (hidden on desktop) ═══ */
+/* â•â•â• HAMBURGER (hidden on desktop) â•â•â• */
 .hbg{display:none;background:none;border:none;font-size:22px;color:var(--t);cursor:pointer;padding:4px 10px 4px 0;line-height:1;}
 .sb-backdrop{display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:40;backdrop-filter:blur(2px);}
 
-/* ═══ MOBILE RESPONSIVE (#1) ═══ */
+/* â•â•â• MOBILE RESPONSIVE (#1) â•â•â• */
 @media (max-width:860px){
   .hbg{display:block;}
   .sb2{position:fixed;left:0;top:0;height:100vh;z-index:50;transform:translateX(-100%);transition:transform .25s cubic-bezier(.4,0,.2,1);box-shadow:var(--sh3);}
@@ -438,7 +438,7 @@ tr:hover td{background:rgba(37,99,235,.04);}
   .kbc{min-width:86vw;}
 }
 
-/* ═══ MOBILE: TABLES → CLEAN CARDS (Requirement #15) ═══ */
+/* â•â•â• MOBILE: TABLES â†’ CLEAN CARDS (Requirement #15) â•â•â• */
 /* On phones, every data table turns into a stack of cards. Each cell shows
    its column name (from the table header) on the left and the value on the
    right. Works for all tables automatically via the data-label attribute
@@ -476,7 +476,7 @@ tr:hover td{background:rgba(37,99,235,.04);}
 }
 
 
-/* ═══ LOGIN SCREEN ENHANCEMENTS ═══ */
+/* â•â•â• LOGIN SCREEN ENHANCEMENTS â•â•â• */
 #ls{
   background:
     linear-gradient(135deg,rgba(37,99,235,0.07),rgba(59,130,246,0.04)),
@@ -503,7 +503,7 @@ tr:hover td{background:rgba(37,99,235,.04);}
 }
 
 
-/* ═══ DASHBOARD COLOR CARDS (#5) ═══ */
+/* â•â•â• DASHBOARD COLOR CARDS (#5) â•â•â• */
 .sg{grid-template-columns:repeat(auto-fit,minmax(155px,1fr));}
 .card-total::before{background:var(--ac)!important;}
 .card-pending::before{background:#f59e0b!important;}
@@ -533,7 +533,6 @@ input,select,textarea{max-width:100%;box-sizing:border-box;}
 .login-divider{display:flex;align-items:center;gap:12px;margin:16px 0;color:var(--t3);font-size:12px;}
 .login-divider::before,.login-divider::after{content:"";flex:1;height:1px;background:var(--bd);}
 
-</style>
 /* New SaaS-style login screen */
 #ls{
   display:block;
@@ -967,4 +966,123 @@ input,select,textarea{max-width:100%;box-sizing:border-box;}
     max-height:92vh;
     overflow:auto;
   }
+}
+
+/* FINAL FIX: new login page must override old login-card CSS */
+#ls{
+  display:block !important;
+  align-items:unset !important;
+  justify-content:unset !important;
+  min-height:100vh !important;
+  width:100% !important;
+  padding:0 !important;
+  background:#fff !important;
+  overflow:auto !important;
+}
+
+#ls .login-top-strip,
+#ls .login-nav-wrap,
+#ls .login-nav,
+#ls .login-hero{
+  box-sizing:border-box !important;
+}
+
+#ls .login-top-strip{
+  display:block !important;
+  width:100% !important;
+  height:82px !important;
+  background:linear-gradient(135deg,#6927d8,#7f35e8) !important;
+}
+
+#ls .login-nav-wrap{
+  display:block !important;
+  width:min(1680px,calc(100% - 48px)) !important;
+  margin:-58px auto 0 !important;
+  position:relative !important;
+  z-index:2 !important;
+}
+
+#ls .login-nav{
+  width:100% !important;
+  min-height:120px !important;
+  display:flex !important;
+  align-items:center !important;
+  gap:30px !important;
+  padding:20px 24px !important;
+  background:#fff !important;
+  border-radius:30px 30px 0 0 !important;
+  box-shadow:0 10px 26px rgba(16,24,40,.12) !important;
+}
+
+#ls .login-hero{
+  width:100% !important;
+  min-height:calc(100vh - 144px) !important;
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+  justify-content:center !important;
+  text-align:center !important;
+  padding:78px 20px 90px !important;
+  position:relative !important;
+  left:auto !important;
+  right:auto !important;
+  top:auto !important;
+  transform:none !important;
+}
+
+#ls .login-hero h1{
+  max-width:980px !important;
+  font-size:62px !important;
+  line-height:1.18 !important;
+  letter-spacing:-2.5px !important;
+  font-weight:900 !important;
+  color:#050b2c !important;
+  margin:0 !important;
+}
+
+#ls .login-hero h1 span{
+  display:block !important;
+  background:linear-gradient(90deg,#ff8a1f 0%,#ff4d4d 100%) !important;
+  -webkit-background-clip:text !important;
+  background-clip:text !important;
+  color:transparent !important;
+}
+
+#ls .login-hero p{
+  max-width:900px !important;
+  margin:30px auto 0 !important;
+  color:#34405f !important;
+  font-size:26px !important;
+  line-height:1.55 !important;
+  font-weight:500 !important;
+}
+
+#ls .login-modal{
+  z-index:99999 !important;
+}
+
+@media(max-width:900px){
+  #ls .login-top-strip{height:24px !important;}
+  #ls .login-nav-wrap{width:100% !important;margin:0 !important;}
+  #ls .login-nav{
+    min-height:124px !important;
+    border-radius:0 !important;
+    box-shadow:none !important;
+    border-bottom:16px solid #7434d8 !important;
+    padding:24px 28px !important;
+    justify-content:space-between !important;
+  }
+  #ls .login-brand{padding:0 !important;box-shadow:none !important;background:transparent !important;}
+  #ls .login-brand-name{font-size:34px !important;}
+  #ls .login-brand-sub,
+  #ls .login-nav-links,
+  #ls .login-nav-actions{display:none !important;}
+  #ls .login-menu{display:block !important;}
+  #ls .login-hero{min-height:auto !important;padding:48px 26px 64px !important;}
+  #ls .login-hero h1{font-size:48px !important;line-height:1.16 !important;letter-spacing:-1.6px !important;}
+  #ls .login-hero p{font-size:25px !important;line-height:1.55 !important;margin-top:26px !important;}
+  #ls .login-hero-actions{display:block !important;margin-top:56px !important;}
+  #ls .login-hero-actions button{width:100% !important;margin-bottom:12px !important;font-size:20px !important;}
+  #ls .login-modal{align-items:flex-end !important;padding:0 !important;}
+  #ls .login-modal-card{border-radius:24px 24px 0 0 !important;max-height:92vh !important;overflow:auto !important;}
 }
