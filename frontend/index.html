@@ -11,41 +11,113 @@
 <body>
 
 <div id="ls">
-  <div class="lc">
-    <div class="ll">
-      <!-- LOGO: replace the src below with your logo URL, or keep the icon fallback -->
-      <img id="kicLogo" src="logo.png" alt="Kasera Industries" onerror="this.style.display='none';document.getElementById('logoFallback').style.display='flex';" style="height:54px;width:auto;max-width:180px;object-fit:contain;margin:0 auto 4px">
-      <div id="logoFallback" class="lm" style="display:none">🏭</div>
+  <div class="login-top-strip"></div>
+
+  <div class="login-nav-wrap">
+    <header class="login-nav">
+      <div class="login-brand">
+        <div class="login-brand-mark">DT</div>
+        <div>
+          <div class="login-brand-name">Delegation</div>
+          <div class="login-brand-sub">Task Manager</div>
+        </div>
+      </div>
+
+      <nav class="login-nav-links">
+        <span>Dashboard</span>
+        <span>Tasks</span>
+        <span>Approvals</span>
+        <span>Reports</span>
+        <span>Company</span>
+      </nav>
+
+      <div class="login-nav-actions">
+        <button class="login-btn-nav" onclick="openLoginModal()">Login</button>
+        <button class="login-btn-admin">Contact Admin</button>
+      </div>
+
+      <button class="login-menu" onclick="openLoginModal()">☰</button>
+    </header>
+  </div>
+
+  <main class="login-hero">
+    <h1>
+      Manage Your Company Work with
+      <span>Clear Task Delegation</span>
+    </h1>
+
+    <p>
+      Assign tasks, track deadlines, approve completed work, and review team performance with a secure company portal.
+    </p>
+
+    <div class="login-chips">
+      <div class="login-chip">✓ Role based access</div>
+      <div class="login-chip active">✓ Fast task tracking</div>
+      <div class="login-chip">✓ WhatsApp updates</div>
     </div>
-    <div class="lt">Kasera Task Manager</div>
-    <div class="ls3">Daily work tracking system for Kasera Industries. Manage tasks, deadlines, approvals, WhatsApp updates, and team performance from one secure portal.</div>
-    <div style="font-size:12.5px;color:var(--t3);margin-bottom:18px">Select company first. Login opens only that company database.</div>
-    <div id="gok" class="am" style="display:none;"></div>
-    <div id="aer" class="am ae"></div>
-    <div class="fi"><label>Company *</label><select id="co" onchange="onCompanyPick()" style="width:100%;background:var(--s2);border:1px solid var(--bd2);border-radius:11px;padding:14px 15px;color:var(--t);font-family:var(--fn);font-size:16px;outline:none;min-height:52px"><option value="">Select company database</option><option value="kasera-industries">Kasera Industries</option></select><script>(function(){function seed(){try{var s=document.getElementById('co');if(!s)return;if(!s.innerHTML||s.innerHTML.indexOf('Loading companies')>-1){s.innerHTML='<option value="">Select company database</option><option value="kasera-industries">Kasera Industries</option>';}}catch(e){}}seed();setTimeout(seed,200);setTimeout(seed,1200);})();</script></div>
-    <div class="fi"><label>Email</label><input type="email" id="em" placeholder="you@company.com" autocomplete="email" onkeydown="if(event.key==='Enter')doL()"></div>
-    <div class="fi"><label>Password</label>
-      <div style="position:relative">
-        <input type="password" id="pw" placeholder="Enter your password" autocomplete="current-password" style="padding-right:46px" onkeydown="if(event.key==='Enter')doL()">
-        <button type="button" id="pweye" onclick="togglePw()" aria-label="Show password" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:18px;padding:4px;line-height:1;color:var(--t3)">👁</button>
+
+    <div class="login-hero-actions">
+      <button onclick="openLoginModal()">Login to Portal</button>
+      <button type="button">View Reports →</button>
+    </div>
+  </main>
+
+  <div class="login-modal" id="loginModal" onclick="if(event.target.id==='loginModal')closeLoginModal()">
+    <div class="login-modal-card">
+      <div class="login-modal-head">
+        <div>
+          <h2>Login</h2>
+          <p>Select your company and sign in.</p>
+        </div>
+        <button onclick="closeLoginModal()">Close</button>
+      </div>
+
+      <div id="gok" class="am" style="display:none;"></div>
+      <div id="aer" class="am ae"></div>
+
+      <div class="fi">
+        <label>Company *</label>
+        <select id="co" onchange="onCompanyPick()">
+          <option value="">Select company database</option>
+          <option value="kasera-industries">Kasera Industries</option>
+        </select>
+        <script>(function(){function seed(){try{var s=document.getElementById('co');if(!s)return;if(!s.innerHTML||s.innerHTML.indexOf('Loading companies')>-1){s.innerHTML='<option value="">Select company database</option><option value="kasera-industries">Kasera Industries</option>';}}catch(e){}}seed();setTimeout(seed,200);setTimeout(seed,1200);})();</script>
+      </div>
+
+      <div class="fi">
+        <label>Email</label>
+        <input type="email" id="em" placeholder="you@company.com" autocomplete="email" onkeydown="if(event.key==='Enter')doL()">
+      </div>
+
+      <div class="fi">
+        <label>Password</label>
+        <div class="login-password">
+          <input type="password" id="pw" placeholder="Enter your password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doL()">
+          <button type="button" id="pweye" onclick="togglePw()" aria-label="Show password">Show</button>
+        </div>
+      </div>
+
+      <button class="login-submit" onclick="doL()">Login</button>
+
+      <div class="login-divider"><span>or</span></div>
+
+      <button class="login-google" onclick="loginGoogle()">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-3.47 6.16-4.53z"/>
+        </svg>
+        Sign in with Google
+      </button>
+
+      <div class="login-links">
+        <a href="#" onclick="forgotPw();return false;">Forgot password?</a>
+        <span>Need access? Contact Admin</span>
       </div>
     </div>
-    <button class="sb" onclick="doL()">Login to Dashboard →</button>
-    <div class="login-divider"><span>or</span></div>
-    <button class="gbtn" onclick="loginGoogle()">
-      <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-      Sign in with Google
-    </button>
-    <div style="text-align:center;margin-top:14px"><a href="#" onclick="forgotPw();return false;" style="font-size:13px;color:var(--ac);text-decoration:none">Forgot password?</a></div>
-    <div class="login-note">
-      <div style="font-weight:600;color:var(--t2);margin-bottom:3px">🔒 For internal team use only</div>
-      Login with your registered company email.
-    </div>
-    <div class="login-contact">Need login access? <strong>Contact Admin</strong></div>
-    <div style="text-align:center;margin-top:16px;padding-top:14px;border-top:1px solid var(--bd);font-size:11px;color:var(--t3)">© Kasera Industries | Internal Use Only</div>
   </div>
 </div>
-
 <div id="app">
   <div class="sb-backdrop" id="sbBackdrop" onclick="toggleSidebar()"></div>
   <nav class="sb2" id="sidebar">
