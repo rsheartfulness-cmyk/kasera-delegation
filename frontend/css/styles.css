@@ -285,3 +285,65 @@
     grid-template-columns:1fr !important;
   }
 }
+
+
+
+/* FORCE DASHBOARD CARDS FINAL */
+#dstats {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(160px, 1fr)) !important;
+  gap: 14px !important;
+  margin-bottom: 24px !important;
+}
+
+#dstats > div {
+  display: block !important;
+  background: #ffffff !important;
+  border: 1px solid #e7eaf2 !important;
+  border-top: 4px solid #6d2ee8 !important;
+  border-radius: 16px !important;
+  padding: 18px !important;
+  min-height: 110px !important;
+  box-shadow: 0 14px 34px rgba(7,13,47,.07) !important;
+}
+
+#dstats > div:nth-child(2) { border-top-color: #ff8a1d !important; }
+#dstats > div:nth-child(3) { border-top-color: #6d2ee8 !important; }
+#dstats > div:nth-child(4) { border-top-color: #19c37d !important; }
+#dstats > div:nth-child(5) { border-top-color: #ff4d6d !important; }
+#dstats > div:nth-child(6) { border-top-color: #7c3aed !important; }
+#dstats > div:nth-child(7) { border-top-color: #ff5b3a !important; }
+#dstats > div:nth-child(8) { border-top-color: #22a6b3 !important; }
+
+#dstats > div > div:first-child {
+  font-size: 11px !important;
+  text-transform: uppercase !important;
+  letter-spacing: .06em !important;
+  color: #8a94aa !important;
+  font-weight: 800 !important;
+  margin-bottom: 12px !important;
+}
+
+#dstats > div > div:nth-child(2) {
+  font-size: 30px !important;
+  line-height: 1 !important;
+  font-weight: 900 !important;
+}
+
+#dstats > div > div:nth-child(3) {
+  margin-top: 8px !important;
+  font-size: 12px !important;
+  color: #64708a !important;
+}
+
+@media(max-width:900px){
+  #dstats {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media(max-width:640px){
+  #dstats {
+    grid-template-columns: 1fr !important;
+  }
+}
