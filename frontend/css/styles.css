@@ -1006,3 +1006,23 @@ input,select,textarea{max-width:100%;box-sizing:border-box;}
 #ls[style*="display: none"]{display:none !important;}
 #app[style*="display: flex"]{display:flex !important;min-height:100vh;}
 #app{align-items:stretch;}
+
+
+
+/* FINAL DISPLAY FIX */
+#app {
+  display: none !important;
+}
+
+#ls {
+  display: block !important;
+}
+
+#ls[style*="display: none"] {
+  display: none !important;
+}
+
+#app[style*="display: flex"] {
+  display: flex !important;
+  min-height: 100vh;
+}
