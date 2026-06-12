@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kasera Industries â€” Delegation</title>
+<title>Kasera Industries - Delegation Portal</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500&family=DM+Mono:wght@400&display=swap" rel="stylesheet">
 
 <style>
@@ -753,6 +753,34 @@ tr:hover td{background:#fff7f3!important;}
   .login-modal{align-items:flex-end;padding:0;}
   .login-panel{border-radius:24px 24px 0 0;width:100%;max-height:92vh;overflow:auto;padding:24px;}
 }
+
+/* V3 CLEAN LOGO + ICON SYSTEM */
+.portal-mark,.sm{font-size:14px!important;letter-spacing:.02em!important;}
+.nx{width:28px!important;height:28px!important;border-radius:9px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;background:#f1eaff!important;color:#6d2ee8!important;font-size:11px!important;font-weight:900!important;line-height:1!important;}
+.ni.ac .nx{background:linear-gradient(135deg,#6d2ee8,#7c3aed)!important;color:#fff!important;}
+.kbt{gap:9px!important;}
+.kbt::first-letter{font-weight:900;}
+.slt,.portal-brand-name{font-family:var(--fd)!important;}
+.sns,.portal-brand-sub{text-transform:uppercase!important;}
+#ls .portal-brand-name{font-size:24px!important;}
+#ls .portal-mark{width:52px!important;height:52px!important;}
+.logo-note{font-size:11px;color:#8a94aa;}
+
+/* V4 LOGIN SUCCESS FIX - allow JavaScript to leave login page */
+#ls[style*="display: none"]{
+  display:none!important;
+}
+#app[style*="display: flex"]{
+  display:flex!important;
+  min-height:100vh!important;
+}
+#app[style*="display: block"]{
+  display:flex!important;
+  min-height:100vh!important;
+}
+.login-modal:not(.open){
+  display:none!important;
+}
 </style>
 
 <!-- Firebase SDK -->
@@ -885,7 +913,7 @@ document.addEventListener('click',function(e){var m=document.getElementById('log
 </script><div id="app">
   <div class="sb-backdrop" id="sbBackdrop" onclick="toggleSidebar()"></div>
   <nav class="sb2" id="sidebar">
-    <div class="sh"><div class="sl"><div class="sm">ðŸ“‹</div><div><div class="slt">Delegation</div><div class="sns">Kasera</div></div></div></div>
+    <div class="sh"><div class="sl"><div class="sm">DT</div><div><div class="slt">Delegation</div><div class="sns">Kasera Industries</div></div></div></div>
     <div class="sn" id="snav"></div>
     <div class="sf">
       <div class="uc"><div class="ua" id="sav"></div><div style="min-width:0"><div class="un" id="snm"></div><span class="ur" id="srl"></span></div></div>
@@ -893,15 +921,15 @@ document.addEventListener('click',function(e){var m=document.getElementById('log
     </div>
   </nav>
   <main class="mn">
-    <div class="tb"><button class="hbg" onclick="toggleSidebar()" aria-label="Menu">â˜°</button><div class="tt" id="ptl">Dashboard</div><div id="coSwitch" class="co-switch"></div><div class="ta" id="tact"></div></div>
+    <div class="tb"><button class="hbg" onclick="toggleSidebar()" aria-label="Menu">Menu</button><div class="tt" id="ptl">Dashboard</div><div id="coSwitch" class="co-switch"></div><div class="ta" id="tact"></div></div>
 
     <div class="pg" id="pg-dash">
-      <div class="sy"><div style="display:flex;align-items:center;gap:6px"><div class="sd2"></div>Live data â€” Firebase / selected company</div><button class="btn bg bs" onclick="CACHE=null;ldDash()">â†» Refresh</button></div>
+      <div class="sy"><div style="display:flex;align-items:center;gap:6px"><div class="sd2"></div>Live data - Firebase / selected company</div><button class="btn bg bs" onclick="CACHE=null;ldDash()">â†» Refresh</button></div>
       <div class="sg" id="dstats"></div>
-      <div class="sec"><div class="sh2"><div class="st">Team performance</div><button class="btn bg bs" onclick="sp2f('rep')">Full report â†’</button></div><div class="tw"><table><thead><tr><th>Name</th><th>Dept</th><th>Tasks</th><th>Done</th><th>Avg time</th><th>Score</th></tr></thead><tbody id="ptbl"></tbody></table></div></div>
+      <div class="sec"><div class="sh2"><div class="st">Team performance</div><button class="btn bg bs" onclick="sp2f('rep')">Full report</button></div><div class="tw"><table><thead><tr><th>Name</th><th>Dept</th><th>Tasks</th><th>Done</th><th>Avg time</th><th>Score</th></tr></thead><tbody id="ptbl"></tbody></table></div></div>
       <div class="sec">
         <div class="sh2"><div class="st">All tasks</div><div style="display:flex;gap:7px;align-items:center">
-          <div class="view-toggle"><div class="vt ac" id="vt-board" onclick="setView('board')">â–¦ Board</div><div class="vt" id="vt-list" onclick="setView('list')">â˜° List</div></div>
+          <div class="view-toggle"><div class="vt ac" id="vt-board" onclick="setView('board')">Board</div><div class="vt" id="vt-list" onclick="setView('list')">List</div></div>
           <select id="fs" onchange="ldDash()" style="background:var(--s1);border:1px solid var(--bd2);border-radius:5px;padding:5px 9px;color:var(--t2);font-size:12px;outline:none"><option value="">All status</option><option>Pending</option><option>In Progress</option><option>Completed</option><option>Overdue</option></select>
           <select id="fd" onchange="ldDash()" style="background:var(--s1);border:1px solid var(--bd2);border-radius:5px;padding:5px 9px;color:var(--t2);font-size:12px;outline:none"><option value="">All depts</option></select>
           <select id="ftag" onchange="ldDash()" style="background:var(--s1);border:1px solid var(--bd2);border-radius:5px;padding:5px 9px;color:var(--t2);font-size:12px;outline:none"><option value="">All tags</option></select>
@@ -929,7 +957,7 @@ document.addEventListener('click',function(e){var m=document.getElementById('log
 
     <div class="pg" id="pg-asgn">
       <div class="cd">
-        <div class="ct">âž• Assign new task</div>
+        <div class="ct">Assign new task</div>
         <div class="sy"><div style="display:flex;align-items:center;gap:6px"><div class="sd2"></div>Saves instantly to database + sends WhatsApp notification</div></div>
         <div class="fg">
           <div class="ff"><label>Task title *</label><input type="text" id="tt3" placeholder="e.g. Check boiler pressure"></div>
@@ -938,7 +966,7 @@ document.addEventListener('click',function(e){var m=document.getElementById('log
           <div class="ff"><label>Reporting Manager (approves this task)</label><select id="tmgr"><option value="">â€” select manager â€”</option></select></div>
           <!-- Requirement #4: Requested By â€” who asked for this task. Pick a person or type any name (e.g. Production Head). -->
           <div class="ff"><label>Requested By</label><input type="text" id="treqby" list="reqby-list" placeholder="Pick or type, e.g. Production Head" autocomplete="off"><datalist id="reqby-list"></datalist></div>
-          <div class="ff"><label>Priority</label><select id="tp3"><option value="High">ðŸ”´ High</option><option value="Medium" selected>ðŸŸ¡ Medium</option><option value="Low">ðŸŸ¢ Low</option></select></div>
+          <div class="ff"><label>Priority</label><select id="tp3"><option value="High">High</option><option value="Medium" selected>Medium</option><option value="Low">Low</option></select></div>
           <div class="ff"><label>Deadline *</label><input type="date" id="tdl"></div>
           <div class="ff"><label>Type</label><select id="ty3"><option value="One-time">One-time</option><option value="Daily">Daily recurring</option><option value="Weekly">Weekly recurring</option></select></div>
         </div>
@@ -961,7 +989,7 @@ document.addEventListener('click',function(e){var m=document.getElementById('log
           </div>
         </div>
         <div style="display:flex;gap:8px;align-items:center">
-          <button class="btn bp" onclick="asgTask(true)">Assign + Send WA ðŸ“²</button>
+          <button class="btn bp" onclick="asgTask(true)">Assign + Send WA</button>
           <button class="btn bg" onclick="asgTask(false)">Assign only</button>
           <span style="font-size:11.5px;color:var(--t3);margin-left:auto">Saved to database</span>
         </div>
@@ -1020,7 +1048,7 @@ document.addEventListener('click',function(e){var m=document.getElementById('log
     <!-- MANAGE PEOPLE (Admin) -->
     <div class="pg" id="pg-people">
       <div class="cd">
-        <div class="ct">ðŸ‘¥ Add a person</div><div style="font-size:12px;color:var(--t2);margin-bottom:12px">To give one person access to multiple companies, add the same email in each selected company. The login email/password remains the same; their role can be different per company.</div>
+        <div class="ct">Add a person</div><div style="font-size:12px;color:var(--t2);margin-bottom:12px">To give one person access to multiple companies, add the same email in each selected company. The login email/password remains the same; their role can be different per company.</div>
         <div class="fg">
           <div class="ff"><label>Full name *</label><input type="text" id="u-name" placeholder="e.g. Ramesh Kumar"></div>
           <div class="ff"><label>Email *</label><input type="email" id="u-email" placeholder="ramesh@kaseraindustries.in"></div>
@@ -1056,49 +1084,49 @@ document.addEventListener('click',function(e){var m=document.getElementById('log
 
     <div class="pg" id="pg-cfg">
       <div class="cd">
-        <div class="ct">ðŸ¢ Company details</div>
+        <div class="ct">Company details</div>
         <div style="font-size:12px;color:var(--t2);margin-bottom:12px">This profile controls the company name, logo and details shown in the portal after the company is selected.</div>
         <div id="company-editor"></div>
       </div>
       <div class="cd" id="company-create-card" style="display:none">
-        <div class="ct">âž• Create new company database</div>
+        <div class="ct">Create new company database</div>
         <div style="font-size:12px;color:var(--t2);margin-bottom:12px">Super Admin can create a new company. It will get its own isolated database path: companies/{companyId}/users, tasks, logs, updates and settings. No data is shared between companies.</div>
         <div id="company-create-editor"></div>
       </div>
 
       <div class="cd" id="whatsapp-settings-card">
-        <div class="ct">ðŸ’¬ Company-wise WhatsApp / 11za settings</div>
+        <div class="ct">Company-wise WhatsApp / 11za settings</div>
         <div style="font-size:12px;color:var(--t2);margin-bottom:12px">Set 11za API details, sender number, templates, reminders, overdue escalation and retry rules for this selected company only.</div>
         <div id="whatsapp-editor"></div>
       </div>
       <div class="cd" id="role-security-card">
-        <div class="ct">ðŸ” Security, roles & reliability</div>
+        <div class="ct">Security, roles & reliability</div>
         <div style="font-size:12px;color:var(--t2);margin-bottom:12px">Control role safety, archive rules, audit logging and copy Firebase Rules for cross-company protection.</div>
         <div id="security-editor"></div>
       </div>
       <div class="cd" id="backup-card">
-        <div class="ct">ðŸ—„ï¸ Backup / export / automated checks</div>
+        <div class="ct">Backup / export / automated checks</div>
         <div style="font-size:12px;color:var(--t2);margin-bottom:12px">Run backup, export company data, and trigger reminder/escalation checks. Daily automated jobs run when an admin opens the portal; for true 24/7 automation use Cloud Scheduler/Cloud Functions.</div>
         <div id="backup-editor"></div>
       </div>
       <div class="cd">
-        <div class="ct">ðŸªœ Pipeline stages</div>
+        <div class="ct">Pipeline stages</div>
         <div style="font-size:12px;color:var(--t2);margin-bottom:12px">Rename the workflow stages. These appear as kanban columns and the ticket stepper.</div>
         <div style="font-size:12px;color:var(--t2);margin-bottom:12px">Rename, add, remove, or <strong>drag to reorder</strong> stages. Shown as kanban columns + ticket stepper.</div>
         <div id="stage-editor"></div>
       </div>
       <div class="cd">
-        <div class="ct">ðŸ¢ Departments</div>
+        <div class="ct">Departments</div>
         <div style="font-size:12px;color:var(--t2);margin-bottom:12px">Add or remove departments. Used in task assignment and people management.</div>
         <div id="dept-editor"></div>
       </div>
       <div class="cd">
-        <div class="ct">ðŸ·ï¸ Tags</div>
+        <div class="ct">Tags</div>
         <div style="font-size:12px;color:var(--t2);margin-bottom:12px">Define tags staff can apply to tickets (e.g. Urgent, Repair, Safety). Used for filtering.</div>
         <div id="tag-editor"></div>
       </div>
       <div class="cd">
-        <button class="btn bp" onclick="saveStages()">ðŸ’¾ Save stages & departments (shared with everyone)</button>
+        <button class="btn bp" onclick="saveStages()">ðŸ’¾ Save stages & departments</button>
       </div>
       <div class="cd" id="techCard" style="display:none">
         <div class="ct">ðŸ”— Technical (Super Admin only)</div>
@@ -1165,10 +1193,10 @@ let DASH_VIEW='board';
 let DEPTS=['Production','Maintenance','QC','Dispatch','Warehouse','Management'];
 // Pipeline stages â€” editable in Settings (saved to backend later)
 let STAGES=[
-  {key:'Pending',label:'New',color:'var(--am)',ic:'ðŸ“¥'},
-  {key:'In Progress',label:'In Progress',color:'var(--ac)',ic:'âš™ï¸'},
-  {key:'Pending Approval',label:'Pending Approval',color:'var(--a2)',ic:'â³'},
-  {key:'Closed',label:'Closed',color:'var(--gr)',ic:'âœ…'}
+  {key:'Pending',label:'New',color:'var(--am)',ic:'N'},
+  {key:'In Progress',label:'In Progress',color:'var(--ac)',ic:'IP'},
+  {key:'Pending Approval',label:'Pending Approval',color:'var(--a2)',ic:'PA'},
+  {key:'Closed',label:'Closed',color:'var(--gr)',ic:'C'}
 ];
 function stageIdx(status){var i=STAGES.findIndex(s=>s.key===status);if(status==='Completed')return STAGES.findIndex(s=>s.key==='Closed');if(status==='Overdue')return STAGES.findIndex(s=>s.key==='In Progress');return i<0?0:i;}
 
@@ -2323,7 +2351,7 @@ function aerr(m){const el=document.getElementById('aer');el.textContent=m;el.sty
 
 function togglePw(){
   const i=document.getElementById('pw'),e=document.getElementById('pweye');
-  if(i.type==='password'){i.type='text';e.textContent='ðŸ™ˆ';}else{i.type='password';e.textContent='ðŸ‘';}
+  if(i.type==='password'){i.type='text';e.textContent='Hide';}else{i.type='password';e.textContent='Show';}
 }
 function forgotPw(){
   const em=(document.getElementById('em').value||'').trim();
@@ -2410,7 +2438,7 @@ async function loginEM(email,password,companyId){
   }catch(e){
     aerr(e.message||'Login failed. Please try again.');
   }finally{
-    if(btn){btn.textContent='Login to Dashboard â†’';btn.style.opacity='1';btn.disabled=false;}
+    if(btn){btn.textContent='Login to Dashboard';btn.style.opacity='1';btn.disabled=false;}
   }
 }
 
@@ -2537,7 +2565,7 @@ function setupTableLabelizer(){
   labelizeTables();
 }
 
-function startApp(){
+function startApp(){ try{closeLoginModal&&closeLoginModal();}catch(e){} 
   CU.role=normRole(CU.role);
   applyCompanyBranding();
   document.getElementById('ls').style.display='none';
@@ -2553,10 +2581,10 @@ function startApp(){
 
 // â”€â”€ SIDEBAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const NAV={
-  superadmin:[{g:'Overview',items:[{id:'dash',ic:'ðŸ“Š',lb:'Dashboard'},{id:'asgn',ic:'âž•',lb:'Assign task'},{id:'wtask',ic:'ðŸŽ«',lb:'My Tickets'},{id:'myupd',ic:'ðŸ””',lb:'Updates'},{id:'approvals',ic:'âœ”ï¸',lb:'Approvals'},{id:'closed',ic:'ðŸ—‚ï¸',lb:'Closed tickets'},{id:'rep',ic:'ðŸ“ˆ',lb:'Reports'},{id:'wa',ic:'ðŸ’¬',lb:'WA log'},{id:'log',ic:'ðŸ“',lb:'Activity log'}]},{g:'Admin',items:[{id:'people',ic:'ðŸ‘¥',lb:'Manage people'},{id:'cfg',ic:'âš™ï¸',lb:'Settings'}]}],
-  admin:[{g:'Overview',items:[{id:'dash',ic:'ðŸ“Š',lb:'Dashboard'},{id:'asgn',ic:'âž•',lb:'Assign task'},{id:'wtask',ic:'ðŸŽ«',lb:'My Tickets'},{id:'myupd',ic:'ðŸ””',lb:'Updates'},{id:'approvals',ic:'âœ”ï¸',lb:'Approvals'},{id:'closed',ic:'ðŸ—‚ï¸',lb:'Closed tickets'},{id:'rep',ic:'ðŸ“ˆ',lb:'Reports'}]},{g:'Admin',items:[{id:'people',ic:'ðŸ‘¥',lb:'Manage people'},{id:'cfg',ic:'âš™ï¸',lb:'Settings'}]}],
-  supervisor:[{g:'Tasks',items:[{id:'asgn',ic:'âž•',lb:'Assign task'},{id:'wtask',ic:'ðŸŽ«',lb:'My Tickets'},{id:'myupd',ic:'ðŸ””',lb:'Updates'},{id:'approvals',ic:'âœ”ï¸',lb:'Approvals'},{id:'team',ic:'ðŸ‘·',lb:'My team'},{id:'closed',ic:'ðŸ—‚ï¸',lb:'Closed tickets'}]}],
-  employee:[{g:'My work',items:[{id:'wtask',ic:'ðŸŽ«',lb:'My Tickets'},{id:'myupd',ic:'ðŸ””',lb:'Updates'},{id:'closed',ic:'ðŸ—‚ï¸',lb:'Closed tickets'},{id:'wperf',ic:'ðŸ“Š',lb:'My performance'}]}]
+  superadmin:[{g:'Overview',items:[{id:'dash',ic:'D',lb:'Dashboard'},{id:'asgn',ic:'A',lb:'Assign task'},{id:'wtask',ic:'T',lb:'My Tickets'},{id:'myupd',ic:'U',lb:'Updates'},{id:'approvals',ic:'P',lb:'Approvals'},{id:'closed',ic:'C',lb:'Closed tickets'},{id:'rep',ic:'R',lb:'Reports'},{id:'wa',ic:'W',lb:'WA log'},{id:'log',ic:'L',lb:'Activity log'}]},{g:'Admin',items:[{id:'people',ic:'M',lb:'Manage people'},{id:'cfg',ic:'S',lb:'Settings'}]}],
+  admin:[{g:'Overview',items:[{id:'dash',ic:'D',lb:'Dashboard'},{id:'asgn',ic:'A',lb:'Assign task'},{id:'wtask',ic:'T',lb:'My Tickets'},{id:'myupd',ic:'U',lb:'Updates'},{id:'approvals',ic:'P',lb:'Approvals'},{id:'closed',ic:'C',lb:'Closed tickets'},{id:'rep',ic:'R',lb:'Reports'}]},{g:'Admin',items:[{id:'people',ic:'M',lb:'Manage people'},{id:'cfg',ic:'S',lb:'Settings'}]}],
+  supervisor:[{g:'Tasks',items:[{id:'asgn',ic:'A',lb:'Assign task'},{id:'wtask',ic:'T',lb:'My Tickets'},{id:'myupd',ic:'U',lb:'Updates'},{id:'approvals',ic:'P',lb:'Approvals'},{id:'team',ic:'M',lb:'My team'},{id:'closed',ic:'C',lb:'Closed tickets'}]}],
+  employee:[{g:'My work',items:[{id:'wtask',ic:'T',lb:'My Tickets'},{id:'myupd',ic:'U',lb:'Updates'},{id:'closed',ic:'C',lb:'Closed tickets'},{id:'wperf',ic:'R',lb:'My performance'}]}]
 }
 const PTITLES={dash:'Dashboard',people:'Manage people',approvals:'Approvals',closed:'Closed tickets',rep:'Reports',wa:'WhatsApp log',log:'Activity log',cfg:'Settings',asgn:'Assign task',team:'My team',wtask:'My Tickets',myupd:'Updates',wperf:'My performance'};
 
@@ -2804,8 +2832,8 @@ function loadStages(){
   try{const dv=JSON.parse(localStorage.getItem('kasera_depts')||'null');if(dv&&dv.length)DEPTS=dv;}catch(e){}
 }
 function normalizeStage(s){
-  const known={'Pending':{ic:'ðŸ“¥',color:'var(--am)'},'In Progress':{ic:'âš™ï¸',color:'var(--ac)'},'Pending Approval':{ic:'â³',color:'var(--a2)'},'Closed':{ic:'âœ…',color:'var(--gr)'}};
-  const k=known[s.key]||{ic:'ðŸ”¹',color:'var(--tl)'};
+  const known={'Pending':{ic:'N',color:'var(--am)'},'In Progress':{ic:'IP',color:'var(--ac)'},'Pending Approval':{ic:'PA',color:'var(--a2)'},'Closed':{ic:'C',color:'var(--gr)'}};
+  const k=known[s.key]||{ic:'S',color:'var(--tl)'};
   return {key:s.key,label:s.label||s.key,ic:s.ic||k.ic,color:s.color||k.color};
 }
 function applySettings(r){
@@ -3670,4 +3698,6 @@ setDl();
 </script>
 </body>
 </html>
+
+
 
