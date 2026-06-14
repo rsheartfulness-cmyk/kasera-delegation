@@ -196,6 +196,15 @@ tr:hover td{background:rgba(37,99,235,.03);}
 .ws1{background:rgba(37,211,102,.12);color:var(--wa);}
 .ws2{background:rgba(245,165,32,.12);color:var(--am);}
 .ws3{background:rgba(255,68,85,.12);color:var(--rd);}
+.wa-badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:5px 9px;font-size:11.5px;font-weight:800;white-space:nowrap;border:1px solid var(--bd);}
+.wa-mark{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:999px;font-size:9px;font-weight:900;letter-spacing:.02em;}
+.wa-ok{background:#ecfdf3;color:#128046;border-color:#bbf7d0;}
+.wa-ok .wa-mark{background:#16a34a;color:#fff;}
+.wa-fail{background:#fff1f2;color:#e11d48;border-color:#fecdd3;}
+.wa-fail .wa-mark{background:#e11d48;color:#fff;}
+.wa-pending{background:#fff7ed;color:#ea580c;border-color:#fed7aa;}
+.wa-pending .wa-mark{background:#ea580c;color:#fff;}
+.wa-none{background:#f8fafc;color:#64748b;}
 /* MODAL */
 .mo{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(5px);z-index:1000;align-items:center;justify-content:center;}
 .mo.op{display:flex;}
@@ -981,9 +990,9 @@ document.addEventListener('click',function(e){var m=document.getElementById('log
       <div class="sec">
         <div class="sh2"><div class="st">All tasks</div><div style="display:flex;gap:7px;align-items:center">
           <div class="view-toggle"><div class="vt ac" id="vt-board" onclick="setView('board')">Board</div><div class="vt" id="vt-list" onclick="setView('list')">List</div></div>
-          <select id="fs" onchange="ldDash()" style="background:var(--s1);border:1px solid var(--bd2);border-radius:5px;padding:5px 9px;color:var(--t2);font-size:12px;outline:none"><option value="">All status</option><option>Pending</option><option>In Progress</option><option>Completed</option><option>Overdue</option></select>
-          <select id="fd" onchange="ldDash()" style="background:var(--s1);border:1px solid var(--bd2);border-radius:5px;padding:5px 9px;color:var(--t2);font-size:12px;outline:none"><option value="">All depts</option></select>
-          <select id="ftag" onchange="ldDash()" style="background:var(--s1);border:1px solid var(--bd2);border-radius:5px;padding:5px 9px;color:var(--t2);font-size:12px;outline:none"><option value="">All tags</option></select>
+          <select id="fs" onchange="dashFilterChanged()" style="background:var(--s1);border:1px solid var(--bd2);border-radius:5px;padding:5px 9px;color:var(--t2);font-size:12px;outline:none"><option value="">All status</option><option>Pending</option><option>In Progress</option><option>Completed</option><option>Overdue</option></select>
+          <select id="fd" onchange="dashFilterChanged()" style="background:var(--s1);border:1px solid var(--bd2);border-radius:5px;padding:5px 9px;color:var(--t2);font-size:12px;outline:none"><option value="">All depts</option></select>
+          <select id="ftag" onchange="dashFilterChanged()" style="background:var(--s1);border:1px solid var(--bd2);border-radius:5px;padding:5px 9px;color:var(--t2);font-size:12px;outline:none"><option value="">All tags</option></select>
         </div></div>
         <div class="kb" id="kanban"></div>
         <div class="tw" id="listview" style="display:none"><table><thead><tr><th>Task</th><th>Assignee</th><th>Manager</th><th>Priority</th><th>Deadline</th><th>Status</th><th>Time</th><th>WA</th></tr></thead><tbody id="atbl"></tbody></table></div>
@@ -1241,7 +1250,7 @@ let ACTIVE_COMPANY_ID='',ACTIVE_COMPANY=null,COMPANIES=[];
 const DEFAULT_COMPANY={id:'kasera-industries',name:'Kasera Industries',shortName:'Kasera',logoUrl:'logo.png',email:'',phone:'',address:'',website:'',gst:'',active:true};
 let _kaseraMigrationPromise=null;
 let _companyLogoFile=null,_newCompanyLogoFile=null;
-let DASH_VIEW='board';
+let DASH_VIEW='board', DASH_SPECIAL_FILTER='';
 let DEPTS=['Production','Maintenance','QC','Dispatch','Warehouse','Management'];
 // Pipeline stages  editable in Settings (saved to backend later)
 let STAGES=[
@@ -2743,20 +2752,55 @@ function sp2f(id,fromPop){
 //  VIEW TOGGLE + KANBAN 
 function setView(v){
   DASH_VIEW=v;
-  document.getElementById('vt-board').classList.toggle('ac',v==='board');
-  document.getElementById('vt-list').classList.toggle('ac',v==='list');
-  document.getElementById('kanban').style.display=v==='board'?'flex':'none';
-  document.getElementById('listview').style.display=v==='list'?'block':'none';
+  const boardBtn=document.getElementById('vt-board');
+  const listBtn=document.getElementById('vt-list');
+  const board=document.getElementById('kanban');
+  const list=document.getElementById('listview');
+  if(boardBtn)boardBtn.classList.toggle('ac',v==='board');
+  if(listBtn)listBtn.classList.toggle('ac',v==='list');
+  if(board)board.style.setProperty('display',v==='board'?'grid':'none','important');
+  if(list)list.style.setProperty('display',v==='list'?'block':'none','important');
+}
+function priorityRank(p){
+  const v=String(p||'').toLowerCase();
+  if(v==='high')return 0;
+  if(v==='medium')return 1;
+  if(v==='low')return 2;
+  return 3;
+}
+function sortTasksForWork(list){
+  return [...(list||[])].sort((a,b)=>{
+    const pr=priorityRank(a.priority)-priorityRank(b.priority);
+    if(pr)return pr;
+    return String(a.deadline||'9999-99-99').localeCompare(String(b.deadline||'9999-99-99'));
+  });
+}
+function dashFilterChanged(){
+  DASH_SPECIAL_FILTER='';
+  ldDash();
+}
+function filterDashCard(kind){
+  const fs=document.getElementById('fs');
+  if(fs)fs.value='';
+  DASH_SPECIAL_FILTER='';
+  if(['Pending','In Progress','Overdue','Pending Approval','Completed'].includes(kind)){
+    if(fs)fs.value=kind;
+  }else if(kind==='completedToday'||kind==='waFailed'){
+    DASH_SPECIAL_FILTER=kind;
+  }
+  DASH_VIEW='list';
+  ldDash();
+  setTimeout(()=>document.getElementById('listview')?.scrollIntoView({behavior:'smooth',block:'start'}),120);
 }
 function renderKanban(tasks){
   const kb=document.getElementById('kanban');
   if(!kb)return;
   kb.innerHTML=STAGES.map(st=>{
-    const items=tasks.filter(t=>{
+    const items=sortTasksForWork(tasks.filter(t=>{
       if(st.key==='Closed')return t.status==='Closed'||t.status==='Completed';
       if(st.key==='In Progress')return t.status==='In Progress'||t.status==='Overdue';
       return t.status===st.key;
-    });
+    }));
     const cards=items.map(t=>{
       const init=(t.assigneeName||'?').split(' ').map(x=>x[0]).join('').slice(0,2);
       const ovd=t.status==='Overdue';
@@ -2769,6 +2813,7 @@ function renderKanban(tasks){
     return '<div class="kbc"><div class="kbh"><div class="kbt">'+st.ic+' '+st.label+'</div><span class="kbn">'+items.length+'</span></div>'+
       '<div class="kbb" data-stage="'+st.key+'" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropCard(event)">'+(cards||'<div style="font-size:11px;color:var(--t3);text-align:center;padding:14px">Drop here</div>')+'</div></div>';
   }).join('');
+  setView(DASH_VIEW);
 }
 let _dragId=null;
 function dragStart(e){_dragId=e.target.dataset.id;e.target.classList.add('dragging');e.dataTransfer.effectAllowed='move';}
@@ -2979,20 +3024,30 @@ function _paintDash(r){
   // Populate filter dropdowns (depts + tags) if empty
   const fdEl=document.getElementById('fd'); if(fdEl&&fdEl.options.length<=1)fdEl.innerHTML='<option value="">All depts</option>'+(DEPTS||[]).map(d=>'<option>'+d+'</option>').join('');
   const tf=document.getElementById('ftag')?.value||'';
-  if(sf)tasks=tasks.filter(t=>t.status===sf);
+  if(sf==='Completed')tasks=tasks.filter(t=>t.status==='Completed'||t.status==='Closed');
+  else if(sf)tasks=tasks.filter(t=>t.status===sf);
+  else tasks=tasks.filter(t=>t.status!=='Completed'&&t.status!=='Closed');
   if(df)tasks=tasks.filter(t=>t.department===df);
   if(tf)tasks=tasks.filter(t=>(t.tags||[]).includes(tf));
+  if(DASH_SPECIAL_FILTER==='completedToday'){
+    const todayD=new Date().toISOString().split('T')[0];
+    tasks=tasks.filter(t=>(t.status==='Completed'||t.status==='Closed')&&(t.completedOn||'')&&_sameDay(t.completedOn,todayD));
+  }
+  if(DASH_SPECIAL_FILTER==='waFailed'){
+    tasks=tasks.filter(t=>String(t.waSent||'').toLowerCase()==='failed');
+  }
+  tasks=sortTasksForWork(tasks);
   // populate tag filter options
   const ftEl=document.getElementById('ftag'); if(ftEl&&ftEl.options.length<=1)ftEl.innerHTML='<option value="">All tags</option>'+TAGS.map(tg=>'<option>'+tg+'</option>').join('');
   const s=r.stats||{total:0,completed:0,inProgress:0,pending:0,overdue:0};
   document.getElementById('dstats').innerHTML=`
-    <div class="sc card-total"><div class="sl2">Total Tasks</div><div class="sv" style="color:var(--ac)">${s.total||0}</div><div class="sd">all tasks created</div></div>
-    <div class="sc card-pending"><div class="sl2">Pending</div><div class="sv" style="color:#d97706">${s.pending||0}</div><div class="sd">not started</div></div>
-    <div class="sc card-prog"><div class="sl2">In Progress</div><div class="sv" style="color:#2563eb">${s.inProgress||0}</div><div class="sd">currently active</div></div>
-    <div class="sc card-done"><div class="sl2">Completed Today</div><div class="sv" style="color:#16a34a">${s.completedToday||0}</div><div class="sd">closed today</div></div>
-    <div class="sc card-over"><div class="sl2">Overdue</div><div class="sv" style="color:#e11d48">${s.overdue||0}</div><div class="sd">deadline crossed</div></div>
-    <div class="sc card-appr"><div class="sl2">Approval Pending</div><div class="sv" style="color:#7c3aed">${s.pendingApproval||0}</div><div class="sd">awaiting supervisor</div></div>
-    <div class="sc card-wa"><div class="sl2">WhatsApp Failed</div><div class="sv" style="color:#ea580c">${s.waFailed||0}</div><div class="sd">not delivered</div></div>
+    <div class="sc card-total" onclick="filterDashCard('all')" title="Show all tasks below" style="cursor:pointer"><div class="sl2">Total Tasks</div><div class="sv" style="color:var(--ac)">${s.total||0}</div><div class="sd">all tasks created</div></div>
+    <div class="sc card-pending" onclick="filterDashCard('Pending')" title="Show pending tasks below" style="cursor:pointer"><div class="sl2">Pending</div><div class="sv" style="color:#d97706">${s.pending||0}</div><div class="sd">not started</div></div>
+    <div class="sc card-prog" onclick="filterDashCard('In Progress')" title="Show in-progress tasks below" style="cursor:pointer"><div class="sl2">In Progress</div><div class="sv" style="color:#2563eb">${s.inProgress||0}</div><div class="sd">currently active</div></div>
+    <div class="sc card-done" onclick="filterDashCard('completedToday')" title="Show tasks completed today below" style="cursor:pointer"><div class="sl2">Completed Today</div><div class="sv" style="color:#16a34a">${s.completedToday||0}</div><div class="sd">closed today</div></div>
+    <div class="sc card-over" onclick="filterDashCard('Overdue')" title="Show overdue tasks below" style="cursor:pointer"><div class="sl2">Overdue</div><div class="sv" style="color:#e11d48">${s.overdue||0}</div><div class="sd">deadline crossed</div></div>
+    <div class="sc card-appr" onclick="filterDashCard('Pending Approval')" title="Show approval pending tasks below" style="cursor:pointer"><div class="sl2">Approval Pending</div><div class="sv" style="color:#7c3aed">${s.pendingApproval||0}</div><div class="sd">awaiting supervisor</div></div>
+    <div class="sc card-wa" onclick="filterDashCard('waFailed')" title="Show failed WhatsApp tasks below" style="cursor:pointer"><div class="sl2">WhatsApp Failed</div><div class="sv" style="color:#ea580c">${s.waFailed||0}</div><div class="sd">not delivered</div></div>
     <div class="sc card-emp"><div class="sl2">Active Employees</div><div class="sv" style="color:#0891b2">${s.activeEmps||0}</div><div class="sd">currently assigned</div></div>`;
   const scores=r.scores||[];
   const perf=document.getElementById('perfInsight');
@@ -3107,13 +3162,14 @@ function applyMgrFilter(){
     if(fmine&&!(t.assigneeName===CU.name||t.createdBy===CU.name||t.managerName===CU.name))return false;
     return true;
   });
+  tasks=sortTasksForWork(tasks);
   document.getElementById('mtbl').innerHTML=tasks.length?tasks.map(t=>`<tr onclick="openTM('${t.id}')" style="cursor:pointer">
     <td><strong>${t.title}</strong></td>
     <td>${t.assigneeName}</td><td>${pb(t.priority)}</td>
     <td style="font-size:12px;color:${od(t.deadline)?'var(--rd)':'var(--t2)'}">${t.deadline}</td>
     <td>${sb(t.status)}</td><td>${t.timeTaken?'<span class="tc">'+parseFloat(t.timeTaken).toFixed(1)+'h</span>':''}</td>
     <td>${wb(t.waSent)}</td>
-    <td><div style="display:flex;gap:5px"><button class="btn bw bs" onclick="event.stopPropagation();sndrm('${t.id}')"></button><button class="btn bg bs" onclick="event.stopPropagation();openTM('${t.id}')">Detail</button></div></td>
+    <td><div style="display:flex;gap:5px"><button class="btn bw bs" title="Send WhatsApp reminder" onclick="event.stopPropagation();sndrm('${t.id}')">WA</button><button class="btn bg bs" onclick="event.stopPropagation();openTM('${t.id}')">Detail</button></div></td>
   </tr>`).join(''):'<tr class="er"><td colspan="8">No tasks</td></tr>';
 }
 
@@ -3699,7 +3755,13 @@ function canSeeWaLog(){return CU && normRole(CU.role)==='superadmin';}
 function od(dl){return dl&&dl<new Date().toISOString().split('T')[0];}
 function sb(s){const m={'Pending':'pp','In Progress':'pi','Completed':'pc','Closed':'pc','Overdue':'po','Pending Approval':'pi'};return'<span class="bd3 '+(m[s]||'pp')+'">'+s+'</span>';}
 function pb(p){const m={'High':'ph','Medium':'pm','Low':'pl'};return'<span class="bd3 '+(m[p]||'pm')+'">'+p+'</span>';}
-function wb(s){const m={'Yes':'Done','Sent':'Done','Failed':'Failed','Pending':'Pending','Reminded':'Done'};return'<span style="font-size:12px;font-weight:700">'+(m[s]||'-')+'</span>';}
+function wb(s){
+  const v=String(s||'').toLowerCase();
+  if(['yes','sent','reminded','done','true'].includes(v))return '<span class="wa-badge wa-ok"><span class="wa-mark">WA</span> Sent</span>';
+  if(v==='failed')return '<span class="wa-badge wa-fail"><span class="wa-mark">WA</span> Failed</span>';
+  if(v==='pending')return '<span class="wa-badge wa-pending"><span class="wa-mark">WA</span> Pending</span>';
+  return '<span class="wa-badge wa-none">Not sent</span>';
+}
 function setDl(){const d=document.getElementById('tdl');if(d){const n=new Date();n.setDate(n.getDate()+1);d.value=n.toISOString().split('T')[0];}}
 function saveCfg(){toast('Settings saved','ok');}
 function expCSV(){if(!AL.length){toast('No data to export','er2');return;}const rows=[['Time','User','Action','Task','Details','WA'],...AL.map(l=>[l.timestamp,l.user,l.action,l.taskTitle,l.details||'',l.waSent])];dlExcel(rows,'kasera_activity_log.xls','Activity Log');}
