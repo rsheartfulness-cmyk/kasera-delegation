@@ -396,7 +396,7 @@ tr:hover td{background:rgba(37,99,235,.04);}
 /* ═══ MOBILE RESPONSIVE (#1) ═══ */
 @media (max-width:860px){
   .hbg{display:block;}
-  .sb2{position:fixed;left:0;top:0;height:100vh;z-index:50;transform:translateX(-100%);transition:transform .25s cubic-bezier(.4,0,.2,1);box-shadow:var(--sh3);}
+  .sb2{position:fixed;left:0;top:0;height:100vh;z-index:50;width:240px!important;min-width:0!important;transform:translateX(-100%);transition:transform .25s cubic-bezier(.4,0,.2,1)!important;box-shadow:var(--sh3);}
   .sb2.open{transform:translateX(0);}
   .sb-backdrop.show{display:block;}
   .mn{width:100%;padding:0!important;}
@@ -426,12 +426,25 @@ tr:hover td{background:rgba(37,99,235,.04);}
   .lc{width:92vw!important;max-width:400px;padding:26px 22px!important;}
   /* Assign form buttons full width */
   #pg-asgn .bp,#pg-asgn .bg{width:100%;margin-bottom:8px;}
+  /* Form type tabs smaller on mobile */
+  .form-type-tabs{margin-bottom:14px;}
+  .ftt{font-size:12px;padding:7px 8px;}
+  /* Vis picker wraps on mobile */
+  .vis-picker{gap:5px;}
+  .vis-chip{font-size:11px;padding:3px 8px;}
+  /* Task detail full-screen — allow scroll on mobile */
+  #tmod .mb{padding:14px!important;}
+  /* Dashboard filters: wrap on mobile */
+  .sh2>div{flex-wrap:wrap;gap:6px;}
 }
 @media (max-width:480px){
   .sg{grid-template-columns:1fr 1fr;}
   .sv{font-size:26px!important;}
   .tt{font-size:16px;}
   .kbc{min-width:86vw;}
+  /* Worker task tabs scroll horizontally */
+  .tbs{overflow-x:auto;flex-wrap:nowrap!important;}
+  .tab{white-space:nowrap;flex-shrink:0;}
 }
 
 
@@ -476,6 +489,16 @@ tr:hover td{background:rgba(37,99,235,.04);}
 @media (max-width:860px){ .sg{grid-template-columns:1fr 1fr;} }
 
 
+/* ═══ FULL-SCREEN TASK DETAIL ═══ */
+#tmod{align-items:stretch;justify-content:stretch;}
+#tmod .md{width:100vw!important;max-width:100vw!important;height:100vh;max-height:100vh;border-radius:0!important;display:flex;flex-direction:column;animation:none;}
+#tmod .mh{flex-shrink:0;padding:14px 24px;position:sticky;top:0;background:var(--s1);z-index:10;justify-content:space-between;}
+#tmod .mb{flex:1;overflow-y:auto;padding:24px;max-width:900px;width:100%;margin:0 auto;box-sizing:border-box;}
+#tmod .mf{flex-shrink:0;position:sticky;bottom:0;background:var(--s1);z-index:10;}
+.td-back{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:var(--s2);border:1px solid var(--bd2);border-radius:var(--rs);font-size:13px;color:var(--t2);cursor:pointer;font-family:var(--fn);transition:all .15s;}
+.td-back:hover{background:var(--s3);color:var(--t);}
+@media(max-width:860px){#tmod .mh{padding:12px 16px;}#tmod .mb{padding:16px;}}
+
 /* Fix mobile input overflow */
 input,select,textarea{max-width:100%;box-sizing:border-box;}
 .ff input,.ff select,.ff textarea{width:100%;box-sizing:border-box;}
@@ -491,6 +514,197 @@ input,select,textarea{max-width:100%;box-sizing:border-box;}
 .gbtn:hover{background:var(--s2);border-color:var(--bd3);box-shadow:var(--sh1);}
 .login-divider{display:flex;align-items:center;gap:12px;margin:16px 0;color:var(--t3);font-size:12px;}
 .login-divider::before,.login-divider::after{content:"";flex:1;height:1px;background:var(--bd);}
+
+
+/* ═══════════════════════════════════════════════════
+   HEARTFULNESS PORTAL — CLEAN LIGHT REDESIGN
+   ═══════════════════════════════════════════════════ */
+
+/* ROOT — calmer palette */
+:root{
+  --bg:#eef3f9;--bg2:#ffffff;
+  --s1:#ffffff;--s2:#f8fafc;--s3:#f1f5f9;--s4:#e2e8f0;
+  --bd:rgba(0,0,0,0.07);--bd2:rgba(0,0,0,0.10);--bd3:rgba(0,0,0,0.15);
+  --t:#1e293b;--t2:#64748b;--t3:#94a3b8;
+  --ac:#1d4ed8;--ac2:#1e40af;--a2:#3b82f6;
+  --gr:#16a34a;--am:#d97706;--rd:#dc2626;--tl:#0891b2;--wa:#16a34a;
+  --glow:rgba(29,78,216,0.08);
+  --grad:linear-gradient(135deg,#1d4ed8,#3b82f6);
+  --grad-sheen:linear-gradient(180deg,rgba(255,255,255,0.12),rgba(255,255,255,0));
+  --sh1:0 1px 3px rgba(0,0,0,0.05);
+  --sh2:0 2px 6px rgba(0,0,0,0.06);
+  --sh3:0 4px 14px rgba(0,0,0,0.09);
+  --r:8px;--rs:6px;
+  --fn:"DM Sans",sans-serif;--fd:"Syne",sans-serif;--fm:"DM Mono",monospace;
+}
+
+/* body — no decorative gradient */
+body{background:var(--bg);}
+body::before{display:none;}
+
+/* ─── LOGIN ─── */
+#ls{background:var(--bg);overflow:hidden;}
+.lc{background:#fff!important;border:1px solid var(--bd2)!important;box-shadow:0 2px 20px rgba(0,0,0,0.08)!important;border-radius:12px!important;}
+.lc::before{display:none;}
+.lt{background:none!important;-webkit-text-fill-color:var(--t)!important;color:var(--t)!important;}
+.lm{box-shadow:none!important;background:var(--ac)!important;}
+.sb{background:var(--ac)!important;box-shadow:none!important;}
+.sb::after{display:none;}
+.sb:hover{transform:none!important;box-shadow:0 2px 10px rgba(29,78,216,0.18)!important;}
+.fi input:focus{box-shadow:0 0 0 3px rgba(29,78,216,0.10)!important;}
+.login-note{background:#eff6ff!important;border-color:rgba(29,78,216,0.12)!important;}
+
+/* ─── SIDEBAR ─── */
+.sb2{background:#fff!important;border-right:1px solid var(--bd2)!important;box-shadow:none!important;}
+.sm{background:var(--ac)!important;box-shadow:none!important;}
+.sh{border-bottom:1px solid var(--bd)!important;}
+.ni{font-weight:400!important;letter-spacing:0!important;}
+.ni.ac{background:#eff4ff!important;box-shadow:none!important;}
+.ni.ac::before{box-shadow:none!important;}
+.uc{background:var(--s2)!important;box-shadow:none!important;border:1px solid var(--bd)!important;}
+.so{color:var(--t3);border-color:var(--bd);}
+
+/* ─── TOPBAR ─── */
+.tb{background:#fff!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;box-shadow:none!important;border-bottom:1px solid var(--bd)!important;}
+.tt{background:none!important;-webkit-text-fill-color:var(--t)!important;color:var(--t)!important;letter-spacing:0!important;}
+
+/* ─── STAT CARDS ─── */
+.sc{background:#fff!important;border:1px solid var(--bd)!important;box-shadow:none!important;border-radius:var(--r)!important;transition:box-shadow .15s,border-color .15s!important;}
+.sc:hover{transform:none!important;box-shadow:var(--sh2)!important;border-color:var(--bd2)!important;}
+.sc::before{height:3px!important;opacity:1!important;}
+.sv{background:none!important;-webkit-background-clip:unset!important;background-clip:unset!important;-webkit-text-fill-color:inherit!important;letter-spacing:-1px!important;}
+.sl2{letter-spacing:0!important;}
+/* stat card accent colors stay */
+.card-total::before{background:#1d4ed8!important;}
+.card-pending::before{background:#d97706!important;}
+.card-prog::before{background:#0891b2!important;}
+.card-done::before{background:#16a34a!important;}
+.card-over::before{background:#dc2626!important;}
+.card-appr::before{background:#7c3aed!important;}
+.card-wa::before{background:#ea580c!important;}
+.card-emp::before{background:#0f766e!important;}
+
+/* ─── TABLES ─── */
+.tw{background:#fff!important;box-shadow:none!important;border:1px solid var(--bd)!important;border-radius:var(--r)!important;}
+th{background:var(--s2)!important;color:var(--t3)!important;letter-spacing:0.3px!important;font-weight:600!important;border-bottom:1px solid var(--bd)!important;}
+td{border-color:var(--bd)!important;}
+tr:hover td{background:#f5f8ff!important;}
+.av,.kca,.wv{background:var(--s3)!important;color:var(--t2)!important;box-shadow:none!important;}
+.ua{box-shadow:none!important;}
+
+/* ─── BADGES ─── */
+.bd3{backdrop-filter:none!important;font-weight:500!important;}
+.pi,.pc,.po{box-shadow:none!important;}
+
+/* ─── BUTTONS ─── */
+.btn{font-weight:500!important;letter-spacing:0!important;}
+.bp{background:var(--ac)!important;box-shadow:none!important;}
+.bp::after{display:none;}
+.bp:hover{transform:none!important;box-shadow:0 2px 8px rgba(29,78,216,0.18)!important;opacity:1!important;}
+.bg{background:#fff!important;border:1px solid var(--bd2)!important;box-shadow:none!important;}
+.bg:hover{background:var(--s2)!important;border-color:var(--bd2)!important;}
+
+/* ─── KANBAN ─── */
+.kbc{background:var(--s2)!important;border:1px solid var(--bd)!important;box-shadow:none!important;border-radius:var(--r)!important;}
+.kbh{background:var(--s2)!important;border-radius:var(--r) var(--r) 0 0!important;}
+.kbt{letter-spacing:0!important;}
+.kbn{background:var(--s3)!important;font-weight:600!important;}
+.kc{background:#fff!important;border:1px solid var(--bd)!important;box-shadow:var(--sh1)!important;border-radius:7px!important;transition:box-shadow .14s,border-color .14s!important;}
+.kc:hover{transform:none!important;box-shadow:var(--sh2)!important;border-color:var(--bd2)!important;}
+.kc.dragging{transform:rotate(1.5deg) scale(1.01)!important;box-shadow:var(--sh3)!important;opacity:.93!important;}
+
+/* ─── CARDS / FORM ─── */
+.cd{background:#fff!important;box-shadow:none!important;border:1px solid var(--bd)!important;border-radius:var(--r)!important;}
+.ct{letter-spacing:0!important;}
+.ff input,.ff select,.ff textarea{background:var(--s2)!important;transition:border-color .15s,box-shadow .15s!important;}
+.ff input:focus,.ff select:focus,.ff textarea:focus{box-shadow:0 0 0 3px rgba(29,78,216,0.10)!important;background:#fff!important;border-color:var(--ac)!important;}
+
+/* ─── MODAL (status, edit person) ─── */
+.md{background:#fff!important;border:1px solid var(--bd2)!important;box-shadow:var(--sh3)!important;border-radius:10px!important;}
+.mo{background:rgba(15,23,42,0.30)!important;backdrop-filter:blur(4px)!important;}
+.mo.op{animation:none!important;}
+
+/* ─── TASK DETAIL full-screen ─── */
+#tmod .md{border-radius:0!important;box-shadow:none!important;border:none!important;border-left:none!important;}
+#tmod .mh{border-bottom:1px solid var(--bd)!important;}
+#tmod .mf{border-top:1px solid var(--bd)!important;}
+
+/* ─── TABS / TOGGLES ─── */
+.tbs,.view-toggle{background:var(--s2)!important;box-shadow:none!important;border:1px solid var(--bd)!important;}
+.tab.ac,.vt.ac{background:#fff!important;box-shadow:var(--sh1)!important;color:var(--ac)!important;}
+
+/* ─── SYNC BAR ─── */
+.sy{background:#f0f5ff!important;border:1px solid rgba(29,78,216,0.12)!important;}
+
+/* ─── WORKER CARDS ─── */
+.wc{background:#fff!important;border:1px solid var(--bd)!important;box-shadow:none!important;}
+.wc:hover{border-color:var(--bd2)!important;box-shadow:var(--sh2)!important;transform:none!important;}
+
+/* ─── STEPPER ─── */
+.stp-item.active .stp-dot{box-shadow:0 0 0 3px rgba(29,78,216,0.12),0 1px 4px rgba(29,78,216,0.12)!important;}
+.stp-item.done .stp-dot{box-shadow:none!important;}
+
+/* ─── SCROLLBAR ─── */
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-thumb{background:#cbd5e1!important;border-radius:6px!important;border:none!important;}
+::-webkit-scrollbar-thumb:hover{background:#94a3b8!important;}
+
+/* ─── ANIMATIONS — soft entrance only ─── */
+.pg.ac .sc{animation:none!important;}
+.kbc{animation:none!important;}
+.pg.ac{animation:hfRise .18s ease;}
+@keyframes hfRise{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+/* ─── DAILY TASK BADGE ─── */
+.daily-badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;padding:2px 7px;border-radius:10px;background:rgba(8,145,178,0.10);color:var(--tl);border:1px solid rgba(8,145,178,0.20);font-weight:500;}
+
+/* ─── SIDEBAR DESKTOP COLLAPSE ─── */
+.sb2{transition:width .22s ease,min-width .22s ease;}
+.sb2.deskCollapsed{width:58px!important;min-width:58px!important;overflow:hidden;}
+/* hide all text in collapsed sidebar */
+.sb2.deskCollapsed .slt,.sb2.deskCollapsed .sns,.sb2.deskCollapsed .un,
+.sb2.deskCollapsed .ur,.sb2.deskCollapsed .so,.sb2.deskCollapsed .ng{display:none!important;}
+.sb2.deskCollapsed .ni{justify-content:center;padding:10px 0;font-size:0!important;gap:0;}
+.sb2.deskCollapsed .nx{font-size:19px!important;width:auto;}
+.sb2.deskCollapsed .nb{display:none!important;}
+.sb2.deskCollapsed .sl{justify-content:center;}
+.sb2.deskCollapsed .sh{padding:12px 6px;}
+.sb2.deskCollapsed .sn{padding:6px 4px;}
+.sb2.deskCollapsed .uc{justify-content:center;padding:8px 4px;gap:0;}
+.sb2.deskCollapsed .ua{flex-shrink:0;}
+.sb2.deskCollapsed .sf{padding:8px 4px;}
+/* always-on hamburger button in topbar */
+.hbg{display:block!important;}
+.sh{display:flex;align-items:center;justify-content:flex-start;gap:8px;}
+/* Mobile: disable desktop collapse class, hide transition */
+@media(max-width:860px){
+  .sb2{transition:none!important;}
+  .sb2.deskCollapsed{width:var(--sb-mobile-width,240px)!important;min-width:0!important;overflow:visible!important;}
+  .sb2.deskCollapsed .slt,.sb2.deskCollapsed .sns,.sb2.deskCollapsed .un,
+  .sb2.deskCollapsed .ur,.sb2.deskCollapsed .so,.sb2.deskCollapsed .ng{display:unset!important;}
+  .sb2.deskCollapsed .ni{justify-content:flex-start!important;padding:7px 9px!important;font-size:13px!important;gap:8px!important;}
+  .sb2.deskCollapsed .nx{font-size:14px!important;width:17px!important;}
+  .sb2.deskCollapsed .nb{display:inline!important;}
+  .sb2.deskCollapsed .sl{justify-content:flex-start!important;}
+  .sb2.deskCollapsed .sh{padding:18px 16px 14px!important;}
+  .sb2.deskCollapsed .sn{padding:8px 9px!important;}
+  .sb2.deskCollapsed .uc{justify-content:flex-start!important;padding:8px 9px!important;gap:8px!important;}
+  .sb2.deskCollapsed .sf{padding:12px 10px!important;}
+}
+
+/* ─── TASK FORM TABS (General / Daily) ─── */
+.form-type-tabs{display:flex;background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:3px;gap:3px;margin-bottom:20px;}
+.ftt{flex:1;text-align:center;padding:8px 12px;border-radius:6px;font-size:13px;font-weight:500;color:var(--t2);cursor:pointer;transition:all .15s;border:none;background:none;font-family:var(--fn);}
+.ftt.ac{background:#fff;color:var(--ac);box-shadow:0 1px 3px rgba(0,0,0,.08);}
+
+/* ─── VISIBILITY ROLE PICKER ─── */
+.vis-picker{display:flex;flex-wrap:wrap;gap:6px;padding:9px 10px;background:var(--s2);border:1px solid var(--bd2);border-radius:6px;margin-top:4px;}
+.vis-chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:4px 11px;border-radius:16px;background:#fff;border:1px solid var(--bd2);cursor:pointer;user-select:none;transition:border-color .12s,background .12s;}
+.vis-chip:has(input:checked){background:#eff4ff;border-color:rgba(29,78,216,.22);color:var(--ac);}
+.vis-chip.vis-always{background:#eff4ff;border-color:rgba(29,78,216,.22);color:var(--ac);cursor:default;font-weight:500;}
+.vis-chip input{width:auto;min-height:auto;margin:0;accent-color:var(--ac);}
+.vis-presets{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap;}
+.vis-presets button{font-size:11px;padding:3px 10px;border-radius:16px;}
 
 </style>
 
@@ -602,6 +816,7 @@ input,select,textarea{max-width:100%;box-sizing:border-box;}
           <select id="fs" onchange="ldDash()" style="background:var(--s1);border:1px solid var(--bd2);border-radius:5px;padding:5px 9px;color:var(--t2);font-size:12px;outline:none"><option value="">All status</option><option>Pending</option><option>In Progress</option><option>Completed</option><option>Overdue</option></select>
           <select id="fd" onchange="ldDash()" style="background:var(--s1);border:1px solid var(--bd2);border-radius:5px;padding:5px 9px;color:var(--t2);font-size:12px;outline:none"><option value="">All depts</option></select>
           <select id="ftag" onchange="ldDash()" style="background:var(--s1);border:1px solid var(--bd2);border-radius:5px;padding:5px 9px;color:var(--t2);font-size:12px;outline:none"><option value="">All tags</option></select>
+          <select id="ftype" onchange="ldDash()" style="background:var(--s1);border:1px solid var(--bd2);border-radius:5px;padding:5px 9px;color:var(--t2);font-size:12px;outline:none"><option value="">All types</option><option value="Daily">🔄 Daily Tasks</option><option value="General">General Tasks</option></select>
         </div></div>
         <div class="kb" id="kanban"></div>
         <div class="tw" id="listview" style="display:none"><table><thead><tr><th>Task</th><th>Assignee</th><th>Manager</th><th>Priority</th><th>Deadline</th><th>Status</th><th>Time</th><th>WA</th></tr></thead><tbody id="atbl"></tbody></table></div>
@@ -625,8 +840,14 @@ input,select,textarea{max-width:100%;box-sizing:border-box;}
     </div>
 
     <div class="pg" id="pg-asgn">
+      <!-- Task type tabs -->
+      <div class="form-type-tabs">
+        <button class="ftt ac" id="ftt-general" onclick="setTaskFormType('General')">📋 General Task</button>
+        <button class="ftt" id="ftt-daily" onclick="setTaskFormType('Daily')">🔄 Daily Task (Recurring)</button>
+      </div>
+      <input type="hidden" id="ty3" value="General">
       <div class="cd">
-        <div class="ct">➕ Assign new task</div>
+        <div class="ct" id="asgn-form-title">📋 Assign General Task</div>
         <div class="sy"><div style="display:flex;align-items:center;gap:6px"><div class="sd2"></div>Saves instantly to database + sends WhatsApp notification</div></div>
         <div class="fg">
           <div class="ff"><label>Task title *</label><input type="text" id="tt3" placeholder="e.g. Check boiler pressure"></div>
@@ -635,7 +856,21 @@ input,select,textarea{max-width:100%;box-sizing:border-box;}
           <div class="ff"><label>Reporting Manager (approves this task)</label><select id="tmgr"><option value="">— select manager —</option></select></div>
           <div class="ff"><label>Priority</label><select id="tp3"><option value="High">🔴 High</option><option value="Medium" selected>🟡 Medium</option><option value="Low">🟢 Low</option></select></div>
           <div class="ff"><label>Deadline *</label><input type="date" id="tdl"></div>
-          <div class="ff"><label>Type</label><select id="ty3"><option value="One-time">One-time</option><option value="Daily">Daily recurring</option><option value="Weekly">Weekly recurring</option></select></div>
+          <div class="ff" style="grid-column:1/-1" id="vis-section">
+            <label>👁 Visible to <span style="font-size:11px;color:var(--t3);font-weight:400">(Super Admin always included)</span></label>
+            <div class="vis-picker">
+              <span class="vis-chip vis-always">⭐ Super Admin</span>
+              <label class="vis-chip"><input type="checkbox" name="tvis" value="admin" id="tvis-admin" checked> Admin</label>
+              <label class="vis-chip"><input type="checkbox" name="tvis" value="supervisor" id="tvis-sup" checked> Supervisor</label>
+              <label class="vis-chip"><input type="checkbox" name="tvis" value="employee" id="tvis-emp" checked> Employee</label>
+            </div>
+            <div class="vis-presets">
+              <button type="button" class="btn bg bs" onclick="setVisPreset('all')">🌐 Everyone</button>
+              <button type="button" class="btn bg bs" onclick="setVisPreset('me')">🔐 Only me</button>
+              <button type="button" class="btn bg bs" onclick="setVisPreset('admin')">Admin+</button>
+              <button type="button" class="btn bg bs" onclick="setVisPreset('team')">Supervisor+</button>
+            </div>
+          </div>
         </div>
         <div class="ff" style="margin-bottom:12px"><label>Notes / Instructions</label><textarea id="tn3" placeholder="Detailed instructions..."></textarea></div>
         <div class="ff" style="margin-bottom:12px"><label>Attachment (image or PDF, optional — max 10MB)</label>
@@ -655,33 +890,37 @@ input,select,textarea{max-width:100%;box-sizing:border-box;}
             <div class="ff" style="margin-top:8px"><label>Address</label><textarea id="ct-addr" placeholder="Full address..." style="min-height:60px"></textarea></div>
           </div>
         </div>
-        <div style="display:flex;gap:8px;align-items:center">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <button class="btn bp" onclick="asgTask(true)">Assign + Send WA 📲</button>
           <button class="btn bg" onclick="asgTask(false)">Assign only</button>
-          <span style="font-size:11.5px;color:var(--t3);margin-left:auto">Saved to database</span>
+          <button class="btn bg bs" onclick="toggleTeamTasksPanel()" id="teamTasksToggle" style="margin-left:auto">📋 My team tasks ↓</button>
         </div>
       </div>
-      <div class="sec">
-        <div class="sh2"><div class="st">My team tasks</div>
-          <div style="display:flex;align-items:center;gap:8px">
-            <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--t2);cursor:pointer"><input type="checkbox" id="fc-mine" onchange="applyMgrFilter()" style="width:auto;min-height:auto"> Only mine</label>
-            <select class="fcol" id="fc-tag" onchange="applyMgrFilter()" style="width:auto;min-width:120px"><option value="">All tags</option></select>
-            <span style="font-size:10.5px;color:var(--t3)">Closed hidden — filter Status to see them</span>
-            <span style="font-size:11.5px;color:var(--t3)">+ column filters ↓</span>
+
+      <!-- My team tasks — collapsible flow panel -->
+      <div id="team-tasks-panel" style="display:none">
+        <div class="sec">
+          <div class="sh2">
+            <div class="st">My team tasks</div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--t2);cursor:pointer"><input type="checkbox" id="fc-mine" onchange="applyMgrFilter()" style="width:auto;min-height:auto"> Only mine</label>
+              <select class="fcol" id="fc-tag" onchange="applyMgrFilter()" style="width:auto;min-width:110px"><option value="">All tags</option></select>
+              <button class="btn bg bs" onclick="toggleTeamTasksPanel()" style="font-size:11px">✕ Close</button>
+            </div>
           </div>
+          <div class="tw"><table><thead>
+            <tr><th>Task</th><th>Assignee</th><th>Priority</th><th>Deadline</th><th>Status</th><th>Time</th><th>WA</th><th>Actions</th></tr>
+            <tr class="filter-row">
+              <th><input class="fcol" id="fc-title" oninput="applyMgrFilter()" placeholder="Search..."></th>
+              <th><select class="fcol" id="fc-assignee" onchange="applyMgrFilter()"><option value="">All</option></select></th>
+              <th><select class="fcol" id="fc-priority" onchange="applyMgrFilter()"><option value="">All</option><option>High</option><option>Medium</option><option>Low</option></select></th>
+              <th><input class="fcol" id="fc-deadline" type="date" onchange="applyMgrFilter()"></th>
+              <th><select class="fcol" id="fc-status" onchange="applyMgrFilter()"><option value="">All</option></select></th>
+              <th></th><th></th>
+              <th><button class="btn bg bs" onclick="clearMgrFilter()" style="font-size:11px;padding:3px 7px">Clear</button></th>
+            </tr>
+          </thead><tbody id="mtbl"></tbody></table></div>
         </div>
-        <div class="tw"><table><thead>
-          <tr><th>Task</th><th>Assignee</th><th>Priority</th><th>Deadline</th><th>Status</th><th>Time</th><th>WA</th><th>Actions</th></tr>
-          <tr class="filter-row">
-            <th><input class="fcol" id="fc-title" oninput="applyMgrFilter()" placeholder="Search..."></th>
-            <th><select class="fcol" id="fc-assignee" onchange="applyMgrFilter()"><option value="">All</option></select></th>
-            <th><select class="fcol" id="fc-priority" onchange="applyMgrFilter()"><option value="">All</option><option>High</option><option>Medium</option><option>Low</option></select></th>
-            <th><input class="fcol" id="fc-deadline" type="date" onchange="applyMgrFilter()"></th>
-            <th><select class="fcol" id="fc-status" onchange="applyMgrFilter()"><option value="">All</option></select></th>
-            <th></th><th></th>
-            <th><button class="btn bg bs" onclick="clearMgrFilter()" style="font-size:11px;padding:3px 7px">Clear</button></th>
-          </tr>
-        </thead><tbody id="mtbl"></tbody></table></div>
       </div>
     </div>
 
@@ -690,14 +929,85 @@ input,select,textarea{max-width:100%;box-sizing:border-box;}
       <div class="tw"><table><thead><tr><th>Name</th><th>Dept</th><th>WhatsApp</th><th>Active</th><th>Done</th><th>Avg time</th><th>Score</th></tr></thead><tbody id="teamt"></tbody></table></div></div>
     </div>
 
+    <!-- ─── TEAM TASKS PAGE ─── -->
+    <div class="pg" id="pg-tteam">
+      <!-- Filter bar -->
+      <div class="cd" style="padding:14px 18px;margin-bottom:14px">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <input id="tt-search" placeholder="🔍 Search title..." oninput="renderTTeam()" style="background:var(--s2);border:1px solid var(--bd2);border-radius:6px;padding:6px 10px;font-size:13px;color:var(--t);font-family:var(--fn);outline:none;min-width:160px;flex:1">
+          <select id="tt-status" onchange="renderTTeam()" style="background:var(--s2);border:1px solid var(--bd2);border-radius:6px;padding:6px 10px;font-size:13px;color:var(--t2);outline:none"><option value="">All status</option><option>Pending</option><option>In Progress</option><option>Pending Approval</option><option>Overdue</option><option>Completed</option><option>Closed</option></select>
+          <select id="tt-assignee" onchange="renderTTeam()" style="background:var(--s2);border:1px solid var(--bd2);border-radius:6px;padding:6px 10px;font-size:13px;color:var(--t2);outline:none"><option value="">All assignees</option></select>
+          <select id="tt-priority" onchange="renderTTeam()" style="background:var(--s2);border:1px solid var(--bd2);border-radius:6px;padding:6px 10px;font-size:13px;color:var(--t2);outline:none"><option value="">All priority</option><option>High</option><option>Medium</option><option>Low</option></select>
+          <select id="tt-type" onchange="renderTTeam()" style="background:var(--s2);border:1px solid var(--bd2);border-radius:6px;padding:6px 10px;font-size:13px;color:var(--t2);outline:none"><option value="">All types</option><option value="Daily">🔄 Daily</option><option value="General">General</option></select>
+          <select id="tt-dept" onchange="renderTTeam()" style="background:var(--s2);border:1px solid var(--bd2);border-radius:6px;padding:6px 10px;font-size:13px;color:var(--t2);outline:none"><option value="">All depts</option></select>
+          <button class="btn bg bs" onclick="clearTTeamFilters()">✕ Clear</button>
+          <button class="btn bg bs" onclick="ldTTeam(true)" style="margin-left:auto">↻ Refresh</button>
+        </div>
+        <div id="tt-count" style="font-size:12px;color:var(--t3);margin-top:8px"></div>
+      </div>
+      <!-- Task table -->
+      <div class="sec">
+        <div class="tw"><table>
+          <thead><tr>
+            <th>Task</th><th>Assignee</th><th>Manager</th><th>Dept</th><th>Priority</th><th>Deadline</th><th>Status</th><th>Type</th><th>Time</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="tt-tbody"></tbody>
+        </table></div>
+      </div>
+    </div>
+
     <div class="pg" id="pg-wtask">
-      <div class="tbs" id="wtabs">
-        <div class="tab ac" onclick="wTab(this,'all')">All</div>
-        <div class="tab" onclick="wTab(this,'pending')">Pending</div>
-        <div class="tab" onclick="wTab(this,'prog')">In progress</div>
-        <div class="tab" onclick="wTab(this,'done')">Completed</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:4px">
+        <div class="tbs" id="wtabs">
+          <div class="tab ac" onclick="wTab(this,'all')">All</div>
+          <div class="tab" onclick="wTab(this,'daily')">🔄 Daily Tasks</div>
+          <div class="tab" onclick="wTab(this,'pending')">Pending</div>
+          <div class="tab" onclick="wTab(this,'prog')">In progress</div>
+          <div class="tab" onclick="wTab(this,'done')">Completed</div>
+        </div>
       </div>
       <div class="wg" id="wcards"></div>
+    </div>
+
+    <!-- ─── RAISE TICKET (Employee self-ticket) ─── -->
+    <div class="pg" id="pg-raise">
+      <div class="cd" style="max-width:700px;margin:0 auto">
+        <div class="ct">➕ Raise a Ticket</div>
+        <div class="sy" style="margin-bottom:16px"><div style="display:flex;align-items:center;gap:6px"><div class="sd2"></div>Your ticket will be sent to your manager and saved instantly</div></div>
+
+        <!-- Task type tabs -->
+        <div class="form-type-tabs" style="margin-bottom:20px">
+          <button class="ftt ac" id="rftt-general" onclick="setRaiseType('General')">📋 General Ticket</button>
+          <button class="ftt" id="rftt-daily" onclick="setRaiseType('Daily')">🔄 Daily / Recurring</button>
+        </div>
+        <input type="hidden" id="r-type" value="General">
+
+        <div class="fg">
+          <div class="ff" style="grid-column:1/-1"><label>Ticket title *</label><input type="text" id="r-title" placeholder="What do you need to do?"></div>
+          <div class="ff"><label>Priority</label>
+            <select id="r-priority"><option value="High">🔴 High</option><option value="Medium" selected>🟡 Medium</option><option value="Low">🟢 Low</option></select>
+          </div>
+          <div class="ff"><label>Deadline *</label><input type="date" id="r-deadline"></div>
+        </div>
+
+        <div class="ff" style="margin-bottom:12px"><label>Description / Notes</label><textarea id="r-notes" placeholder="Describe what needs to be done..." style="min-height:80px"></textarea></div>
+
+        <div class="ff" style="margin-bottom:12px"><label>Attachment (optional — image or PDF, max 10MB)</label>
+          <input type="file" id="r-attach" accept="image/*,application/pdf" onchange="prepRaiseAttach(this)" style="font-size:13px">
+          <div id="r-attinfo" style="font-size:12px;color:var(--t3);margin-top:5px"></div>
+        </div>
+
+        <!-- Info box: auto-assigned to self -->
+        <div style="padding:11px 14px;background:#f0f5ff;border:1px solid rgba(29,78,216,.12);border-radius:8px;font-size:12.5px;color:var(--t2);margin-bottom:16px">
+          📌 This ticket will be <strong>assigned to you</strong> (<span id="r-self-name"></span>) and your manager <strong><span id="r-mgr-name">—</span></strong> will be notified.
+        </div>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn bp" onclick="raiseTicket(true)">Submit + Notify Manager 📲</button>
+          <button class="btn bg" onclick="raiseTicket(false)">Submit only</button>
+        </div>
+        <div id="r-busy" style="display:none;margin-top:10px;font-size:12.5px;color:var(--t3)">⏳ Submitting...</div>
+      </div>
     </div>
 
     <div class="pg" id="pg-myupd">
@@ -766,6 +1076,11 @@ input,select,textarea{max-width:100%;box-sizing:border-box;}
         <div style="font-size:12px;color:var(--t2);margin-bottom:12px">Set 11za API details, sender number, templates, reminders, overdue escalation and retry rules for this selected company only.</div>
         <div id="whatsapp-editor"></div>
       </div>
+      <div class="cd" id="quick-wa-btn-card">
+        <div class="ct">🔘 Quick WA Button</div>
+        <div style="font-size:12px;color:var(--t2);margin-bottom:12px">A WhatsApp button that appears on each task. Only the roles you select below can see and use it. Use it for quick reporting, escalation, or any one-tap WA action.</div>
+        <div id="quick-wa-btn-editor"></div>
+      </div>
       <div class="cd" id="role-security-card">
         <div class="ct">🔐 Security, roles & reliability</div>
         <div style="font-size:12px;color:var(--t2);margin-bottom:12px">Control role safety, archive rules, audit logging and copy Firebase Rules for cross-company protection.</div>
@@ -807,9 +1122,9 @@ input,select,textarea{max-width:100%;box-sizing:border-box;}
 
 <div class="mo" id="tmod">
   <div class="md">
-    <div class="mh"><div class="mtt" id="mttl">Task detail</div><button class="mx" onclick="cmod()">✕</button></div>
+    <div class="mh"><div style="display:flex;align-items:center;gap:12px"><button class="td-back" onclick="cmod()">← Back</button><div><div class="mtt" id="mttl">Task detail</div><span id="mttid" style="font-family:var(--fm);font-size:11px;color:var(--t3)"></span></div></div><div style="display:flex;gap:6px;flex-wrap:wrap"></div></div>
     <div class="mb" id="mbdy"></div>
-    <div class="mf"><button class="btn bs" id="delBtn" onclick="deleteTicket()" style="display:none;background:rgba(225,29,72,.1);border:1px solid rgba(225,29,72,.3);color:var(--rd)">🗄 Archive</button><button class="btn bw bs" id="remindBtn" onclick="rWA()">📲 Resend WA</button><button class="btn bp bs" onclick="cmod()">Close</button></div>
+    <div class="mf"><button class="btn bs" id="delBtn" onclick="deleteTicket()" style="display:none;background:rgba(225,29,72,.1);border:1px solid rgba(225,29,72,.3);color:var(--rd)">🗄 Archive</button><button class="btn bs" id="ovr-btn" onclick="adminOverride()" style="display:none;background:rgba(245,165,32,.1);border:1px solid rgba(245,165,32,.3);color:var(--am)">⚡ Override</button><button class="btn bw bs" id="remindBtn" onclick="rWA()">📲 Resend WA</button><button class="btn bg bs" id="quickWABtn" onclick="sendQuickWABtn()" style="display:none">📢 Quick WA</button><button class="td-back" onclick="cmod()">← Back</button></div>
   </div>
 </div>
 
@@ -855,6 +1170,7 @@ let CU=null,GP=null,AU=[],AT=[],AL=[],AWL=[],WF='all',STid=null,CACHE=null,CACHE
 let ACTIVE_COMPANY_ID='',ACTIVE_COMPANY=null,COMPANIES=[];
 const DEFAULT_COMPANY={id:'kasera-industries',name:'Kasera Industries',shortName:'Kasera',logoUrl:'logo.png',email:'',phone:'',address:'',website:'',gst:'',active:true};
 let _kaseraMigrationPromise=null;
+let QUICK_WA_BTN=null;
 let _companyLogoFile=null,_newCompanyLogoFile=null;
 let DASH_VIEW='board';
 let DEPTS=['Production','Maintenance','QC','Dispatch','Warehouse','Management'];
@@ -1112,6 +1428,7 @@ function defaultWaTemplates(){return {
   custom:'{1}'
 };}
 function defaultSecuritySettings(){return {preventAdminSuperadmin:true,archiveInsteadDelete:true,auditAllActions:true,blockCrossCompany:true,disableHardDelete:true};}
+function defaultQuickWABtnSettings(){return {enabled:false,label:'Quick Report',allowedRoles:['supervisor'],recipientType:'manager',customNumber:'',messageTemplate:'Task {1}: {2}. Status: {3}. Reported by: {4}.'};}
 function defaultWhatsappSettings(){return {enabled:true,serviceUrl:SCRIPT,apiKey:'',senderNumber:'',reminderDaysBefore:1,enableAutoReminder:true,enableOverdueEscalation:true,retryLimit:3,deliveryWebhookNote:'Use 11za delivery webhook to update deliveryStatus when available.'};}
 async function fireWA(payload){
   payload=payload||{};
@@ -1358,8 +1675,24 @@ async function fbLogs(){
 }
 function filterTasks(all,data){
   let t=all;
+  // Role-based scope
   if(data.role==='employee'&&data.userName) t=t.filter(x=>x.assigneeName===data.userName);
   else if(data.role==='supervisor'&&data.userName) t=t.filter(x=>x.managerName===data.userName||x.createdBy===data.userName||x.assigneeName===data.userName);
+  // Visibility filter — superadmin sees everything
+  if(data.role!=='superadmin'){
+    t=t.filter(x=>{
+      const vis=x.visibility;
+      if(!vis||vis==='all') return true;
+      // Assignee always sees their own task
+      if(x.assigneeName===data.userName) return true;
+      // New array format
+      if(Array.isArray(vis)) return vis.includes(data.role);
+      // Legacy string format (backward compat)
+      if(vis==='team') return ['admin','supervisor'].includes(data.role);
+      if(vis==='admin') return data.role==='admin';
+      return true;
+    });
+  }
   return t;
 }
 async function buildBoot(who,preUsers){
@@ -1415,7 +1748,7 @@ async function fbUpd(taskId,title,by,oldS,newS,note,att){ try{const F=window.FB;
 async function fbAssign(d){
   if(!d.title||!d.assigneeName||!d.deadline) return {ok:false,error:'Missing required fields'};
   const F=window.FB, id=await nextTaskId();
-  const task={id,title:d.title,assigneeName:d.assigneeName,assigneeWA:d.assigneeWA||'',department:d.department||'',priority:d.priority||'Medium',deadline:d.deadline,status:'Pending',type:d.type||'One-time',notes:d.notes||'',createdBy:d.createdBy||'Admin',createdOn:new Date().toLocaleString(),waSent:d.sendWA?'Sent':'Not sent',managerName:d.managerName||'',managerWA:d.managerWA||'',startedOn:'',completedOn:'',timeTaken:'',workerNotes:'',tags:d.tags||[],contactName:d.contactName||'',contactPhone:d.contactPhone||'',contactAddr:d.contactAddr||'',attachUrl:d.attachUrl||'',attachName:d.attachName||'',attachType:d.attachType||''};
+  const task={id,title:d.title,assigneeName:d.assigneeName,assigneeWA:d.assigneeWA||'',department:d.department||'',priority:d.priority||'Medium',deadline:d.deadline,status:'Pending',type:d.type||'General',visibility:d.visibility||'all',notes:d.notes||'',createdBy:d.createdBy||'Admin',createdOn:new Date().toLocaleString(),waSent:d.sendWA?'Sent':'Not sent',managerName:d.managerName||'',managerWA:d.managerWA||'',startedOn:'',completedOn:'',timeTaken:'',workerNotes:'',tags:d.tags||[],contactName:d.contactName||'',contactPhone:d.contactPhone||'',contactAddr:d.contactAddr||'',attachUrl:d.attachUrl||'',attachName:d.attachName||'',attachType:d.attachType||''};
   await F.setDoc(cDoc('tasks',id),task);
   await fbLog(d.createdBy,'Task assigned',id,d.title,!!(d.sendWA&&d.assigneeWA),'To:'+d.assigneeName+(d.sendWA&&d.assigneeWA?' (WA sent)':''));
   await fbUpd(id,d.title,d.createdBy||'Admin','','Pending','Task assigned');
@@ -1657,7 +1990,8 @@ async function fbGetSettings(){
   const templates={...defaultWaTemplates(),...(cfg.templates||{})};
   const security={...defaultSecuritySettings(),...(cfg.security||{})};
   const backup={autoDailyBackup:true,lastBackupDate:'',lastBackupAt:0,lastReminderRunDate:'',...(cfg.backup||{})};
-  return {ok:true,stages,departments:depts,tags,whatsapp,templates,security,backup,settings:cfg};
+  const quickWAButton={...defaultQuickWABtnSettings(),...(cfg.quickWAButton||{})};
+  return {ok:true,stages,departments:depts,tags,whatsapp,templates,security,backup,quickWAButton,settings:cfg};
 }
 async function fbSaveSettings(d){
   const F=window.FB; const patch={updatedAt:Date.now(),updatedBy:d.by||'Admin'};
@@ -1668,6 +2002,7 @@ async function fbSaveSettings(d){
   if(d.templates!==undefined)patch.templates=d.templates;
   if(d.security!==undefined)patch.security=d.security;
   if(d.backup!==undefined)patch.backup=d.backup;
+  if(d.quickWAButton!==undefined)patch.quickWAButton=d.quickWAButton;
   await F.setDoc(cDoc('settings','config'),patch,{merge:true});
   await fbLog(d.by||'Admin','Settings updated','','',false,Object.keys(patch).filter(k=>!['updatedAt','updatedBy'].includes(k)).join(', '));
   return {ok:true};
@@ -1745,13 +2080,14 @@ async function fbArchiveTask(d){
 
 // ── ADMIN ENHANCEMENTS: WhatsApp, permissions, backup, Firebase rules ──
 async function renderAdminEnhancements(){
-  const waEl=document.getElementById('whatsapp-editor'), secEl=document.getElementById('security-editor'), bakEl=document.getElementById('backup-editor');
-  if(!waEl&&!secEl&&!bakEl)return;
-  let st={whatsapp:defaultWhatsappSettings(),templates:defaultWaTemplates(),security:defaultSecuritySettings(),backup:{}};
+  const waEl=document.getElementById('whatsapp-editor'), secEl=document.getElementById('security-editor'), bakEl=document.getElementById('backup-editor'), qwaEl=document.getElementById('quick-wa-btn-editor');
+  if(!waEl&&!secEl&&!bakEl&&!qwaEl)return;
+  let st={whatsapp:defaultWhatsappSettings(),templates:defaultWaTemplates(),security:defaultSecuritySettings(),backup:{},quickWAButton:defaultQuickWABtnSettings()};
   try{const r=await api('getSettings',{}); if(r.ok!==false)st=r;}catch(e){}
   if(waEl)renderWhatsAppEditor(st);
   if(secEl)renderSecurityEditor(st);
   if(bakEl)renderBackupEditor(st);
+  if(qwaEl)renderQuickWABtnEditor(st);
 }
 function renderWhatsAppEditor(st){
   const w={...defaultWhatsappSettings(),...(st.whatsapp||{})};
@@ -1811,6 +2147,52 @@ async function saveBackupSettings(){
   const backup={autoDailyBackup:document.getElementById('bk-auto').value==='true'};
   const r=await api('saveSettings',{by:CU.name,backup});
   if(r.ok!==false)toast('Backup setting saved','ok'); else toast('Failed: '+(r.error||'error'),'er2');
+}
+function renderQuickWABtnEditor(st){
+  const q={...defaultQuickWABtnSettings(),...(st.quickWAButton||{})};
+  const ROLES=[{v:'employee',l:'Employee'},{v:'supervisor',l:'Supervisor'},{v:'admin',l:'Admin'},{v:'superadmin',l:'Super Admin'}];
+  const roleCheckboxes=ROLES.map(r=>'<label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="qwa-role-'+r.v+'" '+(((q.allowedRoles||[]).includes(r.v))?'checked':'')+' style="width:auto;min-height:auto"> '+r.l+'</label>').join('');
+  document.getElementById('quick-wa-btn-editor').innerHTML=
+    '<div class="fg">'+
+    '<div class="ff"><label>Enable Quick WA Button</label><select id="qwa-enabled"><option value="true" '+(q.enabled?'selected':'')+'>Enabled — shows on every task</option><option value="false" '+(!q.enabled?'selected':'')+'>Disabled</option></select></div>'+
+    '<div class="ff"><label>Button label</label><input id="qwa-label" value="'+esc(q.label||'Quick Report')+'" placeholder="e.g. Quick Report"></div>'+
+    '<div class="ff"><label>Send WA to</label><select id="qwa-recipient"><option value="manager" '+(q.recipientType==='manager'?'selected':'')+'>Task manager / approver</option><option value="assignee" '+(q.recipientType==='assignee'?'selected':'')+'>Task assignee</option><option value="custom" '+(q.recipientType==='custom'?'selected':'')+'>Custom number (below)</option></select></div>'+
+    '<div class="ff"><label>Custom number (if chosen above)</label><input id="qwa-custom" value="'+esc(q.customNumber||'')+'" placeholder="e.g. 9876543210"></div>'+
+    '</div>'+
+    '<div class="ff" style="margin-bottom:12px"><label>Who can see this button?</label><div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:6px;padding:10px;background:var(--s2);border:1px solid var(--bd2);border-radius:8px">'+roleCheckboxes+'</div></div>'+
+    '<div class="ff" style="margin-bottom:12px"><label>Message template</label><textarea id="qwa-msg" style="min-height:68px">'+esc(q.messageTemplate||'Task {1}: {2}. Status: {3}. Reported by: {4}.')+'</textarea><div style="font-size:11px;color:var(--t3);margin-top:4px">Variables: {1}=task ID, {2}=task title, {3}=status, {4}=sender name</div></div>'+
+    '<button class="btn bp" onclick="saveQuickWABtnSettings()">💾 Save Quick WA Button settings</button>';
+}
+async function saveQuickWABtnSettings(){
+  const ROLES=['employee','supervisor','admin','superadmin'];
+  const allowedRoles=ROLES.filter(r=>{const el=document.getElementById('qwa-role-'+r); return el&&el.checked;});
+  const quickWAButton={
+    enabled:document.getElementById('qwa-enabled').value==='true',
+    label:(document.getElementById('qwa-label').value||'Quick Report').trim(),
+    allowedRoles,
+    recipientType:document.getElementById('qwa-recipient').value||'manager',
+    customNumber:(document.getElementById('qwa-custom').value||'').trim(),
+    messageTemplate:(document.getElementById('qwa-msg').value||'Task {1}: {2}. Status: {3}. Reported by: {4}.').trim()
+  };
+  const r=await api('saveSettings',{by:CU.name,quickWAButton});
+  if(r.ok!==false){QUICK_WA_BTN=quickWAButton;toast('Quick WA Button settings saved','ok');}
+  else toast('Failed: '+(r.error||'error'),'er2');
+}
+async function sendQuickWABtn(){
+  const id=window._mTask; if(!id)return;
+  const task=AT.find(t=>t.id===id); if(!task){toast('Task not found','er2');return;}
+  const q={...defaultQuickWABtnSettings(),...(QUICK_WA_BTN||{})};
+  let to='';
+  if(q.recipientType==='assignee')to=task.assigneeWA||'';
+  else if(q.recipientType==='custom')to=q.customNumber||'';
+  else to=task.managerWA||'';
+  if(!to){toast('No WhatsApp number for the recipient on this task.','er2');return;}
+  const msg=(q.messageTemplate||'Task {1}: {2}. Status: {3}. Reported by: {4}.')
+    .replace('{1}',task.id||'').replace('{2}',task.title||'').replace('{3}',task.status||'').replace('{4}',CU.name||'');
+  toast('📢 Sending '+esc(q.label||'Quick WA')+'...','in');
+  fireWA({action:'waOnly',template:'custom',to,params:[msg],taskId:task.id,taskTitle:task.title,by:CU.name});
+  try{await fbLog(CU.name,(q.label||'Quick WA')+' sent',task.id,task.title,true,'To: '+to);}catch(e){}
+  toast((q.label||'Quick WA')+' sent ✓','wa2');
 }
 async function runReminderEscalation(){
   const r=await api('runReminders',{by:CU.name,byRole:CU.role});
@@ -1941,6 +2323,12 @@ function doL(){const c=document.getElementById('co')?.value||'';const e=document
 
 
 function toggleSidebar(){
+  if(window.innerWidth>860){
+    // Desktop: collapse/expand sidebar
+    toggleDesktopSidebar();
+    return;
+  }
+  // Mobile: overlay open/close
   const sb=document.getElementById('sidebar'), bd=document.getElementById('sbBackdrop');
   if(!sb)return;
   const open=sb.classList.toggle('open');
@@ -1949,6 +2337,32 @@ function toggleSidebar(){
 function closeSidebar(){
   const sb=document.getElementById('sidebar'), bd=document.getElementById('sbBackdrop');
   if(sb)sb.classList.remove('open'); if(bd)bd.classList.remove('show');
+}
+function toggleDesktopSidebar(){
+  const sb=document.getElementById('sidebar');
+  if(!sb)return;
+  sb.classList.toggle('deskCollapsed');
+  try{localStorage.setItem('sbCollapsed',sb.classList.contains('deskCollapsed')?'1':'0');}catch(e){}
+}
+function restoreDesktopSidebar(){
+  if(window.innerWidth<=860)return; // never restore collapsed state on mobile
+  try{if(localStorage.getItem('sbCollapsed')==='1')document.getElementById('sidebar')?.classList.add('deskCollapsed');}catch(e){}
+}
+function setTaskFormType(type){
+  const inp=document.getElementById('ty3');
+  if(inp)inp.value=type;
+  const titleEl=document.getElementById('asgn-form-title');
+  if(titleEl)titleEl.textContent=type==='Daily'?'🔄 Assign Daily Task':'📋 Assign General Task';
+  document.getElementById('ftt-general')?.classList.toggle('ac',type==='General');
+  document.getElementById('ftt-daily')?.classList.toggle('ac',type==='Daily');
+}
+function setVisPreset(p){
+  const a=document.getElementById('tvis-admin'),s=document.getElementById('tvis-sup'),e=document.getElementById('tvis-emp');
+  if(!a)return;
+  if(p==='all'){a.checked=true;s.checked=true;e.checked=true;}
+  else if(p==='me'){a.checked=false;s.checked=false;e.checked=false;}
+  else if(p==='admin'){a.checked=true;s.checked=false;e.checked=false;}
+  else if(p==='team'){a.checked=true;s.checked=true;e.checked=false;}
 }
 
 function restoreSession(){
@@ -2034,7 +2448,7 @@ function startApp(){
   applyCompanyBranding();
   document.getElementById('ls').style.display='none';
   document.getElementById('app').style.display='flex';
-  loadStages(); setupSB(); loadUsers(); setTimeout(refreshDeptDropdowns,300);
+  loadStages(); setupSB(); loadUsers(); restoreDesktopSidebar(); setTimeout(refreshDeptDropdowns,300);
   const home=(CU.role==='superadmin'||CU.role==='admin')?'dash':CU.role==='supervisor'?'asgn':'wtask';
   sp2f(home);
   toast('Welcome, '+CU.name.split(' ')[0]+' \uD83D\uDC4B','ok');
@@ -2043,12 +2457,12 @@ function startApp(){
 
 // ── SIDEBAR ──────────────────────────────────────────────────────
 const NAV={
-  superadmin:[{g:'Overview',items:[{id:'dash',ic:'📊',lb:'Dashboard'},{id:'asgn',ic:'➕',lb:'Assign task'},{id:'wtask',ic:'🎫',lb:'My Tickets'},{id:'myupd',ic:'🔔',lb:'Updates'},{id:'approvals',ic:'✔️',lb:'Approvals'},{id:'closed',ic:'🗂️',lb:'Closed tickets'},{id:'rep',ic:'📈',lb:'Reports'},{id:'wa',ic:'💬',lb:'WA log'},{id:'log',ic:'📝',lb:'Activity log'}]},{g:'Admin',items:[{id:'people',ic:'👥',lb:'Manage people'},{id:'cfg',ic:'⚙️',lb:'Settings'}]}],
-  admin:[{g:'Overview',items:[{id:'dash',ic:'📊',lb:'Dashboard'},{id:'asgn',ic:'➕',lb:'Assign task'},{id:'wtask',ic:'🎫',lb:'My Tickets'},{id:'myupd',ic:'🔔',lb:'Updates'},{id:'approvals',ic:'✔️',lb:'Approvals'},{id:'closed',ic:'🗂️',lb:'Closed tickets'},{id:'rep',ic:'📈',lb:'Reports'}]},{g:'Admin',items:[{id:'people',ic:'👥',lb:'Manage people'},{id:'cfg',ic:'⚙️',lb:'Settings'}]}],
-  supervisor:[{g:'Tasks',items:[{id:'asgn',ic:'➕',lb:'Assign task'},{id:'wtask',ic:'🎫',lb:'My Tickets'},{id:'myupd',ic:'🔔',lb:'Updates'},{id:'approvals',ic:'✔️',lb:'Approvals'},{id:'team',ic:'👷',lb:'My team'},{id:'closed',ic:'🗂️',lb:'Closed tickets'}]}],
-  employee:[{g:'My work',items:[{id:'wtask',ic:'🎫',lb:'My Tickets'},{id:'myupd',ic:'🔔',lb:'Updates'},{id:'closed',ic:'🗂️',lb:'Closed tickets'},{id:'wperf',ic:'📊',lb:'My performance'}]}]
+  superadmin:[{g:'Overview',items:[{id:'dash',ic:'📊',lb:'Dashboard'},{id:'asgn',ic:'📋',lb:'General Task'},{id:'asgn-daily',ic:'🔄',lb:'Daily Task'},{id:'wtask',ic:'🎫',lb:'My Tickets'},{id:'tteam',ic:'📂',lb:'Team Tasks'},{id:'myupd',ic:'🔔',lb:'Updates'},{id:'approvals',ic:'✔️',lb:'Approvals'},{id:'closed',ic:'🗂️',lb:'Closed tickets'},{id:'rep',ic:'📈',lb:'Reports'},{id:'wa',ic:'💬',lb:'WA log'},{id:'log',ic:'📝',lb:'Activity log'}]},{g:'Admin',items:[{id:'people',ic:'👥',lb:'Manage people'},{id:'cfg',ic:'⚙️',lb:'Settings'}]}],
+  admin:[{g:'Overview',items:[{id:'dash',ic:'📊',lb:'Dashboard'},{id:'asgn',ic:'📋',lb:'General Task'},{id:'asgn-daily',ic:'🔄',lb:'Daily Task'},{id:'wtask',ic:'🎫',lb:'My Tickets'},{id:'tteam',ic:'📂',lb:'Team Tasks'},{id:'myupd',ic:'🔔',lb:'Updates'},{id:'approvals',ic:'✔️',lb:'Approvals'},{id:'closed',ic:'🗂️',lb:'Closed tickets'},{id:'rep',ic:'📈',lb:'Reports'}]},{g:'Admin',items:[{id:'people',ic:'👥',lb:'Manage people'},{id:'cfg',ic:'⚙️',lb:'Settings'}]}],
+  supervisor:[{g:'Tasks',items:[{id:'asgn',ic:'📋',lb:'General Task'},{id:'asgn-daily',ic:'🔄',lb:'Daily Task'},{id:'wtask',ic:'🎫',lb:'My Tickets'},{id:'tteam',ic:'📂',lb:'Team Tasks'},{id:'myupd',ic:'🔔',lb:'Updates'},{id:'approvals',ic:'✔️',lb:'Approvals'},{id:'team',ic:'👷',lb:'My team'},{id:'closed',ic:'🗂️',lb:'Closed tickets'}]}],
+  employee:[{g:'My work',items:[{id:'raise',ic:'➕',lb:'Raise Ticket'},{id:'wtask',ic:'🎫',lb:'My Tickets'},{id:'myupd',ic:'🔔',lb:'Updates'},{id:'closed',ic:'🗂️',lb:'Closed tickets'},{id:'wperf',ic:'📊',lb:'My performance'}]}]
 }
-const PTITLES={dash:'Dashboard',people:'Manage people',approvals:'Approvals',closed:'Closed tickets',rep:'Reports',wa:'WhatsApp log',log:'Activity log',cfg:'Settings',asgn:'Assign task',team:'My team',wtask:'My Tickets',myupd:'Updates',wperf:'My performance'};
+const PTITLES={dash:'Dashboard',people:'Manage people',approvals:'Approvals',closed:'Closed tickets',rep:'Reports',wa:'WhatsApp log',log:'Activity log',cfg:'Settings',asgn:'General Task',team:'My team',wtask:'My Tickets',tteam:'Team Tasks',myupd:'Updates',wperf:'My performance','asgn-daily':'Daily Task',raise:'Raise Ticket'};
 
 function setupSB(){
   const u=CU;
@@ -2067,6 +2481,14 @@ function setupSB(){
 }
 function sp2f(id,fromPop){
   closeSidebar();
+  // Route asgn-daily to assign form with Daily tab
+  if(id==='asgn-daily'){
+    sp2f('asgn',fromPop);
+    setTimeout(()=>setTaskFormType('Daily'),50);
+    document.querySelectorAll('.ni').forEach(n=>n.classList.remove('ac'));
+    document.getElementById('ni-asgn-daily')?.classList.add('ac');
+    return;
+  }
   // Access guards
   if((id==='wa'||id==='log')&&CU&&CU.role!=='superadmin'){toast('Logs are visible to Super Admin only','er2');return;}
   if((id==='people'||id==='cfg')&&CU&&CU.role!=='superadmin'&&CU.role!=='admin'){toast('Admin access required','er2');return;}
@@ -2085,7 +2507,9 @@ function sp2f(id,fromPop){
   if(id==='dash')ldDash();
   else if(id==='rep')ldRep();
   else if(id==='wa'||id==='log')ldLogs();
-  else if(id==='asgn'){ldMgr();filW();}
+  else if(id==='asgn'){ldMgr();filW();setTaskFormType('General');}
+  else if(id==='raise'){initRaiseForm();}
+  else if(id==='tteam')ldTTeam();
   else if(id==='team')ldTeam();
   else if(id==='wtask')ldWT();
   else if(id==='myupd')ldUpdates();
@@ -2114,9 +2538,12 @@ function renderKanban(tasks){
     const cards=items.map(t=>{
       const init=(t.assigneeName||'?').split(' ').map(x=>x[0]).join('').slice(0,2);
       const ovd=t.status==='Overdue';
+      const isDaily=t.type==='Daily';
+      const vis=t.visibility||'all';
+      const visTag=vis==='team'?'<span style="font-size:10px;color:var(--t3)">🔒</span>':vis==='admin'?'<span style="font-size:10px;color:var(--rd)">🔐</span>':'';
       return '<div class="kc" draggable="true" data-id="'+t.id+'" ondragstart="dragStart(event)" ondragend="dragEnd(event)" onclick="openTM(\''+t.id+'\')">'+
-        '<div class="kct">'+t.title+'</div>'+
-        '<div class="kcm">'+pb(t.priority)+'<span class="tg">'+t.id+'</span>'+(ovd?'<span class="bd3 po">Overdue</span>':'')+'</div>'+
+        '<div class="kct">'+t.title+' '+visTag+'</div>'+
+        '<div class="kcm">'+pb(t.priority)+'<span class="tg">'+t.id+'</span>'+(isDaily?'<span class="daily-badge">🔄 Daily</span>':'')+(ovd?'<span class="bd3 po">Overdue</span>':'')+'</div>'+
         '<div class="kcf"><span class="kca">'+init+'</span><span>'+(t.deadline||'')+'</span></div>'+
       '</div>';
     }).join('');
@@ -2303,6 +2730,7 @@ function applySettings(r){
   if(r&&r.stages&&r.stages.length){STAGES=r.stages.map(normalizeStage);}
   if(r&&r.departments&&r.departments.length){DEPTS=r.departments;}
   if(r&&r.tags&&r.tags.length){TAGS=r.tags;}
+  if(r&&r.quickWAButton){QUICK_WA_BTN={...defaultQuickWABtnSettings(),...r.quickWAButton};}
   renderTagPicker();
   refreshDeptDropdowns();
 }
@@ -2329,13 +2757,16 @@ function _paintDash(r){
   if(!r||r.ok===false)return;
   const sf=document.getElementById('fs')?.value||'',df=document.getElementById('fd')?.value||'';
   AT=r.allTasks||r.tasks||[];
-  let tasks=(r.tasks||[]);
+  // Use allTasks for admin/superadmin so they see everyone's tasks; use filtered 'tasks' for others
+  let tasks=(CU.role==='superadmin'||CU.role==='admin')?(r.allTasks||r.tasks||[]):(r.tasks||[]);
   // Populate filter dropdowns (depts + tags) if empty
   const fdEl=document.getElementById('fd'); if(fdEl&&fdEl.options.length<=1)fdEl.innerHTML='<option value="">All depts</option>'+(DEPTS||[]).map(d=>'<option>'+d+'</option>').join('');
   const tf=document.getElementById('ftag')?.value||'';
+  const tyf=document.getElementById('ftype')?.value||'';
   if(sf)tasks=tasks.filter(t=>t.status===sf);
   if(df)tasks=tasks.filter(t=>t.department===df);
   if(tf)tasks=tasks.filter(t=>(t.tags||[]).includes(tf));
+  if(tyf)tasks=tasks.filter(t=>t.type===tyf);
   // populate tag filter options
   const ftEl=document.getElementById('ftag'); if(ftEl&&ftEl.options.length<=1)ftEl.innerHTML='<option value="">All tags</option>'+TAGS.map(tg=>'<option>'+tg+'</option>').join('');
   const s=r.stats||{total:0,completed:0,inProgress:0,pending:0,overdue:0};
@@ -2357,7 +2788,7 @@ function _paintDash(r){
   renderKanban(tasks);
   document.getElementById('atbl').innerHTML=tasks.length?tasks.map(t=>`
     <tr onclick="openTM('${t.id}')" style="cursor:pointer">
-      <td><strong>${t.title}</strong><br><span class="tg">${t.type}</span>${(t.tags&&t.tags.length)?' '+t.tags.map(tg=>'<span style="font-size:9.5px;padding:2px 7px;border-radius:10px;background:rgba(37,99,235,.1);color:var(--ac);margin-left:3px">'+tg+'</span>').join(''):''}</td>
+      <td><strong>${t.title}</strong><br>${t.type==='Daily'?'<span class="daily-badge">🔄 Daily Task</span>':'<span class="tg">General</span>'}${(t.tags&&t.tags.length)?' '+t.tags.map(tg=>'<span style="font-size:9.5px;padding:2px 7px;border-radius:10px;background:rgba(37,99,235,.1);color:var(--ac);margin-left:3px">'+tg+'</span>').join(''):''}</td>
       <td>${t.assigneeName}</td><td style="color:var(--t2);font-size:12px">${t.managerName||'—'}</td>
       <td>${pb(t.priority)}</td>
       <td style="font-size:12px;color:${od(t.deadline)?'var(--rd)':'var(--t2)'}">${t.deadline}</td>
@@ -2412,9 +2843,21 @@ async function retryWaLog(id){
   const r=await api('retryWa',{logId:id,by:CU.name,byRole:CU.role});
   if(r.ok!==false){toast('WhatsApp retry queued','ok');ldLogs(true);}else toast('Retry failed: '+(r.error||'error'),'er2');
 }
+function toggleTeamTasksPanel(){
+  const panel=document.getElementById('team-tasks-panel');
+  const btn=document.getElementById('teamTasksToggle');
+  if(!panel)return;
+  const open=panel.style.display==='none'||panel.style.display==='';
+  panel.style.display=open?'block':'none';
+  if(btn)btn.textContent=open?'📋 My team tasks ✕':'📋 My team tasks ↓';
+  if(open){ldMgr();} // load/refresh tasks when opening
+}
 
 let _mgrTasks=[];
 async function ldMgr(){
+  // Visibility section: only admin/superadmin can set task visibility
+  const visSection=document.getElementById('vis-section');
+  if(visSection) visSection.style.display=(CU.role==='superadmin'||CU.role==='admin')?'':'none';
   const r=await getBoot();
   if(r.ok===false)return;
   let all=r.allTasks||r.tasks||[];
@@ -2458,6 +2901,134 @@ function applyMgrFilter(){
   </tr>`).join(''):'<tr class="er"><td colspan="8">No tasks</td></tr>';
 }
 
+// ── RAISE TICKET (Employee self-create) ──────────────────────────
+let _raiseAttachFile=null;
+function initRaiseForm(){
+  const nm=document.getElementById('r-self-name');if(nm)nm.textContent=CU.name||'';
+  const mgr=document.getElementById('r-mgr-name');if(mgr)mgr.textContent=CU.managerName||'—';
+  // set today+1 as default deadline
+  const dl=document.getElementById('r-deadline');
+  if(dl&&!dl.value){const d=new Date();d.setDate(d.getDate()+1);dl.value=d.toISOString().split('T')[0];}
+  setRaiseType('General');
+}
+function setRaiseType(type){
+  const inp=document.getElementById('r-type');if(inp)inp.value=type;
+  document.getElementById('rftt-general')?.classList.toggle('ac',type==='General');
+  document.getElementById('rftt-daily')?.classList.toggle('ac',type==='Daily');
+}
+function prepRaiseAttach(input){
+  _raiseAttachFile=input.files?.[0]||null;
+  const info=document.getElementById('r-attinfo');
+  if(info)info.textContent=_raiseAttachFile?'📎 '+_raiseAttachFile.name+' ('+(_raiseAttachFile.size/1024/1024).toFixed(2)+'MB)':'';
+}
+async function raiseTicket(notify){
+  const title=(document.getElementById('r-title')?.value||'').trim();
+  const deadline=document.getElementById('r-deadline')?.value||'';
+  const type=document.getElementById('r-type')?.value||'General';
+  const priority=document.getElementById('r-priority')?.value||'Medium';
+  const notes=(document.getElementById('r-notes')?.value||'').trim();
+  if(!title){toast('Please enter a ticket title','er2');return;}
+  if(!deadline){toast('Please set a deadline','er2');return;}
+  const busy=document.getElementById('r-busy');
+  document.querySelectorAll('#pg-raise .btn').forEach(b=>{b.disabled=true;b.style.opacity='.5';});
+  if(busy)busy.style.display='block';
+  let attachInfo=null;
+  if(_raiseAttachFile){
+    try{
+      const F=window.FB;
+      const path='companies/'+(ACTIVE_COMPANY_ID||'default')+'/attachments/raise_'+Date.now()+'_'+_raiseAttachFile.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+      const ref=F.storageRef(F.storage,path);
+      await F.uploadBytes(ref,_raiseAttachFile);
+      const url=await F.getDownloadURL(ref);
+      attachInfo={url,name:_raiseAttachFile.name,type:_raiseAttachFile.type};
+    }catch(e){ toast('Attachment upload failed: '+e.message,'er2'); }
+  }
+  const r=await api('assignTask',{
+    title, assigneeName:CU.name, assigneeWA:CU.whatsapp||'',
+    department:CU.department||'', priority, deadline, type,
+    visibility:['superadmin','admin','supervisor',CU.name], // self + management visible
+    notes, createdBy:CU.name,
+    managerName:CU.managerName||'', managerWA:CU.managerWA||'',
+    sendWA:notify, tags:[],
+    contactName:'',contactPhone:'',contactAddr:'',
+    attachUrl:attachInfo?attachInfo.url:'', attachName:attachInfo?attachInfo.name:'', attachType:attachInfo?attachInfo.type:''
+  });
+  document.querySelectorAll('#pg-raise .btn').forEach(b=>{b.disabled=false;b.style.opacity='1';});
+  if(busy)busy.style.display='none';
+  if(r.ok!==false){
+    toast('Ticket raised! ID: '+(r.id||''),'ok');
+    // reset form
+    ['r-title','r-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    _raiseAttachFile=null;
+    const ai=document.getElementById('r-attinfo');if(ai)ai.textContent='';
+    const att=document.getElementById('r-attach');if(att)att.value='';
+    setRaiseType('General');
+    CACHE=null; // invalidate cache so My Tickets refreshes
+  } else {
+    toast('Failed: '+(r.error||'Error'),'er2');
+  }
+}
+
+let _tteamAll=[];
+async function ldTTeam(force){
+  const tbody=document.getElementById('tt-tbody');
+  if(tbody)tbody.innerHTML='<tr><td colspan="10" style="text-align:center;padding:24px;color:var(--t3)"><div class="sp" style="display:inline-block"></div> Loading...</td></tr>';
+  const r=await getBoot(force);
+  if(r.ok===false){if(tbody)tbody.innerHTML='<tr class="er"><td colspan="10">Failed to load</td></tr>';return;}
+  // Build pool: superadmin/admin see all; supervisor sees their team
+  let all=r.allTasks||r.tasks||[];
+  if(CU.role==='supervisor') all=all.filter(t=>t.managerName===CU.name||t.createdBy===CU.name||t.assigneeName===CU.name);
+  _tteamAll=all;
+  // Populate assignee dropdown
+  const asgSel=document.getElementById('tt-assignee');
+  if(asgSel){const names=[...new Set(all.map(t=>t.assigneeName).filter(Boolean))].sort();asgSel.innerHTML='<option value="">All assignees</option>'+names.map(n=>'<option>'+n+'</option>').join('');}
+  // Populate dept dropdown
+  const deptSel=document.getElementById('tt-dept');
+  if(deptSel){const depts=[...new Set(all.map(t=>t.department).filter(Boolean))].sort();deptSel.innerHTML='<option value="">All depts</option>'+depts.map(d=>'<option>'+d+'</option>').join('');}
+  renderTTeam();
+}
+function renderTTeam(){
+  const q=(document.getElementById('tt-search')?.value||'').toLowerCase();
+  const st=document.getElementById('tt-status')?.value||'';
+  const an=document.getElementById('tt-assignee')?.value||'';
+  const pr=document.getElementById('tt-priority')?.value||'';
+  const ty=document.getElementById('tt-type')?.value||'';
+  const dp=document.getElementById('tt-dept')?.value||'';
+  let tasks=_tteamAll.filter(t=>{
+    if(q&&!(t.title||'').toLowerCase().includes(q))return false;
+    if(st&&t.status!==st)return false;
+    if(an&&t.assigneeName!==an)return false;
+    if(pr&&t.priority!==pr)return false;
+    if(ty&&t.type!==ty)return false;
+    if(dp&&t.department!==dp)return false;
+    return true;
+  });
+  // sort: pending first, closed last
+  const order={'Pending':0,'In Progress':1,'Pending Approval':2,'Overdue':3,'Completed':4,'Closed':5};
+  tasks.sort((a,b)=>{const oa=order[a.status]??9,ob=order[b.status]??9;if(oa!==ob)return oa-ob;return (a.deadline||'').localeCompare(b.deadline||'');});
+  const cnt=document.getElementById('tt-count');
+  if(cnt)cnt.textContent=`Showing ${tasks.length} of ${_tteamAll.length} tasks`;
+  const tbody=document.getElementById('tt-tbody');
+  if(!tbody)return;
+  if(!tasks.length){tbody.innerHTML='<tr class="er"><td colspan="10">No tasks match filters</td></tr>';return;}
+  tbody.innerHTML=tasks.map(t=>`
+    <tr onclick="openTM('${t.id}')" style="cursor:pointer">
+      <td><strong>${t.title}</strong><br><span class="tg">${t.id}</span>${t.type==='Daily'?' <span class="daily-badge">🔄</span>':''}</td>
+      <td>${t.assigneeName||'—'}</td>
+      <td style="color:var(--t2);font-size:12px">${t.managerName||'—'}</td>
+      <td style="color:var(--t2);font-size:12px">${t.department||'—'}</td>
+      <td>${pb(t.priority)}</td>
+      <td style="font-size:12px;color:${od(t.deadline)?'var(--rd)':'var(--t2)'}">${t.deadline||'—'}</td>
+      <td>${sb(t.status)}</td>
+      <td style="font-size:11.5px;color:var(--t2)">${t.type==='Daily'?'🔄 Daily':'General'}</td>
+      <td>${t.timeTaken?'<span class="tc">'+parseFloat(t.timeTaken).toFixed(1)+'h</span>':'—'}</td>
+      <td><div style="display:flex;gap:5px"><button class="btn bw bs" onclick="event.stopPropagation();sndrm('${t.id}')">📲</button><button class="btn bg bs" onclick="event.stopPropagation();openTM('${t.id}')">Open</button></div></td>
+    </tr>`).join('');
+}
+function clearTTeamFilters(){
+  ['tt-search','tt-status','tt-assignee','tt-priority','tt-type','tt-dept'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  renderTTeam();
+}
 async function ldTeam(){
   const r=await getBoot();
   if(r.ok===false)return;
@@ -2485,7 +3056,21 @@ function isMyTask(t,users){ return myAssigneeNames(users).has(String(t.assigneeN
 async function ldWT(){
   const r=await getBoot();
   if(r.ok===false){toast('Failed to load tasks','er2');return;}
-  let tasks=(r.allTasks||r.tasks||[]).filter(t=>isMyTask(t,r.users));
+  let tasks;
+  if(CU.role==='superadmin'||CU.role==='admin'){
+    // Admin/superadmin see ALL tickets
+    tasks=r.allTasks||r.tasks||[];
+  } else if(CU.role==='supervisor'){
+    // Supervisor sees tasks they manage OR are assigned to them
+    const myNames=myAssigneeNames(r.users);
+    tasks=(r.allTasks||r.tasks||[]).filter(t=>
+      t.managerName===CU.name||t.createdBy===CU.name||myNames.has(String(t.assigneeName||'').trim().toLowerCase())
+    );
+  } else {
+    // Employee sees only their own tickets
+    tasks=(r.allTasks||r.tasks||[]).filter(t=>isMyTask(t,r.users));
+  }
+  if(WF==='daily')tasks=tasks.filter(t=>t.type==='Daily');
   if(WF==='pending')tasks=tasks.filter(t=>t.status==='Pending');
   if(WF==='prog')tasks=tasks.filter(t=>t.status==='In Progress');
   if(WF==='done')tasks=tasks.filter(t=>t.status==='Completed'||t.status==='Closed'||t.status==='Pending Approval');
@@ -2496,7 +3081,7 @@ async function ldWT(){
   if(!tasks.length){el.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:44px;color:var(--t3)">No tasks here</div>';return;}
   el.innerHTML=tasks.map(t=>`
     <div class="wc" onclick="openTM('${t.id}')" style="cursor:pointer">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:7px"><div><div class="wt">${t.title}</div><div class="wd">${t.department} · ${t.type}</div></div>${pb(t.priority)}</div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:7px"><div><div class="wt">${t.title}${t.type==='Daily'?' <span class="daily-badge">🔄 Daily</span>':''}</div><div class="wd">${t.department}</div></div>${pb(t.priority)}</div>
       ${t.notes?`<div class="wn">${t.notes}</div>`:''}
       <div class="wm">${sb(t.status)}<span class="tg">${t.id}</span>${(t.attachUrl||t.attachData)?'<span class="tg" style="background:rgba(37,99,235,.1);color:var(--ac)">📎 file</span>':''}</div>
       ${t.managerName?`<div style="font-size:11px;color:var(--t3);margin-bottom:4px">Manager: ${t.managerName}</div>`:''}
@@ -2625,11 +3210,22 @@ async function ldUpdates(){
 async function openTM(id){
   const task=AT.find(t=>t.id===id);
   if(!task)return;
+  window._mTask=id;
   document.getElementById('mttl').textContent=task.title;
-  
+  const mttid=document.getElementById('mttid'); if(mttid)mttid.textContent='#'+id;
+
   // CLIENT-SIDE ROLE RESTRICTION: Hide "Resend WA" if user is a worker
   const remindBtn = document.getElementById('remindBtn');
   if(CU.role === 'employee') { remindBtn.style.display = 'none'; } else { remindBtn.style.display = 'inline-flex'; }
+
+  // Quick WA Button visibility — controlled by admin setting
+  const qwaBtn=document.getElementById('quickWABtn');
+  if(qwaBtn){
+    const q={...defaultQuickWABtnSettings(),...(QUICK_WA_BTN||{})};
+    const canSee=q.enabled&&(q.allowedRoles||[]).includes(CU.role);
+    qwaBtn.style.display=canSee?'inline-flex':'none';
+    if(canSee)qwaBtn.textContent='📢 '+(q.label||'Quick WA');
+  }
 
   const r=await api('getUpdates',{taskId:id});
   let upd=r.ok!==false?r.updates||[]:[];
@@ -2646,6 +3242,8 @@ async function openTM(id){
       <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Manager</div><div>${task.managerName||'—'}</div></div>
       <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Dept</div><div>${task.department}</div></div>
       <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Priority</div>${pb(task.priority)}</div>
+      <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Task Type</div>${task.type==='Daily'?'<span class="daily-badge">🔄 Daily</span>':'<span class="tg">General</span>'}</div>
+      <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Visible to</div><div style="font-size:12.5px">${task.visibility==='team'?'🔒 Assignee + Manager':task.visibility==='admin'?'🔐 Admin only':'🌐 Everyone'}</div></div>
       <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Deadline</div><div style="color:${od(task.deadline)?'var(--rd)':'var(--t)'}">${task.deadline}</div></div>
       <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Status</div>${sb(task.status)}</div>
       <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Created</div><div style="font-size:12.5px">${fmtDT(task.createdOn)}</div></div>
@@ -2677,7 +3275,6 @@ async function openTM(id){
     const cc=document.getElementById('cmt-cont'); if(cc)cc.innerHTML=html;
   })();
   document.getElementById('mbdy').innerHTML+='<div id="cmt-cont"></div>';
-  window._mTask=id;
   const _closed=(task.status==='Closed'||task.status==='Completed');
   // #1+#2 Reassign + change manager (admin/superadmin/supervisor, not closed)
   if((CU.role==='superadmin'||CU.role==='admin'||CU.role==='supervisor')&&!_closed){
@@ -2711,7 +3308,7 @@ async function saveReassign(id){
   CACHE=null;
   if(r.ok!==false){toast('Updated','ok');cmod();
     const cur=document.querySelector('.pg.ac')?.id;
-    if(cur==='pg-dash')ldDash();else if(cur==='pg-asgn')ldMgr();else if(cur==='pg-approvals')ldApprovals();else if(cur==='pg-wtask')ldWT();else ldDash();
+    if(cur==='pg-dash')ldDash();else if(cur==='pg-asgn')ldMgr();else if(cur==='pg-tteam')ldTTeam();else if(cur==='pg-approvals')ldApprovals();else if(cur==='pg-wtask')ldWT();else ldDash();
   } else toast('Failed: '+(r.error||'error'),'er2');
 }
 async function deleteTicket(){
@@ -2837,7 +3434,7 @@ async function subStat(){
     const tk=AT.find(t=>t.id===tid); if(tk){tk.status=shown;if(note)tk.workerNotes=(tk.workerNotes?tk.workerNotes+'\n':'')+note;}
     if(CACHE){CACHE.allTasks=AT;CACHE.tasks=AT;}
     toast(shown==='Pending Approval'?'Sent to supervisor for approval':'Status updated to "'+shown+'"','ok');
-    if(CU.role==='employee')ldWT();else{const cur=document.querySelector('.pg.ac')?.id;if(cur==='pg-dash')_paintDash(CACHE);else if(cur==='pg-asgn')applyMgrFilter();}
+    if(CU.role==='employee')ldWT();else{const cur=document.querySelector('.pg.ac')?.id;if(cur==='pg-dash')_paintDash(CACHE);else if(cur==='pg-asgn')applyMgrFilter();else if(cur==='pg-tteam')renderTTeam();}
   } else toast('Failed: '+(r.error||'Unknown error'),'er2');
 }
 
@@ -2933,14 +3530,16 @@ async function asgTask(sendWA){
   const mn=(mSel&&mSel.value)?mSel.value:(opt?.dataset?.mn||CU.name);
   const mw=(mSel&&mSel.value)?(mOpt?.dataset?.wa||''):(opt?.dataset?.mw||'');
   const dept=document.getElementById('td2').value,pri=document.getElementById('tp3').value;
-  const dl=document.getElementById('tdl').value,type=document.getElementById('ty3').value;
+  const dl=document.getElementById('tdl').value,type=document.getElementById('ty3').value||'General';
+  const visRoles=[...document.querySelectorAll('input[name="tvis"]:checked')].map(c=>c.value);
+  const visibility=['superadmin',...visRoles];
   const notes=document.getElementById('tn3').value.trim();
   if(!title||!an||!dl){toast('Fill in all required fields','er2');return;}
   window._busy=true;
   document.querySelectorAll('#pg-asgn .bp,#pg-asgn .bg').forEach(b=>{b.disabled=true;b.style.opacity='.5';b.style.pointerEvents='none';});
   let attachInfo=null;
   if(_attachFile){ const ai=document.getElementById('attinfo'); if(ai)ai.innerHTML='⏳ Uploading attachment...'; try{ const tmpId='KI-tmp-'+Date.now(); attachInfo=await uploadAttach(tmpId); }catch(e){ toast('Attachment upload failed: '+e.message,'er2'); } }
-  const r=await api('assignTask',{title,assigneeName:an,assigneeWA:aw,department:dept,priority:pri,deadline:dl,type,notes,createdBy:CU.name,managerName:mn,managerWA:mw,sendWA,tags:_selTags.slice(),contactName:(document.getElementById('ct-name')?.value||'').trim(),contactPhone:(document.getElementById('ct-phone')?.value||'').trim(),contactAddr:(document.getElementById('ct-addr')?.value||'').trim(),attachUrl:attachInfo?attachInfo.url:'',attachName:attachInfo?attachInfo.name:'',attachType:attachInfo?attachInfo.type:''});
+  const r=await api('assignTask',{title,assigneeName:an,assigneeWA:aw,department:dept,priority:pri,deadline:dl,type,visibility,notes,createdBy:CU.name,managerName:mn,managerWA:mw,sendWA,tags:_selTags.slice(),contactName:(document.getElementById('ct-name')?.value||'').trim(),contactPhone:(document.getElementById('ct-phone')?.value||'').trim(),contactAddr:(document.getElementById('ct-addr')?.value||'').trim(),attachUrl:attachInfo?attachInfo.url:'',attachName:attachInfo?attachInfo.name:'',attachType:attachInfo?attachInfo.type:''});
   window._busy=false;
   document.querySelectorAll('#pg-asgn .bp,#pg-asgn .bg').forEach(b=>{b.disabled=false;b.style.opacity='1';b.style.pointerEvents='auto';});
   if(r.ok!==false){toast(sendWA?'Assigned to '+an+' - WA sent':'Task assigned to '+an,sendWA?'wa2':'ok');document.getElementById('tt3').value='';document.getElementById('tn3').value='';var fa=document.getElementById('tatt');if(fa)fa.value='';var ai=document.getElementById('attinfo');if(ai)ai.textContent='';_attachFile=null;_selTags=[];renderTagPicker();['ct-name','ct-phone','ct-addr'].forEach(id=>{var e=document.getElementById(id);if(e)e.value='';});var tm=document.getElementById('tmgr');if(tm)tm.value='';var cb=document.getElementById('contactBox');if(cb)cb.style.display='none';CACHE=null;ldMgr();}
