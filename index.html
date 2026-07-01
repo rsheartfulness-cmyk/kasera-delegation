@@ -714,6 +714,137 @@ tr:hover td{background:#f5f8ff!important;}
 .settings-collapse-btn{margin-left:auto;border:1px solid var(--bd2);background:var(--s2);color:var(--t2);border-radius:7px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;}
 .settings-collapse-btn:hover{color:var(--ac);border-color:rgba(37,99,235,.35);}
 #pg-cfg .cd.settings-card-collapsed>:not(.ct){display:none!important;}
+/* Login safety: keep front page controls visible on every viewport */
+#ls{min-height:100svh!important;height:auto!important;overflow-y:auto!important;overflow-x:hidden!important;padding:24px 12px!important;align-items:flex-start!important;}
+#ls .lc{width:min(430px,94vw)!important;max-height:none!important;margin:auto!important;padding:28px 24px!important;}
+#ls .ll{margin-bottom:18px!important;}
+#ls .fi{margin-bottom:12px!important;}
+#ls .login-divider{margin:12px 0!important;}
+#ls .login-note{margin-top:12px!important;}
+#ls .login-contact{margin-top:9px!important;}
+@media(max-height:720px){#ls .lc{padding:20px 20px!important;}#ls .lt{font-size:20px!important;}#ls .ls3{font-size:12px!important;line-height:1.35!important;}#ls .fi input,#ls .fi select,#ls .sb,#ls .gbtn{min-height:44px!important;padding:10px 12px!important;}}
+/* Landing page before login */
+#front{min-height:100svh;background:linear-gradient(180deg,#7c3aed 0,#7c3aed 112px,#fff 112px,#fff 100%);color:#071033;padding:30px 18px 42px;display:flex;flex-direction:column;align-items:center;}
+.front-nav{width:min(1120px,100%);background:#fff;border:1px solid rgba(15,23,42,.08);box-shadow:0 22px 55px rgba(15,23,42,.12);border-radius:18px;padding:16px 18px;display:flex;align-items:center;justify-content:space-between;gap:18px;}
+.front-brand{display:flex;align-items:center;gap:12px;min-width:190px;}
+.front-logo{width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,#ff7a2f,#ff4f3f);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-family:var(--fd);}
+.front-brand b{display:block;font-size:22px;font-family:var(--fd);line-height:1;color:#071033;}
+.front-brand span{font-size:10px;font-weight:800;letter-spacing:1.2px;color:#64748b;text-transform:uppercase;}
+.front-links{display:flex;gap:26px;align-items:center;font-size:13px;font-weight:800;color:#071033;}
+.front-links a{color:inherit;text-decoration:none;cursor:pointer;}
+.front-actions{display:flex;gap:10px;align-items:center;}
+.front-btn{border:0;border-radius:9px;padding:14px 22px;font-weight:900;font-family:var(--fd);cursor:pointer;background:#e9edf5;color:#071033;}
+.front-btn.primary{background:#6d3be8;color:#fff;box-shadow:0 14px 28px rgba(109,59,232,.24);}
+.front-btn.alert{background:#ff5a3f;color:#fff;}
+.front-hero{width:min(1050px,100%);text-align:center;padding:86px 0 36px;}
+.front-pill{display:inline-flex;padding:10px 16px;border-radius:999px;border:1px solid #ffd2c5;background:#fff7f4;color:#ff5a3f;font-size:12px;font-weight:900;margin-bottom:28px;}
+.front-hero h1{font-family:var(--fd);font-size:clamp(42px,5.8vw,76px);line-height:1.08;letter-spacing:0;margin:0;color:#070e2f;}
+.front-hero h1 strong{display:block;font-weight:900;background:linear-gradient(90deg,#ff8a2d,#ff4f3f);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+.front-copy{max-width:760px;margin:24px auto 0;color:#22304f;font-size:19px;line-height:1.65;}
+.front-chips{margin:34px 0 30px;display:flex;justify-content:center;gap:14px;flex-wrap:wrap;}
+.front-chip{border:1px solid #e2e8f0;background:#fff;border-radius:999px;padding:11px 19px;font-size:13px;font-weight:900;box-shadow:0 14px 30px rgba(15,23,42,.06);}
+.front-chip.hot{background:#6d3be8;color:#fff;box-shadow:0 16px 32px rgba(109,59,232,.25);}
+.front-cta{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;}
+.front-cards{width:min(930px,100%);display:grid;grid-template-columns:repeat(4,1fr);gap:14px;background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:18px;box-shadow:0 20px 55px rgba(15,23,42,.08);}
+.front-card{border:1px solid #e5e7eb;border-radius:13px;padding:22px 18px;text-align:left;background:#fbfcff;}
+.front-card b{display:block;font-size:23px;font-family:var(--fd);margin-bottom:12px;}
+.front-card span{font-size:11px;font-weight:900;color:#64748b;text-transform:uppercase;letter-spacing:.8px;}
+#ls{display:none!important;position:fixed!important;inset:0!important;z-index:100!important;min-height:100svh!important;background:rgba(15,23,42,.52)!important;backdrop-filter:blur(7px)!important;align-items:center!important;justify-content:center!important;padding:18px!important;overflow-y:auto!important;}
+#ls.login-open{display:flex!important;}
+#ls .lc{width:min(430px,94vw)!important;margin:auto!important;background:#fff!important;border-radius:18px!important;box-shadow:0 28px 80px rgba(15,23,42,.28)!important;}
+.login-close{float:right;border:0;background:#f3f5fb;color:#071033;border-radius:10px;padding:8px 13px;font-weight:900;cursor:pointer;}
+#ls .lt{font-size:0!important;line-height:0!important;margin:0!important;}
+#ls .lt::after{content:"Login";font-size:30px;line-height:1.2;color:#071033;-webkit-text-fill-color:#071033;font-family:var(--fd);}
+@media(max-width:760px){
+  #front{background:linear-gradient(180deg,#7c3aed 0,#7c3aed 86px,#fff 86px,#fff 100%);padding:18px 12px 30px;}
+  .front-nav{border-radius:15px;padding:12px;align-items:flex-start;flex-wrap:wrap;}
+  .front-brand{min-width:0;flex:1;}
+  .front-logo{width:42px;height:42px;border-radius:12px;}
+  .front-brand b{font-size:19px;}
+  .front-links{order:3;width:100%;justify-content:space-between;gap:8px;font-size:11.5px;overflow-x:auto;padding-top:8px;}
+  .front-actions{gap:8px;}
+  .front-actions .front-btn.alert{display:none;}
+  .front-btn{padding:11px 14px;font-size:13px;}
+  .front-hero{padding:46px 0 26px;}
+  .front-pill{font-size:11px;margin-bottom:18px;}
+  .front-hero h1{font-size:clamp(34px,12vw,48px);}
+  .front-copy{font-size:15.5px;line-height:1.55;margin-top:18px;}
+  .front-chips{gap:8px;margin:24px 0;}
+  .front-chip{font-size:11.5px;padding:9px 12px;}
+  .front-cards{grid-template-columns:1fr 1fr;padding:12px;gap:10px;}
+  .front-card{padding:16px 13px;}
+  .front-card b{font-size:18px;}
+}
+@media(max-width:430px){
+  .front-nav{display:grid;grid-template-columns:1fr auto;}
+  .front-links{grid-column:1/-1;}
+  .front-cards{grid-template-columns:1fr;}
+  .front-cta .front-btn{width:100%;}
+}
+
+@media(max-width:860px){
+  #app{padding-bottom:76px;}
+  #app .hbg{display:none!important;}
+  #app .sb-backdrop{display:none!important;}
+  #app .sb2,
+  #app .sb2.open,
+  #app .sb2.deskCollapsed{
+    position:fixed!important;
+    left:0!important;
+    right:0!important;
+    top:auto!important;
+    bottom:0!important;
+    width:100%!important;
+    min-width:0!important;
+    height:76px!important;
+    transform:none!important;
+    z-index:80!important;
+    border-right:none!important;
+    border-top:1px solid var(--bd)!important;
+    box-shadow:0 -10px 30px rgba(15,23,42,.12)!important;
+    overflow-x:auto!important;
+    overflow-y:hidden!important;
+  }
+  #app .sb2 .sh,
+  #app .sb2 .sf,
+  #app .sb2 .ng{display:none!important;}
+  #app .sb2 .sn{
+    height:100%!important;
+    padding:7px 8px!important;
+    display:flex!important;
+    align-items:center!important;
+    gap:6px!important;
+    overflow-x:auto!important;
+  }
+  #app .sb2 .ni{
+    flex:1 0 76px!important;
+    min-width:70px!important;
+    height:60px!important;
+    padding:6px 4px!important;
+    border-radius:14px!important;
+    justify-content:center!important;
+    flex-direction:column!important;
+    gap:3px!important;
+    font-size:10.5px!important;
+    line-height:1.15!important;
+    text-align:center!important;
+  }
+  #app .sb2 .ni.ac::before{display:none!important;}
+  #app .sb2 .nx{
+    width:30px!important;
+    height:30px!important;
+    border-radius:12px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    background:var(--s2)!important;
+    color:var(--ac)!important;
+    font-size:15px!important;
+  }
+  #app .sb2 .ni.ac .nx{background:var(--grad)!important;color:#fff!important;}
+  #app .mn{padding-bottom:0!important;}
+  #app .tb{padding:12px 16px!important;}
+}
 
 </style>
 
@@ -766,8 +897,49 @@ tr:hover td{background:#f5f8ff!important;}
 </head>
 <body>
 
+<section id="front">
+  <nav class="front-nav">
+    <div class="front-brand">
+      <div class="front-logo">DT</div>
+      <div><b>Delegation</b><span>Task Manager</span></div>
+    </div>
+    <div class="front-links">
+      <a onclick="openLogin()">Dashboard</a>
+      <a onclick="openLogin()">Tasks</a>
+      <a onclick="openLogin()">Approvals</a>
+      <a onclick="openLogin()">Reports</a>
+      <a onclick="openLogin()">Company</a>
+    </div>
+    <div class="front-actions">
+      <button class="front-btn primary" onclick="openLogin()">Login</button>
+      <button class="front-btn alert" onclick="requestAccess()">Contact Admin</button>
+    </div>
+  </nav>
+  <main class="front-hero">
+    <div class="front-pill">Secure internal company portal</div>
+    <h1>Manage Your Company<br>Work with <strong>Clear Task Delegation</strong></h1>
+    <p class="front-copy">Assign tasks, track deadlines, approve completed work, review team performance, and manage WhatsApp updates from one protected workspace.</p>
+    <div class="front-chips">
+      <span class="front-chip">Role based access</span>
+      <span class="front-chip hot">Fast task tracking</span>
+      <span class="front-chip">Company data isolation</span>
+    </div>
+    <div class="front-cta">
+      <button class="front-btn primary" onclick="openLogin()">Login to Portal</button>
+      <button class="front-btn" onclick="requestAccess()">Request Access</button>
+    </div>
+  </main>
+  <div class="front-cards">
+    <div class="front-card"><b>Tasks</b><span>Create and assign</span></div>
+    <div class="front-card"><b>Approvals</b><span>Supervisor flow</span></div>
+    <div class="front-card"><b>Reports</b><span>Performance view</span></div>
+    <div class="front-card"><b>Security</b><span>Role protected</span></div>
+  </div>
+</section>
+
 <div id="ls">
   <div class="lc">
+    <button type="button" class="login-close" onclick="closeLogin()">Close</button>
     <div class="ll">
       <!-- LOGO: replace the src below with your logo URL, or keep the icon fallback -->
       <img id="kicLogo" src="logo.png" alt="Kasera Industries" onerror="this.style.display='none';document.getElementById('logoFallback').style.display='flex';" style="height:54px;width:auto;max-width:180px;object-fit:contain;margin:0 auto 4px">
@@ -975,25 +1147,27 @@ tr:hover td{background:#f5f8ff!important;}
           <div class="tab" onclick="wTab(this,'prog')">In progress</div>
           <div class="tab" onclick="wTab(this,'done')">Completed</div>
         </div>
+        <div class="view-toggle"><div class="vt ac" id="wvt-card" onclick="setWView('card')">▦ Cards</div><div class="vt" id="wvt-list" onclick="setWView('list')">☰ List</div></div>
       </div>
       <div class="wg" id="wcards"></div>
+      <div class="tw" id="wlistview" style="display:none"><table><thead><tr><th>Task</th><th>Manager</th><th>Priority</th><th>Deadline</th><th>Status</th><th>Type</th><th>Time</th><th>Actions</th></tr></thead><tbody id="wtbl"></tbody></table></div>
     </div>
 
-    <!-- ─── RAISE TICKET (Employee self-ticket) ─── -->
+    <!-- Employee self-created task -->
     <div class="pg" id="pg-raise">
       <div class="cd" style="max-width:700px;margin:0 auto">
-        <div class="ct">➕ Raise a Ticket</div>
-        <div class="sy" style="margin-bottom:16px"><div style="display:flex;align-items:center;gap:6px"><div class="sd2"></div>Your ticket will be sent to your manager and saved instantly</div></div>
+        <div class="ct">➕ Create My Task</div>
+        <div class="sy" style="margin-bottom:16px"><div style="display:flex;align-items:center;gap:6px"><div class="sd2"></div>Your task will be visible to you and your supervisor, and saved instantly</div></div>
 
         <!-- Task type tabs -->
         <div class="form-type-tabs" style="margin-bottom:20px">
-          <button class="ftt ac" id="rftt-general" onclick="setRaiseType('General')">📋 General Ticket</button>
+          <button class="ftt ac" id="rftt-general" onclick="setRaiseType('General')">📋 General Task</button>
           <button class="ftt" id="rftt-daily" onclick="setRaiseType('Daily')">🔄 Daily / Recurring</button>
         </div>
         <input type="hidden" id="r-type" value="General">
 
         <div class="fg">
-          <div class="ff" style="grid-column:1/-1"><label>Ticket title *</label><input type="text" id="r-title" placeholder="What do you need to do?"></div>
+          <div class="ff" style="grid-column:1/-1"><label>Task title *</label><input type="text" id="r-title" placeholder="What do you need to do?"></div>
           <div class="ff"><label>Priority</label>
             <select id="r-priority"><option value="High">🔴 High</option><option value="Medium" selected>🟡 Medium</option><option value="Low">🟢 Low</option></select>
           </div>
@@ -1009,7 +1183,7 @@ tr:hover td{background:#f5f8ff!important;}
 
         <!-- Info box: auto-assigned to self -->
         <div style="padding:11px 14px;background:#f0f5ff;border:1px solid rgba(29,78,216,.12);border-radius:8px;font-size:12.5px;color:var(--t2);margin-bottom:16px">
-          📌 This ticket will be <strong>assigned to you</strong> (<span id="r-self-name"></span>) and your manager <strong><span id="r-mgr-name">—</span></strong> will be notified.
+          📌 This task will be <strong>assigned to you</strong> (<span id="r-self-name"></span>) and visible to your supervisor <strong><span id="r-mgr-name">—</span></strong>.
         </div>
 
         <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -1065,7 +1239,7 @@ tr:hover td{background:#f5f8ff!important;}
 
     <!-- CLOSED TICKETS -->
     <div class="pg" id="pg-closed">
-      <div class="sec"><div class="sh2"><div class="st">Closed tickets</div><button class="btn bg bs" onclick="CACHE=null;ldClosed()">Refresh</button></div>
+      <div class="sec"><div class="sh2"><div class="st">Closed tasks</div><button class="btn bg bs" onclick="CACHE=null;ldClosed()">Refresh</button></div>
       <div class="tw"><table><thead><tr><th>Task</th><th>Assignee</th><th>Dept</th><th>Closed on</th><th>Time taken</th><th>Status</th><th></th></tr></thead><tbody id="closed-tbl"></tbody></table></div></div>
     </div>
 
@@ -1103,8 +1277,8 @@ tr:hover td{background:#f5f8ff!important;}
       </div>
       <div class="cd">
         <div class="ct">🪜 Pipeline stages</div>
-        <div style="font-size:12px;color:var(--t2);margin-bottom:12px">Rename the workflow stages. These appear as kanban columns and the ticket stepper.</div>
-        <div style="font-size:12px;color:var(--t2);margin-bottom:12px">Rename, add, remove, or <strong>drag to reorder</strong> stages. Shown as kanban columns + ticket stepper.</div>
+        <div style="font-size:12px;color:var(--t2);margin-bottom:12px">Rename the workflow stages. These appear as kanban columns and the task stepper.</div>
+        <div style="font-size:12px;color:var(--t2);margin-bottom:12px">Rename, add, remove, or <strong>drag to reorder</strong> stages. Shown as kanban columns + task stepper.</div>
         <div id="stage-editor"></div>
       </div>
       <div class="cd">
@@ -1114,7 +1288,7 @@ tr:hover td{background:#f5f8ff!important;}
       </div>
       <div class="cd">
         <div class="ct">🏷️ Tags</div>
-        <div style="font-size:12px;color:var(--t2);margin-bottom:12px">Define tags staff can apply to tickets (e.g. Urgent, Repair, Safety). Used for filtering.</div>
+        <div style="font-size:12px;color:var(--t2);margin-bottom:12px">Define tags staff can apply to tasks (e.g. Urgent, Repair, Safety). Used for filtering.</div>
         <div id="tag-editor"></div>
       </div>
       <div class="cd">
@@ -1176,7 +1350,7 @@ const SCRIPT='https://script.google.com/macros/s/AKfycbwK4wukGnGPnYsJikJnkRkgWfr
 const GID='YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
 const DOM='kaseraindustries.in';
 
-let CU=null,GP=null,AU=[],AT=[],AL=[],AWL=[],WF='all',STid=null,CACHE=null,CACHE_TIME=0;
+let CU=null,GP=null,AU=[],AT=[],AL=[],AWL=[],WF='all',WVIEW='card',STid=null,CACHE=null,CACHE_TIME=0;
 let ACTIVE_COMPANY_ID='',ACTIVE_COMPANY=null,COMPANIES=[];
 const DEFAULT_COMPANY={id:'kasera-industries',name:'Kasera Industries',shortName:'Kasera',logoUrl:'logo.png',email:'',phone:'',address:'',website:'',gst:'',active:true};
 let _kaseraMigrationPromise=null;
@@ -1663,6 +1837,7 @@ async function api(action,data){
       case 'archiveTask': return await fbArchiveTask(data);
       case 'assignTask': return await fbAssign(data);
       case 'updateStatus': return await fbUpdateStatus(data);
+      case 'updateTaskDetails': return await fbUpdateTaskDetails(data);
       case 'approveTask': return await fbApprove(data);
       case 'rejectTask': return await fbReject(data);
       case 'addComment': return await fbComment(data);
@@ -1820,6 +1995,32 @@ async function fbUpdateStatus(d){
   if(req==='Pending Approval'&&t.managerWA) fireWA({action:'waOnly',template:'task_completed',to:t.managerWA,params:[(t.managerName||'').split(' ')[0],d.updatedBy,t.title+' (needs approval)',now.toLocaleString(),t.department||'']});
   if((req==='Completed'||req==='Closed')&&t.managerWA) fireWA({action:'waOnly',template:'task_completed',to:t.managerWA,params:[(t.managerName||'').split(' ')[0],d.updatedBy,t.title,now.toLocaleString(),t.department||'']});
   return {ok:true,newStatus:req};
+}
+async function fbUpdateTaskDetails(d){
+  const F=window.FB, ref=cDoc('tasks',d.taskId), snap=await F.getDoc(ref);
+  if(!snap.exists()) return {ok:false,error:'Task not found'};
+  const t=snap.data();
+  const patch={}, changes=[];
+  const setText=(key,label,val)=>{
+    const next=String(val==null?'':val).trim();
+    const old=String(t[key]||'').trim();
+    if(next!==old){patch[key]=next;changes.push(label);}
+  };
+  setText('title','title',d.title);
+  setText('notes','notes',d.notes);
+  setText('department','department',d.department);
+  setText('priority','priority',d.priority||'Medium');
+  setText('deadline','deadline',d.deadline);
+  setText('type','type',d.type||'General');
+  if(!patch.title && 'title' in patch) return {ok:false,error:'Task title is required'};
+  if(!changes.length) return {ok:true,unchanged:true};
+  patch.updatedAt=Date.now();
+  patch.updatedBy=d.by||'User';
+  await F.updateDoc(ref,patch);
+  const detail='Edited: '+changes.join(', ');
+  await fbLog(d.by||'User','Task edited',d.taskId,patch.title||t.title,false,detail);
+  await fbUpd(d.taskId,patch.title||t.title,d.by||'User',t.status,t.status,detail);
+  return {ok:true,changes};
 }
 async function fbApprove(d){
   const F=window.FB, ref=cDoc('tasks',d.taskId), snap=await F.getDoc(ref);
@@ -2048,7 +2249,7 @@ async function fbDeleteTask(d){
   if(!snap.exists()) return {ok:false,error:'Task not found'};
   const t=snap.data();
   await F.deleteDoc(ref);
-  await fbLog(d.by||'Super Admin','Ticket DELETED',d.taskId,t.title,false,'Reason: '+(d.reason||'none'));
+  await fbLog(d.by||'Super Admin','Task deleted',d.taskId,t.title,false,'Reason: '+(d.reason||'none'));
   return {ok:true};
 }
 async function fbDeleteUser(d){
@@ -2161,9 +2362,9 @@ async function fbArchiveTask(d){
   const F=window.FB, ref=cDoc('tasks',d.taskId), snap=await F.getDoc(ref);
   if(!snap.exists())return {ok:false,error:'Task not found'};
   const t=snap.data();
-  if(!['admin','superadmin'].includes(normRoleJS(d.byRole||'')))return {ok:false,error:'Only Admin or Super Admin can archive tickets.'};
+  if(!['admin','superadmin'].includes(normRoleJS(d.byRole||'')))return {ok:false,error:'Only Admin or Super Admin can archive tasks.'};
   await F.updateDoc(ref,{archived:true,archivedAt:Date.now(),archivedBy:d.by||'Admin',archiveReason:d.reason||'',status:'Archived'});
-  await fbLog(d.by||'Admin','Ticket archived',d.taskId,t.title,false,'Reason: '+(d.reason||'none'));
+  await fbLog(d.by||'Admin','Task archived',d.taskId,t.title,false,'Reason: '+(d.reason||'none'));
   await fbUpd(d.taskId,t.title,d.by||'Admin',t.status,'Archived','Archived: '+(d.reason||''));
   return {ok:true};
 }
@@ -2367,7 +2568,7 @@ function downloadSecurityRules(){const a=document.createElement('a');a.href='dat
 function initApp(){
   seedDefaultCompanySelect();
   loadCompanyOptions();
-  restoreSession();
+  showLoginPage();
   setDl();
 }
 if(document.readyState==='loading'){
@@ -2375,6 +2576,25 @@ if(document.readyState==='loading'){
 }else{initApp();}
 // Also refresh company list once the Firebase module finishes loading.
 window.addEventListener('fb-ready',()=>{try{loadCompanyOptions();}catch(e){console.warn(e);}});
+
+function showLoginPage(){
+  try{localStorage.removeItem('kasera_session');}catch(e){}
+  CU=null;GP=null;CACHE=null;
+  const front=document.getElementById('front'),ls=document.getElementById('ls'),app=document.getElementById('app');
+  if(front)front.style.display='flex';
+  if(ls){ls.classList.remove('login-open');ls.style.display='none';}
+  if(app)app.style.display='none';
+}
+function openLogin(){
+  const ls=document.getElementById('ls');
+  if(ls){ls.style.display='flex';ls.classList.add('login-open');}
+  setTimeout(()=>document.getElementById('em')?.focus(),80);
+}
+function closeLogin(){
+  const ls=document.getElementById('ls');
+  if(ls){ls.classList.remove('login-open');ls.style.display='none';}
+}
+function requestAccess(){alert('Please contact Admin for portal access.');}
 
 function sigG(){
   if(GID.startsWith('YOUR_')){aerr('Google ID not configured. Use email login or the demo buttons.');return;}
@@ -2529,7 +2749,7 @@ async function loginEM(email,password,companyId){
   }
 }
 
-function doLo(){try{localStorage.removeItem('kasera_session');}catch(e){}try{if(window.FB&&window.FB.auth)window.FB.signOut(window.FB.auth);}catch(e){}document.getElementById('app').style.display='none';document.getElementById('ls').style.display='flex';document.getElementById('gok').style.display='none';document.getElementById('gok').classList.remove('ao');CU=null;GP=null;AU=[];AT=[];CACHE=null;}
+function doLo(){try{localStorage.removeItem('kasera_session');}catch(e){}try{if(window.FB&&window.FB.auth)window.FB.signOut(window.FB.auth);}catch(e){}document.getElementById('app').style.display='none';document.getElementById('front').style.display='flex';closeLogin();document.getElementById('gok').style.display='none';document.getElementById('gok').classList.remove('ao');CU=null;GP=null;AU=[];AT=[];CACHE=null;}
 function normRole(r){
   r=String(r||'').toLowerCase().replace(/[^a-z]/g,'');
   if(r==='superadmin'||r==='super')return 'superadmin';
@@ -2545,10 +2765,12 @@ window.addEventListener('popstate',function(e){
 function startApp(){
   CU.role=normRole(CU.role);
   applyCompanyBranding();
+  const front=document.getElementById('front'); if(front)front.style.display='none';
   document.getElementById('ls').style.display='none';
+  document.getElementById('ls').classList.remove('login-open');
   document.getElementById('app').style.display='flex';
   loadStages(); setupSB(); loadUsers(); restoreDesktopSidebar(); setTimeout(refreshDeptDropdowns,300);
-  const home=(CU.role==='superadmin'||CU.role==='admin')?'dash':'asgn';
+  const home=(CU.role==='superadmin'||CU.role==='admin')?'dash':(CU.role==='employee'?'raise':'asgn');
   sp2f(home);
   toast('Welcome, '+CU.name.split(' ')[0]+' \uD83D\uDC4B','ok');
   setTimeout(runAutoCompanyJobs,4000);
@@ -2556,12 +2778,12 @@ function startApp(){
 
 // ── SIDEBAR ──────────────────────────────────────────────────────
 const NAV={
-  superadmin:[{g:'Overview',items:[{id:'dash',ic:'📊',lb:'Dashboard'},{id:'asgn',ic:'📋',lb:'General Task'},{id:'asgn-daily',ic:'🔄',lb:'Daily Task'},{id:'wtask',ic:'🎫',lb:'My Tickets'},{id:'tteam',ic:'📂',lb:'Team Tasks'},{id:'myupd',ic:'🔔',lb:'Updates'},{id:'approvals',ic:'✔️',lb:'Approvals'},{id:'closed',ic:'🗂️',lb:'Closed tickets'},{id:'rep',ic:'📈',lb:'Reports'},{id:'wa',ic:'💬',lb:'WA log'},{id:'log',ic:'📝',lb:'Activity log'}]},{g:'Admin',items:[{id:'people',ic:'👥',lb:'Manage people'},{id:'cfg',ic:'⚙️',lb:'Settings'}]}],
-  admin:[{g:'Overview',items:[{id:'dash',ic:'📊',lb:'Dashboard'},{id:'asgn',ic:'📋',lb:'General Task'},{id:'asgn-daily',ic:'🔄',lb:'Daily Task'},{id:'wtask',ic:'🎫',lb:'My Tickets'},{id:'tteam',ic:'📂',lb:'Team Tasks'},{id:'myupd',ic:'🔔',lb:'Updates'},{id:'approvals',ic:'✔️',lb:'Approvals'},{id:'closed',ic:'🗂️',lb:'Closed tickets'},{id:'rep',ic:'📈',lb:'Reports'}]},{g:'Admin',items:[{id:'people',ic:'👥',lb:'Manage people'},{id:'cfg',ic:'⚙️',lb:'Settings'}]}],
-  supervisor:[{g:'Tasks',items:[{id:'asgn',ic:'📋',lb:'General Task'},{id:'asgn-daily',ic:'🔄',lb:'Daily Task'},{id:'wtask',ic:'🎫',lb:'My Tickets'},{id:'tteam',ic:'📂',lb:'Team Tasks'},{id:'myupd',ic:'🔔',lb:'Updates'},{id:'approvals',ic:'✔️',lb:'Approvals'},{id:'team',ic:'👷',lb:'My team'},{id:'closed',ic:'🗂️',lb:'Closed tickets'}]}],
-  employee:[{g:'My work',items:[{id:'asgn',ic:'T',lb:'Generate Task'},{id:'asgn-daily',ic:'D',lb:'Daily Task'},{id:'raise',ic:'+',lb:'Raise Ticket'},{id:'wtask',ic:'🎫',lb:'My Tickets'},{id:'myupd',ic:'🔔',lb:'Updates'},{id:'closed',ic:'🗂️',lb:'Closed tickets'},{id:'wperf',ic:'📊',lb:'My performance'}]}]
+  superadmin:[{g:'Overview',items:[{id:'dash',ic:'📊',lb:'Dashboard'},{id:'asgn',ic:'📋',lb:'General Task'},{id:'asgn-daily',ic:'🔄',lb:'Daily Task'},{id:'wtask',ic:'📋',lb:'My Tasks'},{id:'tteam',ic:'📂',lb:'Team Tasks'},{id:'myupd',ic:'🔔',lb:'Updates'},{id:'approvals',ic:'✔️',lb:'Approvals'},{id:'closed',ic:'🗂️',lb:'Closed tasks'},{id:'rep',ic:'📈',lb:'Reports'},{id:'wa',ic:'💬',lb:'WA log'},{id:'log',ic:'📝',lb:'Activity log'}]},{g:'Admin',items:[{id:'people',ic:'👥',lb:'Manage people'},{id:'cfg',ic:'⚙️',lb:'Settings'}]}],
+  admin:[{g:'Overview',items:[{id:'dash',ic:'📊',lb:'Dashboard'},{id:'asgn',ic:'📋',lb:'General Task'},{id:'asgn-daily',ic:'🔄',lb:'Daily Task'},{id:'wtask',ic:'📋',lb:'My Tasks'},{id:'tteam',ic:'📂',lb:'Team Tasks'},{id:'myupd',ic:'🔔',lb:'Updates'},{id:'approvals',ic:'✔️',lb:'Approvals'},{id:'closed',ic:'🗂️',lb:'Closed tasks'},{id:'rep',ic:'📈',lb:'Reports'}]},{g:'Admin',items:[{id:'people',ic:'👥',lb:'Manage people'},{id:'cfg',ic:'⚙️',lb:'Settings'}]}],
+  supervisor:[{g:'Tasks',items:[{id:'asgn',ic:'📋',lb:'General Task'},{id:'asgn-daily',ic:'🔄',lb:'Daily Task'},{id:'wtask',ic:'📋',lb:'My Tasks'},{id:'tteam',ic:'📂',lb:'Team Tasks'},{id:'myupd',ic:'🔔',lb:'Updates'},{id:'approvals',ic:'✔️',lb:'Approvals'},{id:'team',ic:'👷',lb:'My team'},{id:'closed',ic:'🗂️',lb:'Closed tasks'}]}],
+  employee:[{g:'My work',items:[{id:'raise',ic:'+',lb:'Create Task'},{id:'wtask',ic:'📋',lb:'My Tasks'},{id:'myupd',ic:'🔔',lb:'Updates'},{id:'wperf',ic:'📊',lb:'My performance'}]}]
 }
-const PTITLES={dash:'Dashboard',people:'Manage people',approvals:'Approvals',closed:'Closed tickets',rep:'Reports',wa:'WhatsApp log',log:'Activity log',cfg:'Settings',asgn:'General Task',team:'My team',wtask:'My Tickets',tteam:'Team Tasks',myupd:'Updates',wperf:'My performance','asgn-daily':'Daily Task',raise:'Raise Ticket'};
+const PTITLES={dash:'Dashboard',people:'Manage people',approvals:'Approvals',closed:'Closed tasks',rep:'Reports',wa:'WhatsApp log',log:'Activity log',cfg:'Settings',asgn:'General Task',team:'My team',wtask:'My Tasks',tteam:'Team Tasks',myupd:'Updates',wperf:'My performance','asgn-daily':'Daily Task',raise:'Create Task'};
 
 function setupSB(){
   const u=CU;
@@ -3075,7 +3297,7 @@ async function raiseTicket(notify){
   const type=document.getElementById('r-type')?.value||'General';
   const priority=document.getElementById('r-priority')?.value||'Medium';
   const notes=(document.getElementById('r-notes')?.value||'').trim();
-  if(!title){toast('Please enter a ticket title','er2');return;}
+  if(!title){toast('Please enter a task title','er2');return;}
   if(!deadline){toast('Please set a deadline','er2');return;}
   const busy=document.getElementById('r-busy');
   document.querySelectorAll('#pg-raise .btn').forEach(b=>{b.disabled=true;b.style.opacity='.5';});
@@ -3094,27 +3316,30 @@ async function raiseTicket(notify){
   const managerWA=CU.managerWA||'';
   const raiseVisibility=['superadmin','admin','supervisor','employee',CU.name];
   const r=await api('assignTask',{
-    title, assigneeName:CU.name, assigneeWA:(notify&&managerWA)?managerWA:(CU.whatsapp||''),
+    title, assigneeName:CU.name, assigneeWA:(CU.whatsapp||''),
     department:CU.department||'', priority, deadline, type,
     visibility:raiseVisibility,
     visibleRoles:raiseVisibility,
     notes, createdBy:CU.name,
     managerName:CU.managerName||'', managerWA:managerWA,
-    sendWA:!!(notify&&managerWA), tags:['Raised Ticket'],
+    sendWA:false, tags:['Self Created'],
     contactName:'',contactPhone:'',contactAddr:'',
     attachUrl:attachInfo?attachInfo.url:'', attachName:attachInfo?attachInfo.name:'', attachType:attachInfo?attachInfo.type:''
   });
   document.querySelectorAll('#pg-raise .btn').forEach(b=>{b.disabled=false;b.style.opacity='1';});
   if(busy)busy.style.display='none';
   if(r.ok!==false){
-    toast('Ticket raised! ID: '+(r.taskId||r.id||''),'ok');
+    if(notify&&managerWA){
+      fireWA({action:'waOnly',template:'task_delegation',to:managerWA,params:[(CU.managerName||'Supervisor').split(' ')[0],title,deadline,priority,CU.department||''],taskId:r.taskId||'',taskTitle:title,by:CU.name});
+    }
+    toast('Task created! ID: '+(r.taskId||r.id||''),'ok');
     // reset form
     ['r-title','r-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
     _raiseAttachFile=null;
     const ai=document.getElementById('r-attinfo');if(ai)ai.textContent='';
     const att=document.getElementById('r-attach');if(att)att.value='';
     setRaiseType('General');
-    CACHE=null; // invalidate cache so My Tickets refreshes
+    CACHE=null; // invalidate cache so My Tasks refreshes
   } else {
     toast('Failed: '+(r.error||'Error'),'er2');
   }
@@ -3220,7 +3445,7 @@ async function ldWT(){
   if(r.ok===false){toast('Failed to load tasks','er2');return;}
   let tasks;
   if(CU.role==='superadmin'||CU.role==='admin'){
-    // Admin/superadmin see ALL tickets
+    // Admin/superadmin see ALL tasks
     tasks=r.allTasks||r.tasks||[];
   } else if(CU.role==='supervisor'){
     // Supervisor sees tasks they manage OR are assigned to them
@@ -3229,7 +3454,7 @@ async function ldWT(){
       t.managerName===CU.name||t.createdBy===CU.name||myNames.has(String(t.assigneeName||'').trim().toLowerCase())
     );
   } else {
-    // Employee sees only their own tickets
+    // Employee sees only their own tasks
     tasks=(r.allTasks||r.tasks||[]).filter(t=>isMyTask(t,r.users));
   }
   tasks=tasks.filter(t=>canSeeTask(t,{role:CU.role,userName:CU.name}));
@@ -3240,8 +3465,16 @@ async function ldWT(){
   // SORT: Pending → In Progress → Pending Approval → Overdue → Completed → Closed (pending first, done last)
   const order={'Pending':0,'In Progress':1,'Pending Approval':2,'Overdue':3,'Completed':4,'Closed':5};
   tasks.sort((a,b)=>{const oa=order[a.status]??9,ob=order[b.status]??9; if(oa!==ob)return oa-ob; return (a.deadline||'').localeCompare(b.deadline||'');});
-  const el=document.getElementById('wcards');
-  if(!tasks.length){el.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:44px;color:var(--t3)">No tasks here</div>';return;}
+  const el=document.getElementById('wcards'), list=document.getElementById('wlistview'), tbody=document.getElementById('wtbl');
+  if(el)el.style.display=WVIEW==='card'?'grid':'none';
+  if(list)list.style.display=WVIEW==='list'?'block':'none';
+  document.getElementById('wvt-card')?.classList.toggle('ac',WVIEW==='card');
+  document.getElementById('wvt-list')?.classList.toggle('ac',WVIEW==='list');
+  if(!tasks.length){
+    if(el)el.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:44px;color:var(--t3)">No tasks here</div>';
+    if(tbody)tbody.innerHTML='<tr class="er"><td colspan="8">No tasks here</td></tr>';
+    return;
+  }
   el.innerHTML=tasks.map(t=>`
     <div class="wc" onclick="openTM('${t.id}')" style="cursor:pointer">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:7px"><div><div class="wt">${t.title}${t.type==='Daily'?' <span class="daily-badge">🔄 Daily</span>':''}</div><div class="wd">${t.department}</div></div>${pb(t.priority)}</div>
@@ -3258,6 +3491,21 @@ async function ldWT(){
         </div>
       </div>
     </div>`).join('');
+  if(tbody)tbody.innerHTML=tasks.map(t=>`
+    <tr onclick="openTM('${t.id}')" style="cursor:pointer">
+      <td><strong>${t.title}</strong><br><span class="tg">${t.id}</span>${t.type==='Daily'?' <span class="daily-badge">🔄 Daily</span>':''}</td>
+      <td style="font-size:12px;color:var(--t2)">${t.managerName||'—'}</td>
+      <td>${pb(t.priority)}</td>
+      <td style="font-size:12px;color:${od(t.deadline)?'var(--rd)':'var(--t2)'}">${t.deadline||'—'}</td>
+      <td>${sb(t.status)}</td>
+      <td style="font-size:11.5px;color:var(--t2)">${t.type==='Daily'?'Daily':'General'}</td>
+      <td>${fmtHours(taskHours(t))}</td>
+      <td><div style="display:flex;gap:5px;flex-wrap:wrap">
+        ${t.status!=='In Progress'&&t.status!=='Completed'&&t.status!=='Closed'?`<button class="btn bg bs" onclick="event.stopPropagation();osmod('${t.id}','In Progress')">Start</button>`:''}
+        ${t.status!=='Completed'&&t.status!=='Closed'?`<button class="btn bg bs" onclick="event.stopPropagation();osmod('${t.id}','Completed')">Done</button>`:''}
+        <button class="btn bg bs" onclick="event.stopPropagation();openTM('${t.id}')">Open</button>
+      </div></td>
+    </tr>`).join('');
 }
 // Format a date string to: DD MMM YYYY, HH:MM:SS
 function fmtDT(s){ try{ if(!s)return '—'; const d=new Date(s); if(isNaN(d))return s; return d.toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true}); }catch(e){return s||'—';} }
@@ -3322,7 +3570,7 @@ async function ldClosed(){
   let all=r.allTasks||r.tasks||[];
   if(CU.role==='employee') all=all.filter(t=>t.assigneeName===CU.name);
   else if(CU.role==='supervisor') all=all.filter(t=>t.managerName===CU.name||t.createdBy===CU.name);
-  // ONLY truly closed tickets
+  // ONLY truly closed tasks
   const closed=all.filter(t=>t.status==='Closed'||t.status==='Completed');
   const tb=document.getElementById('closed-tbl');
   tb.innerHTML=closed.length?closed.map(t=>'<tr onclick="openTM(\''+t.id+'\')" style="cursor:pointer">'+
@@ -3331,7 +3579,7 @@ async function ldClosed(){
     '<td style="font-size:12px;color:var(--t2)">'+(t.completedOn||'—')+'</td>'+
     '<td><span class="tc">'+fmtHours(taskHours(t))+'</span></td>'+
     '<td>'+sb(t.status)+'</td><td></td></tr>'
-  ).join(''):'<tr class="er"><td colspan="7">No closed tickets yet</td></tr>';
+  ).join(''):'<tr class="er"><td colspan="7">No closed tasks yet</td></tr>';
 }
 
 async function ldUpdates(){
@@ -3439,6 +3687,21 @@ async function openTM(id){
   })();
   document.getElementById('mbdy').innerHTML+='<div id="cmt-cont"></div>';
   const _closed=(task.status==='Closed'||task.status==='Completed');
+  const _canEditDetails=!_closed;
+  if(_canEditDetails){
+    const deptOpts=(DEPTS&&DEPTS.length?DEPTS:['Production','Maintenance','QC','Dispatch','Warehouse']).map(d=>'<option value="'+esc(d)+'"'+(d===task.department?' selected':'')+'>'+esc(d)+'</option>').join('');
+    document.getElementById('mbdy').innerHTML+='<div style="margin-top:14px;padding:13px;background:var(--s2);border:1px solid var(--bd2);border-radius:10px">'+
+      '<div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Edit task details</div>'+
+      '<div class="fg">'+
+      '<div class="ff" style="grid-column:1/-1"><label>Task title</label><input id="ed-title" value="'+esc(task.title||'')+'"></div>'+
+      '<div class="ff"><label>Department</label><select id="ed-dept">'+deptOpts+'</select></div>'+
+      '<div class="ff"><label>Priority</label><select id="ed-priority"><option value="High" '+(task.priority==='High'?'selected':'')+'>High</option><option value="Medium" '+((task.priority||'Medium')==='Medium'?'selected':'')+'>Medium</option><option value="Low" '+(task.priority==='Low'?'selected':'')+'>Low</option></select></div>'+
+      '<div class="ff"><label>Deadline</label><input type="date" id="ed-deadline" value="'+esc(task.deadline||'')+'"></div>'+
+      '<div class="ff"><label>Task type</label><select id="ed-type"><option value="General" '+((task.type||'General')==='General'?'selected':'')+'>General</option><option value="Daily" '+(task.type==='Daily'?'selected':'')+'>Daily</option></select></div>'+
+      '<div class="ff" style="grid-column:1/-1"><label>Notes / Instructions</label><textarea id="ed-notes">'+esc(task.notes||'')+'</textarea></div>'+
+      '</div>'+
+      '<button class="btn bp bs" style="margin-top:10px" onclick="saveTaskDetails(\''+id+'\')">Save corrections</button></div>';
+  }
   // Reassign + change manager. Employees may only adjust the reporting manager on their own open tasks.
   const _canReassignBlock=(CU.role==='superadmin'||CU.role==='admin'||CU.role==='supervisor'||task.assigneeName===CU.name||task.createdBy===CU.name)&&!_closed;
   if(_canReassignBlock){
@@ -3457,10 +3720,37 @@ async function openTM(id){
   }
   const ob=document.getElementById('ovr-btn'); if(ob)ob.style.display=((CU.role==='superadmin'||CU.role==='admin')&&!_closed)?'inline-flex':'none';
   const db_=document.getElementById('delBtn'); if(db_)db_.style.display=((CU.role==='superadmin'||CU.role==='admin')&&!_closed)?'inline-flex':'none';
-  if(_closed){document.getElementById('mbdy').innerHTML+='<div style="margin-top:12px;background:rgba(43,221,134,.08);border:1px solid rgba(43,221,134,.25);border-radius:8px;padding:11px 13px;font-size:12.5px;color:var(--gr)">🔒 This ticket is closed and locked. You cannot change its status. To continue this work, please create a New ticket.</div>';}
+  if(_closed){document.getElementById('mbdy').innerHTML+='<div style="margin-top:12px;background:rgba(43,221,134,.08);border:1px solid rgba(43,221,134,.25);border-radius:8px;padding:11px 13px;font-size:12.5px;color:var(--gr)">🔒 This task is closed and locked. You cannot change its status. To continue this work, please create a new task.</div>';}
   document.getElementById('tmod').classList.add('op');
 }
 
+async function saveTaskDetails(id){
+  const title=(document.getElementById('ed-title')?.value||'').trim();
+  if(!title){toast('Task title is required','er2');return;}
+  const data={
+    taskId:id,
+    by:CU.name,
+    title,
+    department:document.getElementById('ed-dept')?.value||'',
+    priority:document.getElementById('ed-priority')?.value||'Medium',
+    deadline:document.getElementById('ed-deadline')?.value||'',
+    type:document.getElementById('ed-type')?.value||'General',
+    notes:(document.getElementById('ed-notes')?.value||'').trim()
+  };
+  const r=await api('updateTaskDetails',data);
+  CACHE=null;
+  if(r.ok!==false){
+    const pools=[AT,_mgrTasks,_tteamAll];
+    pools.forEach(list=>{
+      const t=(list||[]).find(x=>x.id===id);
+      if(t)Object.assign(t,{title:data.title,department:data.department,priority:data.priority,deadline:data.deadline,type:data.type,notes:data.notes});
+    });
+    toast(r.unchanged?'No changes to save':'Task updated','ok');
+    cmod();
+    const cur=document.querySelector('.pg.ac')?.id;
+    if(cur==='pg-dash')ldDash();else if(cur==='pg-asgn')ldMgr();else if(cur==='pg-tteam')ldTTeam();else if(cur==='pg-wtask')ldWT();else if(cur==='pg-wperf')ldWP();else ldDash();
+  } else toast('Failed: '+(r.error||'error'),'er2');
+}
 
 async function saveReassign(id){
   const aSel=document.getElementById('ra-assignee'), mSel=document.getElementById('ra-mgr');
@@ -3478,14 +3768,14 @@ async function saveReassign(id){
   } else toast('Failed: '+(r.error||'error'),'er2');
 }
 async function deleteTicket(){
-  if(!['admin','superadmin'].includes(CU.role)){toast('Only Admin/Super Admin can archive tickets','er2');return;}
+  if(!['admin','superadmin'].includes(CU.role)){toast('Only Admin/Super Admin can archive tasks','er2');return;}
   const id=window._mTask; if(!id)return;
-  if(!confirm('Archive ticket '+id+'? It will be hidden from active dashboard but kept in database and logs.'))return;
+  if(!confirm('Archive task '+id+'? It will be hidden from active dashboard but kept in database and logs.'))return;
   const reason=prompt('Reason for archive (logged):')||'';
   cmod();
   const r=await api('archiveTask',{taskId:id,by:CU.name,byRole:CU.role,reason});
   CACHE=null;
-  if(r.ok!==false){toast('Ticket '+id+' archived','ok');
+  if(r.ok!==false){toast('Task '+id+' archived','ok');
     const cur=document.querySelector('.pg.ac')?.id;
     if(cur==='pg-dash')ldDash();else if(cur==='pg-closed')ldClosed();else if(cur==='pg-approvals')ldApprovals();else if(cur==='pg-asgn')ldMgr();else ldDash();
   } else toast('Failed: '+(r.error||'error'),'er2');
@@ -3730,6 +4020,7 @@ async function sndrm(id){
   else { toast('⚠️ '+(r.error||'Reminder not sent'),'er2'); }
 }
 
+function setWView(view){WVIEW=view==='list'?'list':'card';ldWT();}
 function wTab(el,t){WF=t;document.querySelectorAll('#wtabs .tab').forEach(x=>x.classList.remove('ac'));el.classList.add('ac');ldWT();}
 
 // ── HELPERS ───────────────────────────────────────────────────────
