@@ -1,0 +1,44 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function profile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function isAdmin() {
+      return signedIn() && profile().data.role == 'admin';
+    }
+
+    function ownsOdooRecord(record) {
+      return signedIn() &&
+        record.ownerOdooIds.hasAny(profile().data.odooUserIds);
+    }
+
+    match /users/{userId} {
+      allow get: if signedIn() && (isAdmin() || userId == request.auth.uid);
+      allow list: if isAdmin();
+      // Firebase Admin SDK creates and maintains user records.
+      allow create, update, delete: if false;
+    }
+
+    match /leads/{leadId} {
+      allow read: if isAdmin() || ownsOdooRecord(resource.data);
+      allow write: if false;
+    }
+
+    match /messages/{messageId} {
+      allow read: if isAdmin() || ownsOdooRecord(resource.data);
+      allow write: if false;
+    }
+
+    match /imports/{importId} {
+      allow read: if isAdmin() ||
+        (signedIn() && resource.data.uploadedByUid == request.auth.uid);
+      allow write: if false;
+    }
+  }
+}

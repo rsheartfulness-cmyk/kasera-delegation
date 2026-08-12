@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kasera Lead Tracker</title>
+  <script src="./excel-lib.js"></script>
+  <style>
+    :root {
+      --brand: #1f4e78;
+      --teal: #0f766e;
+      --ink: #172033;
+      --muted: #5d6880;
+      --line: #d9e1ec;
+      --soft: #f5f8fc;
+      --good: #15803d;
+      --bad: #b91c1c;
+      --warn: #b45309;
+      --hot: #be123c;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: #eef3f8; color: var(--ink); }
+    .shell { max-width: 1280px; margin: 0 auto; padding: 24px; }
+    header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+    h1 { margin: 0; color: var(--brand); font-size: 28px; line-height: 1.2; }
+    .subhead { margin: 6px 0 0; color: var(--muted); font-size: 14px; }
+    .privacy { padding: 10px 12px; border: 1px solid var(--line); background: #f8fbff; border-radius: 8px; color: var(--muted); font-size: 13px; text-align: right; }
+    main { display: grid; grid-template-columns: minmax(320px, 410px) minmax(0, 1fr); gap: 18px; align-items: start; }
+    .panel { background: #fff; border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 14px 38px rgba(31, 78, 120, 0.08); overflow: hidden; }
+    .upload-panel { padding: 18px; }
+    .dropzone { display: grid; place-items: center; min-height: 220px; border: 2px dashed #91a9bf; border-radius: 8px; background: var(--soft); text-align: center; cursor: pointer; }
+    .dropzone:hover, .dropzone.is-dragging { border-color: var(--brand); background: #edf6ff; }
+    .dropzone input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+    .upload-icon { width: 52px; height: 52px; margin: 0 auto 12px; border-radius: 50%; display: grid; place-items: center; color: #fff; background: var(--brand); font-size: 24px; font-weight: 700; }
+    .drop-title { display: block; font-size: 18px; font-weight: 700; }
+    .drop-note { display: block; margin-top: 8px; color: var(--muted); font-size: 13px; }
+    .actions { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+    button { border: 0; border-radius: 7px; min-height: 42px; padding: 0 16px; font: inherit; font-weight: 700; cursor: pointer; color: #fff; background: var(--brand); }
+    button.secondary { color: var(--brand); background: #e7f0f8; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .status { margin-top: 14px; padding: 12px; border-radius: 8px; background: #f8fafc; border: 1px solid var(--line); color: var(--muted); font-size: 14px; line-height: 1.45; min-height: 48px; }
+    .status.good { background: #f0fdf4; border-color: #bbf7d0; color: var(--good); }
+    .status.bad { background: #fef2f2; border-color: #fecaca; color: var(--bad); }
+    .status.warn { background: #fffbeb; border-color: #fde68a; color: var(--warn); }
+    .hint-list { margin: 16px 0 0; padding-left: 18px; color: var(--muted); font-size: 13px; line-height: 1.55; }
+    .mapping { margin-top: 14px; padding: 12px; border: 1px solid #f0c36d; background: #fffbeb; border-radius: 8px; }
+    .mapping h2 { margin: 0 0 8px; font-size: 15px; color: var(--warn); }
+    .mapping-grid { display: grid; gap: 8px; }
+    .field-row { display: grid; grid-template-columns: 120px 1fr; gap: 8px; align-items: center; font-size: 13px; }
+    .field-row select, .controls input, .controls select, .controls button, .small-input { width: 100%; min-height: 36px; border: 1px solid var(--line); border-radius: 7px; padding: 0 10px; background: #fff; color: var(--ink); font: inherit; }
+    .summary { display: grid; grid-template-columns: repeat(4, minmax(120px, 1fr)); gap: 10px; padding: 14px; }
+    .metric { border: 1px solid var(--line); border-radius: 8px; padding: 12px; background: #fbfdff; }
+    .metric strong { display: block; font-size: 22px; line-height: 1.1; color: var(--brand); }
+    .metric span { display: block; margin-top: 5px; font-size: 12px; color: var(--muted); }
+    .metric.warn strong { color: var(--warn); }
+    .metric.hot strong { color: var(--hot); }
+    .metric.good strong { color: var(--good); }
+    .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; padding: 0 14px 14px; border-bottom: 1px solid var(--line); }
+    .preview-head { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 14px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: #f8fafc; }
+    .preview-head h2 { margin: 0; font-size: 16px; color: var(--brand); }
+    .table-wrap { overflow: auto; max-height: 560px; }
+    table { border-collapse: collapse; width: 100%; min-width: 1560px; font-size: 13px; }
+    th { position: sticky; top: 0; z-index: 1; background: var(--brand); color: #fff; text-align: left; padding: 10px; white-space: nowrap; }
+    td { border-bottom: 1px solid #e8edf3; padding: 9px 10px; vertical-align: top; color: #263247; }
+    tr:nth-child(even) td { background: #f8fbff; }
+    .history-cell { max-width: 420px; white-space: pre-wrap; line-height: 1.35; }
+    .empty { padding: 36px 18px; text-align: center; color: var(--muted); }
+    .badge { display: inline-block; padding: 3px 7px; border-radius: 999px; font-size: 11px; font-weight: 700; background: #eef2ff; color: var(--brand); }
+    .badge.stale { background: #fffbeb; color: var(--warn); }
+    .badge.hot { background: #fff1f2; color: var(--hot); }
+    .badge.duplicate { background: #f1f5f9; color: #475569; }
+    .insights { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; padding: 0 14px 14px; }
+    .insight { border: 1px solid var(--line); border-radius: 8px; padding: 12px; background: #fff; min-height: 90px; }
+    .insight h3 { margin: 0 0 8px; font-size: 13px; color: var(--brand); }
+    .insight ol { margin: 0; padding-left: 20px; color: var(--muted); font-size: 12px; line-height: 1.45; }
+    .account { margin-top: 14px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: #f8fbff; color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .account strong { color: var(--brand); }
+    .auth-fields { display: grid; gap: 8px; margin-top: 10px; }
+    .auth-fields input { width: 100%; min-height: 36px; border: 1px solid var(--line); border-radius: 7px; padding: 0 10px; color: var(--ink); font: inherit; }
+    .access-gate { width: min(100%, 470px); margin: 52px auto; padding: 30px; border: 1px solid var(--line); border-radius: 16px; background: rgba(255,255,255,.96); box-shadow: 0 20px 48px rgba(15,60,94,.14); }
+    .access-gate h2 { margin: 7px 0 8px; color: var(--brand-strong); font-size: 24px; }
+    .access-gate p { margin: 0 0 12px; color: var(--muted); line-height: 1.5; font-size: 14px; }
+    .status-pill { display: inline-block; padding: 3px 7px; border-radius: 999px; font-size: 11px; font-weight: 700; background: #eef2ff; color: var(--brand); }
+    .status-pill.interested, .status-pill.converted { color: var(--good); background: #dcfce7; }
+    .status-pill.callback { color: var(--warn); background: #fef3c7; }
+    .status-pill.not-connected { color: #475569; background: #e2e8f0; }
+    .status-pill.not-interested { color: var(--bad); background: #fee2e2; }
+    @media (max-width: 980px) {
+      .shell { padding: 16px; }
+      header { display: block; }
+      .privacy { text-align: left; margin-top: 12px; }
+      main { grid-template-columns: 1fr; }
+      .summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .controls { grid-template-columns: 1fr 1fr; }
+      .insights { grid-template-columns: 1fr; }
+      h1 { font-size: 23px; }
+    }
+
+    /* Product dashboard refresh */
+    :root {
+      --brand: #0f3c5e;
+      --brand-strong: #092b45;
+      --accent: #14b8a6;
+      --accent-soft: #ccfbf1;
+      --ink: #172033;
+      --muted: #667085;
+      --line: #e3eaf2;
+      --canvas: #f5f8fc;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    body {
+      background:
+        radial-gradient(circle at 95% 2%, rgba(20, 184, 166, .13), transparent 25rem),
+        radial-gradient(circle at 0% 24%, rgba(37, 99, 235, .07), transparent 24rem),
+        var(--canvas);
+    }
+    .shell { max-width: 1440px; padding: 28px 32px 36px; }
+    .topbar {
+      min-height: 96px;
+      padding: 18px 20px;
+      margin-bottom: 24px;
+      border: 1px solid rgba(255,255,255,.72);
+      border-radius: 20px;
+      background: rgba(255,255,255,.78);
+      box-shadow: 0 18px 48px rgba(15, 60, 94, .08);
+      backdrop-filter: blur(14px);
+    }
+    .brand-block { display: flex; align-items: center; gap: 14px; }
+    .brand-mark {
+      width: 48px; height: 48px; display: grid; place-items: center; flex: 0 0 auto;
+      border-radius: 15px; color: #fff; font-size: 23px; font-weight: 800;
+      background: linear-gradient(135deg, var(--brand), #126d85 64%, var(--accent));
+      box-shadow: 0 10px 22px rgba(15, 60, 94, .22);
+    }
+    .eyebrow {
+      display: block; margin-bottom: 4px; color: #0f766e; font-size: 10px;
+      font-weight: 800; letter-spacing: .1em; line-height: 1.25; text-transform: uppercase;
+    }
+    h1 { color: var(--brand-strong); font-size: 30px; letter-spacing: -.035em; }
+    h2 { margin: 0; color: var(--brand-strong); font-size: 20px; letter-spacing: -.025em; }
+    .subhead { max-width: 680px; margin-top: 5px; font-size: 13px; line-height: 1.45; }
+    .privacy {
+      max-width: 325px; padding: 9px 13px 9px 30px; border: 1px solid #cce9e6;
+      border-radius: 999px; background: #f0fdfa; color: #0f766e; font-size: 12px; line-height: 1.35; text-align: left;
+      position: relative;
+    }
+    .privacy::before {
+      content: ""; position: absolute; left: 13px; top: 50%; width: 8px; height: 8px;
+      border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px rgba(20,184,166,.13); transform: translateY(-50%);
+    }
+    main { grid-template-columns: minmax(320px, 365px) minmax(0, 1fr); gap: 24px; }
+    .panel {
+      border: 1px solid rgba(219, 230, 241, .94); border-radius: 20px;
+      background: rgba(255,255,255,.93); box-shadow: 0 14px 34px rgba(15, 60, 94, .07);
+    }
+    .upload-panel { padding: 20px; position: sticky; top: 18px; }
+    .section-intro { margin-bottom: 16px; }
+    .section-intro h2 { font-size: 19px; }
+    .section-intro p { margin: 7px 0 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .dropzone {
+      min-height: 210px; border-color: #a3c4d7; border-radius: 15px;
+      background: linear-gradient(135deg, #f5fbff, #f0fdfa);
+      transition: .18s ease;
+    }
+    .dropzone:hover, .dropzone.is-dragging {
+      border-color: var(--accent); background: #ecfdf9; box-shadow: inset 0 0 0 3px rgba(20,184,166,.08);
+      transform: translateY(-1px);
+    }
+    .upload-icon {
+      width: 50px; height: 50px; border-radius: 16px; margin-bottom: 11px;
+      background: linear-gradient(135deg, var(--brand), #126d85); font-size: 27px;
+      box-shadow: 0 9px 18px rgba(15,60,94,.2);
+    }
+    .drop-title { color: var(--brand-strong); font-size: 16px; }
+    .actions { gap: 8px; }
+    button {
+      min-height: 40px; padding: 0 14px; border-radius: 10px; background: var(--brand);
+      box-shadow: 0 5px 12px rgba(15,60,94,.12); font-size: 13px; transition: .16s ease;
+    }
+    button:hover:not(:disabled) { background: var(--brand-strong); transform: translateY(-1px); box-shadow: 0 8px 16px rgba(15,60,94,.18); }
+    button.secondary { background: #eef4f9; color: #24526f; box-shadow: none; }
+    button.secondary:hover:not(:disabled) { background: #e1edf5; color: var(--brand-strong); }
+    #saveImportBtn { background: linear-gradient(135deg, #0f766e, #0d9488); }
+    #downloadBtn { background: linear-gradient(135deg, #0f3c5e, #155e75); }
+    .status { min-height: 0; margin-top: 16px; padding: 12px 13px; border-radius: 12px; font-size: 12px; }
+    .account { margin-top: 16px; border-radius: 12px; background: #f7fbff; font-size: 12px; }
+    .help-card { margin-top: 16px; padding: 13px; border-radius: 13px; background: #f8fafc; border: 1px solid #edf1f5; }
+    .help-card strong { color: var(--brand-strong); font-size: 12px; }
+    .hint-list { margin: 8px 0 0; padding-left: 17px; font-size: 12px; line-height: 1.52; }
+    .dashboard-panel { overflow: hidden; }
+    .dashboard-head {
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      padding: 22px 22px 8px;
+    }
+    .dashboard-head h2 { font-size: 22px; }
+    .period-chip {
+      display: inline-flex; align-items: center; gap: 7px; padding: 8px 11px;
+      border: 1px solid #d6ebe8; border-radius: 999px; background: #f0fdfa; color: #0f766e; font-size: 12px; font-weight: 700; white-space: nowrap;
+    }
+    .period-chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+    .summary { grid-template-columns: repeat(4, minmax(125px, 1fr)); gap: 12px; padding: 14px 22px 22px; }
+    .metric {
+      min-height: 94px; padding: 15px; border: 1px solid #e6edf4; border-radius: 14px;
+      background: linear-gradient(135deg, #fff, #f8fbfd); position: relative; overflow: hidden;
+    }
+    .metric::after { content: ""; position: absolute; right: -15px; bottom: -18px; width: 56px; height: 56px; border-radius: 50%; background: rgba(15,60,94,.045); }
+    .metric strong { font-size: 25px; letter-spacing: -.04em; }
+    .metric span { margin-top: 7px; font-size: 11px; font-weight: 600; }
+    .metric.good { border-color: #c9e9d6; background: linear-gradient(135deg, #fbfffc, #ecfdf3); }
+    .metric.warn { border-color: #f3dfbc; background: linear-gradient(135deg, #fffdfa, #fff7ed); }
+    .filter-area { padding: 0 22px 18px; border-top: 1px solid #edf1f5; border-bottom: 1px solid #edf1f5; background: #fbfcfe; }
+    .filter-heading { padding: 16px 0 12px; }
+    .filter-heading h3, .insights-head h3 { margin: 0; color: var(--brand-strong); font-size: 14px; }
+    .filter-heading p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+    .controls { grid-template-columns: repeat(4, minmax(130px, 1fr)); gap: 10px; padding: 0; border: 0; }
+    .filter-field { display: block; min-width: 0; color: #5c6779; font-size: 10px; font-weight: 750; letter-spacing: .035em; text-transform: uppercase; }
+    .filter-field span { display: block; margin: 0 0 5px 2px; }
+    .filter-search { grid-column: span 2; }
+    .field-row select, .controls input, .controls select, .controls button, .small-input {
+      min-height: 39px; border-color: #dbe5ee; border-radius: 9px; background: #fff; font-size: 12px; text-transform: none; letter-spacing: normal;
+    }
+    .controls input:focus, .controls select:focus, .auth-fields input:focus {
+      outline: 3px solid rgba(20,184,166,.14); border-color: #5eead4;
+    }
+    .insights-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 22px 10px; }
+    .insights-head span { color: var(--muted); font-size: 11px; }
+    .insights { gap: 12px; padding: 0 22px 20px; }
+    .insight { min-height: 106px; padding: 14px; border-radius: 13px; border-color: #e8eef4; background: linear-gradient(135deg, #fff, #f9fbfd); }
+    .insight h3 { font-size: 12px; letter-spacing: .01em; }
+    .insight ol { margin-top: 9px; font-size: 12px; }
+    .preview-head { padding: 15px 22px; background: #fff; border-top-color: #edf1f5; }
+    .preview-head h2 { margin-top: 1px; font-size: 18px; }
+    .preview-head .eyebrow { margin-bottom: 3px; }
+    .table-wrap { max-height: 590px; }
+    table { font-size: 12px; }
+    th { background: var(--brand-strong); padding: 11px 10px; font-size: 11px; letter-spacing: .015em; }
+    td { padding: 10px; }
+    .empty { padding: 54px 18px; }
+    .status-pill, .badge { font-size: 10px; }
+    @media (max-width: 1180px) {
+      main { grid-template-columns: minmax(300px, 335px) minmax(0, 1fr); }
+      .summary { grid-template-columns: repeat(2, minmax(125px, 1fr)); }
+      .controls { grid-template-columns: repeat(2, minmax(130px, 1fr)); }
+      .filter-search { grid-column: span 2; }
+    }
+    @media (max-width: 980px) {
+      .shell { padding: 18px; }
+      .topbar { display: block; padding: 17px; }
+      .privacy { margin-top: 15px; max-width: none; }
+      main { grid-template-columns: 1fr; }
+      .upload-panel { position: static; }
+    }
+    @media (max-width: 620px) {
+      .shell { padding: 12px; }
+      .topbar, .panel { border-radius: 16px; }
+      .brand-mark { width: 42px; height: 42px; border-radius: 13px; }
+      h1 { font-size: 25px; }
+      .dashboard-head, .preview-head { padding-left: 16px; padding-right: 16px; }
+      .summary, .filter-area, .insights { padding-left: 16px; padding-right: 16px; }
+      .summary { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+      .metric { min-height: 82px; padding: 12px; }
+      .metric strong { font-size: 21px; }
+      .controls { grid-template-columns: 1fr; }
+      .filter-search { grid-column: auto; }
+      .insights-head { align-items: start; padding-left: 16px; padding-right: 16px; }
+      .insights-head span { display: none; }
+      .preview-head { align-items: flex-start; }
+      .preview-head .drop-note { text-align: right; max-width: 125px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand-block">
+        <div class="brand-mark">K</div>
+        <div>
+          <span class="eyebrow">Kasera Industries · CRM Operations</span>
+          <h1>Lead Tracker</h1>
+          <p class="subhead">One place for Odoo imports, follow-up conversations, and performance reporting.</p>
+        </div>
+      </div>
+      <div class="privacy" id="privacyNote">Persistent storage is being prepared.</div>
+    </header>
+
+    <section id="accessGate" class="access-gate" hidden></section>
+
+    <main id="appMain">
+      <section class="panel upload-panel">
+        <div class="section-intro">
+          <span class="eyebrow">01 · Import workspace</span>
+          <h2>Bring in the latest Odoo data</h2>
+          <p>Each lead and message is matched before it is saved, so reports stay accurate across every upload.</p>
+        </div>
+        <label class="dropzone" id="dropzone">
+          <input id="fileInput" type="file" accept=".xlsx,.xls">
+          <span>
+            <span class="upload-icon">+</span>
+            <span class="drop-title">Choose or drop Excel file</span>
+            <span class="drop-note">Raw Odoo lead export works automatically</span>
+          </span>
+        </label>
+
+        <div class="actions">
+          <button id="saveImportBtn" disabled>Save New Data</button>
+          <button id="downloadBtn" disabled>Download Report</button>
+          <button id="whatsappBtn" class="secondary" disabled>Copy Summary</button>
+          <button id="loadSavedBtn" class="secondary">Load Saved Data</button>
+          <button id="resetBtn" class="secondary" disabled>Clear Preview</button>
+        </div>
+
+        <div id="status" class="status">Ready. Select the raw Odoo lead export to begin.</div>
+
+        <div id="mappingPanel" class="mapping" hidden>
+          <h2>Column mapping needed</h2>
+          <div class="mapping-grid" id="mappingGrid"></div>
+          <div class="actions">
+            <button id="applyMappingBtn">Use These Columns</button>
+          </div>
+        </div>
+
+        <div id="accountPanel" class="account"></div>
+
+        <div class="help-card">
+          <strong>Data safety built in</strong>
+          <ul class="hint-list">
+          <li>Lead ID and Message ID ensure re-uploaded records are never counted twice.</li>
+          <li>System notifications and automated acknowledgements are excluded from follow-up totals.</li>
+          <li>Add the Odoo Tags and Message Author fields for full tag and employee reporting.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="panel dashboard-panel">
+        <div class="dashboard-head">
+          <div>
+            <span class="eyebrow">Live reporting</span>
+            <h2>Lead performance overview</h2>
+          </div>
+          <span class="period-chip" id="periodCaption">All saved history</span>
+        </div>
+        <div class="summary" id="summary">
+          <div class="metric"><strong>0</strong><span>Total Leads</span></div>
+          <div class="metric"><strong>0</strong><span>Meaningful Messages</span></div>
+          <div class="metric"><strong>-</strong><span>First Activity</span></div>
+          <div class="metric"><strong>-</strong><span>Last Activity</span></div>
+          <div class="metric good"><strong>0</strong><span>Interested</span></div>
+          <div class="metric warn"><strong>0</strong><span>Callback</span></div>
+          <div class="metric"><strong>0</strong><span>Not Connected</span></div>
+          <div class="metric warn"><strong>0</strong><span>Stale Leads</span></div>
+        </div>
+
+        <div class="filter-area">
+          <div class="filter-heading">
+            <div>
+              <h3>Explore the data</h3>
+              <p>Use filters to focus on the people and follow-ups that need attention.</p>
+            </div>
+          </div>
+          <div class="controls">
+            <label class="filter-field filter-search"><span>Search</span><input id="searchInput" type="search" placeholder="Lead, contact, city, or tag"></label>
+            <label class="filter-field"><span>Report month</span><input id="monthFilter" type="month" title="Report month"></label>
+            <label class="filter-field"><span>Specific day</span><input id="dayFilter" type="date" title="Specific report day"></label>
+            <label class="filter-field"><span>Stage</span><select id="stageFilter"><option value="">All stages</option></select></label>
+            <label class="filter-field"><span>Salesperson</span><select id="salespersonFilter"><option value="">All salespeople</option></select></label>
+            <label class="filter-field"><span>Tag</span><select id="tagFilter"><option value="">All tags</option></select></label>
+            <label class="filter-field"><span>Conversation</span><select id="conversationFilter"><option value="">All statuses</option></select></label>
+            <label class="filter-field"><span>Activity flag</span><select id="flagFilter">
+              <option value="">All flags</option>
+              <option value="stale">Stale</option>
+              <option value="active7">Active 7 days</option>
+              <option value="dueToday">Follow-up due today</option>
+              <option value="overdue">Overdue follow-up</option>
+              <option value="interested">Interested</option>
+              <option value="review">Needs review</option>
+            </select></label>
+            <label class="filter-field"><span>Stale after days</span><input id="staleDaysInput" class="small-input" type="number" min="1" max="365" value="15"></label>
+          </div>
+        </div>
+
+        <div class="insights-head">
+          <h3>Quick insights</h3>
+          <span>What is driving the current report</span>
+        </div>
+        <div class="insights" id="insights">
+          <div class="insight"><h3>Top Stages</h3><ol><li>No data yet</li></ol></div>
+          <div class="insight"><h3>Employee Activity</h3><ol><li>No data yet</li></ol></div>
+          <div class="insight"><h3>Top Tags</h3><ol><li>No data yet</li></ol></div>
+        </div>
+
+        <div class="preview-head">
+          <div><span class="eyebrow">Detailed view</span><h2>Lead conversations</h2></div>
+          <span id="fileName" class="drop-note">No file selected</span>
+        </div>
+        <div class="table-wrap">
+          <div id="emptyPreview" class="empty">Cleaned leads will appear here before download.</div>
+          <table id="previewTable" hidden>
+            <thead>
+              <tr>
+                <th>Flag</th>
+                <th>Opportunity</th>
+                <th>Contact</th>
+                <th>Phone Number</th>
+                <th>City</th>
+                <th>Salesperson</th>
+                <th>Stage</th>
+                <th>Conversation Status</th>
+                <th>Sales Signal</th>
+                <th>Next Action</th>
+                <th>Follow-up</th>
+                <th>Tags</th>
+                <th>Last Activity</th>
+                <th>Messages</th>
+                <th>Follow-up History</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script type="module" src="./tracker-app.js?v=20260812"></script>
+</body>
+</html>

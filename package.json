@@ -1,0 +1,12 @@
+{
+  "name": "kasera-lead-tracker-web",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Static frontend build for Cloudflare Pages",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "node scripts/build-cloudflare.mjs"
+  }
+}
